@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+
+<!--if、else：页面判断type的数值，显示Y/N-->
+<div id="app">
+  <h1>1.if判断</h1>
+  <h2 v-if="type==='A'">Yes</h2>
+  <h2 v-else>No</h2>
+
+  <h1>2.for遍历</h1>
+  <li v-for = "(item, index) in items">
+    index: {{index}} , {{item.message}}
+  </li>
+
+  <h1>3.绑定：事件、调用函数</h1>
+  <button v-on:click = "say">click for test</button>
+
+  <h1>4.双向绑定</h1>
+  <select v-model="selected">
+    <option value="" disabled>--请选择--</option>
+    <option>A</option>
+    <option>B</option>
+    <option>C</option>
+  </select>
+  <p>当前选中的是：{{selected}}</p>
+
+  <h1>5.自定义组件</h1>
+  <!-- 遍历items数组,获取message参数，传给模板中的element  -->
+  <chris v-for="item in items" v-bind:element="item.message"></chris>
+
+  <h1>6.计算属性</h1>
+  <span>当前时间（method获取）：{{getTimeByMethods()}}</span> <br/>
+  <span>当前时间（computed获取）：{{getTimeByComputed}}</span>
+</div>
+<hr/>
+
+<!--Axios-->
+<div id = "app1">
+  <div>
+    {{info.name}}
+  </div>
+  <div>
+    {{info.links}}
+  </div>
+  <a v-bind:href="info.links.address">跳转{{info.links.name}}</a>
+
+</div>
+
+<script src = "https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.min.js"></script>
+<script src = "https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+  //5.自定义VUE组件  （组件需要放在script的头部，否则无法使用）
+  Vue.component("chris", {
+    //参数：使用v-bind传入参数
+    props: ["element"],
+    //模板：获取上面的参数element
+    template: '<li> {{element}} </li>'
+  });
+
+  var vm = new Vue({
+    el: "#app",
+
+    //1.数据
+    data: {
+      //1.参数
+      type: 'A',
+
+      //2.数组
+      items: [
+        //对象：message
+        {message: "chris"},
+        {message: "FYJ"},
+        {message: "Vickey"}
+      ],
+      say_msg: "say hello",
+
+      //4.双向绑定：页面选择后，直接在页面显示当前选择的数据
+      selected: ''
+    },
+
+    //3.方法：需要绑定在Vue对象内  (不具备缓存，需要实时计算)
+    methods:{
+      say: function (event) {
+        alert(this.say_msg);
+      },
+      getTimeByMethods: function(){
+        return Date.now();
+      }
+    },
+
+    //6.计算属性: (具备缓存，不需要实时计算，有点像redis缓存，仅当该方法中的数据发生变化时，才会再次进行计算)
+    computed:{
+      getTimeByComputed: function(){
+        this.type;
+        return Date.now();
+      }
+    }
+  });
+
+
+  //Axios异步通信：替代JQuery、Ajax，读取json文件
+  var vm1 = new Vue({
+    el: "#app1",
+
+    //data方法：使用该方法返回Json格式的数据
+    data () {
+      return {
+        info: {
+          name: null,
+          links: [
+            {
+              name: null,
+              address: null
+            }
+          ]
+        }
+      }
+    },
+
+    //钩子函数：读取Json文件的数据，返回给浏览器（ES6特性）
+    mounted () {
+      axios.get('../../data/testjson.json').then(response=>(this.info=response.data))
+    }
+  });
+
+
+</script>
+</body>
+</html>
