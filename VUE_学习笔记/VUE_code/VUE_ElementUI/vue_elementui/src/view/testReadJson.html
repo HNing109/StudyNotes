@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <script src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
+  <script src="https://cdn.staticfile.org/axios/0.18.0/axios.min.js"></script>
+</head>
+<body>
+<div id = "app">
+  <h1>读取data.json文件的数据</h1>
+  <div>
+    显示所有数据：<br>
+    {{ datas }}
+  </div>
+  <br>
+  <!--读取info数组中的对象-->
+  <div v-for="item in datas">
+    读取具体的数据数据：<br>
+    <!--读取对象中的数据-->
+    addr: {{item.addr}} <br>
+    tel: {{item.tel}}
+  </div>
+
+</div>
+
+<script>
+
+    let vm = new Vue({
+      el: '#app',
+      //数据返回模板
+      data(){
+        return {
+          datas: null
+        }
+      },
+      //读取数据
+      mounted() {
+        axios
+            .get('../data/data.json')
+            //使用response获取json文件中特定位置的数据
+            .then(response => (this.datas = response.data.info))
+            .catch(function (error){
+              console.log(error);
+            });
+          // axios
+          //   .get('../data/data.json')
+          //使用response获取json文件全部数据
+          //   .then(response => (this.datas = response))
+          //   .catch(function (error) { // 请求失败处理
+          //     console.log(error);
+          //   });
+      }
+    });
+</script>
+</body>
+</html>
