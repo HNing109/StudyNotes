@@ -132,7 +132,7 @@
 
 - JavaScript：无需编译，浏览器可直接解释运行，用于控制网页的行为
 
-  - 标准：按照[ECMAScript] 标准的开发方式，简称是ES,
+  - 标准：按照[ECMAScript] 标准的开发方式，简称是ES.
 
     ES4 (内部,未征式发布)
     ES5 (全浏览器支持)
@@ -1355,7 +1355,7 @@
 
      
 
-  - Ajax（**<font color='red'>这个比较繁琐，i也难辞用的比较少，基本上都用Axios</font>**）
+  - Ajax（**<font color='red'>这个比较繁琐，使用的比较少，基本上都用Axios</font>**）
 
      - get方法
 
@@ -1364,7 +1364,7 @@
        <html>
        <head>
        <meta charset="utf-8">
-       <title>Vue 测试实例 - 菜鸟教程(runoob.com)</title>
+       <title>Vue 测试实例</title>
        <script src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
        <script src="https://cdn.staticfile.org/vue-resource/1.5.1/vue-resource.min.js"></script>
        </head>
@@ -1584,7 +1584,7 @@ element-UI手册：https://element.eleme.cn/#/zh-CN/component/installation
         component: Main,
         //此路由的名称：可使用v-bind:to="{name:'main'}" 调用 
         name: 'main',
-        //写入子模块（嵌套路由）
+        //写入子模块（嵌套路由）：转到子路由时，需要在url前面添加/mian
         children: [
           // {
           //   //传入参数（方式一，耦合较高）：  :id 为传递的参数，使用此url需要传入一个参数
@@ -1724,7 +1724,7 @@ element-UI手册：https://element.eleme.cn/#/zh-CN/component/installation
 
    
 
--  主页：Main.js
+- 主页：Main.js
 
    ```vue
    <template>
@@ -1741,8 +1741,9 @@ element-UI手册：https://element.eleme.cn/#/zh-CN/component/installation
                <el-menu-item index="/">
                  <!--插入跳转链接-->
                  <!-- <router-link to="/user/profile">个人信息</router-link>-->
-                 <!--传入参数（方式一，耦合较高）：name为组件名字（调用index.js中name为Profile的组件）， params中的id为参数-->
-                 <router-link v-bind:to="{name: 'Profile', params: {id:1}}">个人信息</router-link>
+                 <!--传入参数（方式一，耦合较高）：name为组件名字（调用index.js中name为Profile的组件），
+   				params中的id为参数，tag将样式修改为li（默认为<a超链接标签）-->
+                 <router-link v-bind:to="{name: 'Profile', params: {id:1}}" tag="li">个人信息</router-link>
                </el-menu-item>
                <el-menu-item index="1-2">
                  <router-link to="/user/list">用户列表</router-link>
@@ -1756,7 +1757,6 @@ element-UI手册：https://element.eleme.cn/#/zh-CN/component/installation
                <el-menu-item index="2-2">内容列表</el-menu-item>
              </el-menu-item-group>
            </el-submenu>
-   
          </el-menu>
        </el-aside>
    
@@ -1775,7 +1775,6 @@ element-UI手册：https://element.eleme.cn/#/zh-CN/component/installation
            <!--在这里展示视图-->
            <router-view />
          </el-main>
-   
        </el-container>
    
      </el-container>
