@@ -352,6 +352,8 @@ func wayTest(){
 
 	fmt.Printf("w = %v, w1 = %v \n", w, w1)
 	fmt.Println(w.ABS())
+
+
 }
 
 
