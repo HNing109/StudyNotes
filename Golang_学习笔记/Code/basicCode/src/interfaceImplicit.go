@@ -42,6 +42,7 @@ func CreateNew(name string, age int) error{
 	return &T{name, age}
 }
 
+
 func main()  {
 	var impl I = &T{name: "chris", age: 18}
 	impl.Say()
@@ -53,6 +54,5 @@ func main()  {
 	} else{
 		fmt.Println("success")
 	}
-
 }
 

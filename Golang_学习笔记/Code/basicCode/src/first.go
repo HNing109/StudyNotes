@@ -207,14 +207,14 @@ func slice(){
 	//var sl []int = arr[1: 3]
 	var sl = arr[1: 3]
 
-	fmt.Println(sl, arr)
+	fmt.Println("s1 = ",sl, arr)
 	//更改切片中的数据，会修改对应引用的数据
 	sl[0] = 1000
 	fmt.Println(sl, arr)
 
 	//遍历切片
 	for index, val := range arr{
-		fmt.Printf("index = %d, val = %d\n", index, val)
+		fmt.Printf("index = %d, val = %d, type = %T\n", index, val, val)
 	}
 }
 
@@ -313,7 +313,7 @@ type way struct{
 }
 
 /**
-使用值接收者（少用）：myWay way，该方式仅仅修改way结构体中数据的副本（退出该函数后，不影响原有的数据）
+值接收者（少用）：myWay way，该方式仅仅修改way结构体中数据的副本（退出该函数后，不影响原有的数据）
  */
 func (myWay way) ABS() float64{
 	if myWay.x - myWay.y >= 0{
@@ -324,7 +324,7 @@ func (myWay way) ABS() float64{
 }
 
 /**
-使用指针接收者（常用）：myWay *way，可以直接改变way结构体中的数据
+指针接收者（常用）：myWay *way，可以直接改变way结构体中的数据
  */
 func (myWay *way) Scale(num float64){
 	myWay.x = myWay.x * num
@@ -352,8 +352,6 @@ func wayTest(){
 
 	fmt.Printf("w = %v, w1 = %v \n", w, w1)
 	fmt.Println(w.ABS())
-
-
 }
 
 

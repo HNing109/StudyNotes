@@ -23,4 +23,7 @@ func main(){
 	res2 := <- ch
 	fmt.Println(res1, res2, res1 + res2)
 
+	var ch2 = make(chan int, 1)
+	ch2 <- 2
+	fmt.Println(<- ch2)
 }
