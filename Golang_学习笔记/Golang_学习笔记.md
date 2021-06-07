@@ -1,3 +1,7 @@
+Go中文API手册：https://studygolang.com/pkgdoc
+
+Go官方教程：https://tour.golang.org/welcome/1
+
 # 1、基本语法
 
 ## 1.1、基本数据类型
