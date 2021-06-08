@@ -70,4 +70,7 @@ func main() {
 
 	fmt.Println("tree1 == tree2 ?  ", IsSame(&tree1, &tree2))
 
+	fmt.Printf("%#v\n", tree1)
+	fmt.Printf("%+v", tree1)
+
 }
