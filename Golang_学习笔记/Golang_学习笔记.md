@@ -1,13 +1,27 @@
 # 1、基本语法
 
-## 1.1、基本数据类型
+## 1.1、数据类型
+
+- **<font color='red'>Go数据之间的比较，必须是建立在两个数据类型相同的情况下，否则无法进行比较，未编译之前就报错</font>**
+
+- 数据输出printf：
+  - %d：输出整数  （%02d：输出2位数长度的int数据）
+  - %x、%X：输出十六进制
+  - %f：输出float数据（%.2f：保留2位小数输出）
+  - %e：输出科学计数法格式
+  - %s：输出字符串
+  - %c：输出字符
+
+### 1.1.1、基本数据类型
+
+基本数据类型在赋值时，是将内存地址中的数据进行复制，并不会修改原有内存地址中的数据。
 
 - bool
 
-- string
+- string：Go中的字符串可根据需要，自动调整占用内存大小（1~4字节），java中的string固定占用2字节
 
-- int  int8  int16  int32  int64
-  uint uint8 uint16 uint32 uint64 
+- int：int8（-128 -> 127）、  int16 、 int32 、 int64
+  uint：uint8（0-> 255）、 uint16、 uint32、 uint64 
 
   uintptr：无符号整型，用于存放指针
   
@@ -19,7 +33,7 @@
   
 - float32（少用）
 
-  float64（常用）
+  float64（常用）：因为math包中需要传入的参数基本都是float64
 
 - complex64  ：32位实数 + 32位虚数
 
@@ -43,18 +57,51 @@
   )
   ```
 
-  
+
+
+
+### 1.1.2、引用数据类型
+
+引用数据类型，本质上是指向内存地址中的数据，可以直接修改内存地址中的数据。
+
+Eg：使用指针结构体作为参数，传入函数中，可修改该结构体中的数据。
+
+- 指针：Go中的指针并不支持移动（eg：*num++），简化了指针使用的难度，防止出现内存泄漏问题
+- map
+- channel
+
+
 
 ## 1.2、变量
+
+仅全局变量可被声明但不使用。局部变量必须声明且使用（否则会报错）
 
 - 定义变量的方式
 
   - var param string = “chris”  //（显式类型定义）需要写明参数类型、初值
-  - var param := “chris”            //（隐式类型定义）自动根据初值类型，获取相应的类型
-  - param := “chris”                  //自动根据初值类型，获取相应的类型
-  - const param string = ”chris“ //定义常量
 
--  Go默认未初始化变量的初始值
+  - var param := “chris”            //（隐式类型定义）自动根据初值类型，获取相应的类型
+
+  - param := “chris”                  //自动根据初值类型，获取相应的类型
+
+  - const param string = ”chris“ //定义常量，
+
+    **数字型的常量，没有精度限制，即定义任意精度都不会出现溢出**
+
+    const可用于定义枚举
+
+  - **_ **  ：用于for、定义变量时，忽略某个参数值（抛弃数据）
+
+    ```go
+    const(
+    	_	= iota  			//忽略0
+        a	= 1 << (10 * iota)	//1 << (10 * 1)
+    )
+    ```
+
+    
+
+-  Go默认未赋值变量的初始值（**Go给所有的变量都进行了初始化**）
 
   - bool：false
   - int：0
@@ -71,9 +118,11 @@
 
 - if-else
 
+  **在if中定义局部变量v，仅可在此if-else中使用**
+
   ```go
   func ifTest(num1 int , num2 int) int{
-  	//在if中定义局部变量v，仅可在if-else中使用
+  	//在if中定义局部变量v，仅可在此if-else中使用
   	if v := num1 - num2; v < num2{
   		return num2
   	} else{
@@ -88,7 +137,10 @@
 
 - switch
 
-  Go 自动提供了每个 case 后面所需的 break 语句
+  - Go 自动提供了每个 case 后面所需的 break 语句，因此不需要添加break。
+
+  - case后面若存在多条语句，可以不添加{}
+  - 可以使用fallthrough，继续执行后面的case
 
   ```go
   func switchTest(str string) string{
@@ -108,9 +160,12 @@
 
 - defer
 
-  defer推迟调用函数：仅当外层函数执行完后，才执行defer
-  推迟的函数调用会被压入一个栈中。当外层函数返回时，被推迟的函数会按照后进先出的顺序调用
-
+  defer推迟调用函数：仅当外层函数执行完后，才执行defer。
+  
+  **作用**：可用于追踪代码执行的位置（因为，defer是在函数执行完成之后，才会执行的）
+  
+  **原理**：推迟的函数调用会被压入一个栈中。当外层函数返回时，被推迟的函数会按照后进先出的顺序调用
+  
   ```go
   func deferTest(){
      for index := 0; index < 10; index++{
@@ -123,6 +178,10 @@
 
 -  for
 
+  - Go中没有while，使用 for {   }来实现while(true){  }功能
+  - 使用for实现while(index >= 1){}的功能：for index >=1{}
+  - for-range：循环读取容器中的数据。eg：for val := range chan{ }
+  
   ```go
   func arrTest(){
      //方式1
@@ -139,8 +198,32 @@
      fmt.Println(arr2)
   }
   ```
-
   
+  
+  
+-  goto（少用）
+
+   可以跳转至指定标签的位置，但是会导致代码混乱
+
+   ```go
+   func main() {
+   
+   LABEL1:
+   	for i := 0; i <= 5; i++ {
+   		for j := 0; j <= 5; j++ {
+   			if j == 4 {
+   				continue LABEL1
+   			}
+   			fmt.Printf("i is: %d, and j is: %d\n", i, j)
+   		}
+   	}
+   
+   }
+   ```
+
+   
+
+-  
 
 ## 1.4、集合
 
@@ -326,7 +409,7 @@
     - **结构体名**：可使用指针接收者*，也可不使用
       - 值接收者（少用，无法改变传入结构体的属性、数据值）
       - 指针接收者（常用，可以改变传入结构体的属性、数据值）
-    - **<font color='red'>方法名</font>**：
+    - **<font color='red'>方法名（变全局量名也一样）</font>**：
       - **首字母大写**：即java中的public方法，可被所有类调用
       - **首字母小写**：即java中的protected方法，只能被类内、包内的类调用。包外的类无法访问。
 
@@ -446,6 +529,12 @@
   ```
 
   
+  
+-  二元运算（Go中不存在三元运算，eg：return  num = 3 ?  true ：false）
+
+  
+
+- 
 
 ## 1.6、并发
 
@@ -606,7 +695,9 @@
 
 ## 2.2、 调用自定义包中的函数
 
-**<font color='red'>注意：由于Goland编译器的底层调用机制原因，导致无法调用同一个package包中其他类的方法。需要配置run configuration中的Run kind为Package模式，然后运行</font>**。
+**<font color='red'>问题：若不在src文件夹中新建package包存放新的.go文件，则无法在同一个包中调用其他类的方法，亦无法使用File方式运行.go文件。</font>**
+
+**<font color='red'>解决方式</font>：这是由于Goland编译器的底层调用机制原因，导致无法调用同一个package包中其他类的方法。需要配置run configuration中的Run kind为Package模式，然后运行**。
 
 1. 调用代码的地方
 
@@ -615,12 +706,39 @@
 2. 被调用的代码
 
    ![image-20210607161416210](Golang_学习笔记.assets/image-20210607161416210.png)
+   
+   
+
+## 2.3、cmd命令
+
+- `go build` 编译自身包和依赖包
+- `go install` 编译并安装自身包和依赖包
 
 
 
-# 3、
+# 3、常用函数
+
+## 3.1、init()函数
+
+- 作用：该函数用于初始化配置。
+- 执行时间：在系统初始化init()函数所在包之后，自动执行init()函数，且该函数无法被手动调用，先于main()函数之前执行。
+
+```go
+package main
+import "fmt"
+
+func init() {
+	fmt.Println("init package: main")
+}
+
+func main(){
+    
+}
+```
 
 
+
+## 3.2、painc()
 
 
 
