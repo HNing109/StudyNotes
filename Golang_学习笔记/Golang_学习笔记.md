@@ -42,6 +42,10 @@ Go官方教程：https://tour.golang.org/welcome/1
 
 # 2、基本语法
 
+Go中只有二元运算，不存在三元运算，例如Java中的：return  num = 3 ?  true ：false
+
+
+
 ## 2.1、数据类型
 
 - **<font color='red'>Go数据之间的比较，必须是建立在两个数据类型相同的情况下，否则无法进行比较，未编译之前就报错</font>**
@@ -182,7 +186,13 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   
 - **函数中的  ...  参数：**（Java中也有这样的传参方式）
 
-   表示传入的参数是一个不定长度的**<font color='red'>数组参数</font>**，可以是多个参数（用数组的方式进行存取）
+  - 表示传入的参数是一个不定长度的**<font color='red'>数组参数</font>**，可以是多个参数（用数组的方式进行存取）
+
+  - **作用**：<font color='red'>**...  +  空接口**</font>   可实现  **“函数重载”**  的效果（Go中并不允许函数重载，使用该方式可以起到类似效果）。
+
+    ​			**实现函数重载的方式**：在所定义的函数中，其结尾的传入形参，定义为： vars ...interface{}  
+
+    ​                                                  eg: func getData(name string, vars ...interface{}){   }
 
   ```go
   /*
@@ -585,6 +595,22 @@ func closureTest(){
 
 结构体中，最好重写String()方法，方便后期打印结构体中的数据。
 
+- 创建对象
+
+  - var impl struct                                           //impl为结构体类型变量
+- var impl *struct                                         //impl为指向结构体类型变量的  **指针**
+  - impl := person{filedName: "chris"}		//impl为结构体类型的变量
+- impl := &person{filedName: "chris"}     //impl为指向结构体类型变量的  **指针**  （该方式，可直接赋初始值）
+  - impl := new(person)                                 //impl为指向结构体类型变量的  **指针**  （该方式，需要自己手动给属性赋值）
+
+  **使用&struct{}创建对象，其底层依然会调用new(struct)方式创建（两者等价）**<font color='red'>两者的区别：（内存中的数据分布情况）</font>
+
+  ![image-20210610095947781](Golang_学习笔记.assets/image-20210610095947781.png)
+
+  ![image-20210610095958183](Golang_学习笔记.assets/image-20210610095958183.png)
+  
+  
+  
 - **结构体的方法**   
 
   - 方法和函数不同：方法有接收者，而函数没有
@@ -732,7 +758,7 @@ func closureTest(){
 
 - **内嵌结构体**
 
-  - 可实现类似  **继承**  的效果  （内嵌多个结构体，即：多重继承）
+  - 可实现类似  **继承**  的效果  （内嵌多个结构体，即：**多重继承**）
 
     - 内嵌的结构体，其参数同样遵循首字母大写（public）、首字母小写（protected）的访问原则。
 
@@ -789,7 +815,9 @@ func closureTest(){
 
 和java中的接口类似。可以对接口中的方法进行重写，eg：Error（）、String（）等方法
 
-- **空接口**，可用于接收任意类型的数据（类似于Java中的**Object对象**）。
+- **空接口**
+
+  可用于接收任意类型的数据（类似于Java中的**Object对象**）。
 
   - 本质上，**Go中的任何类型都实现了空接口**
 
@@ -816,18 +844,6 @@ func closureTest(){
   ```
 
   
-
-- **使用&struct{}创建对象，其底层依然会调用new(struct)方式创建（两者等价）**
-
-  <font color='red'>两者的区别：（内存中的数据分布情况）</font>
-
-  ![image-20210610095947781](Golang_学习笔记.assets/image-20210610095947781.png)
-
-  ![image-20210610095958183](Golang_学习笔记.assets/image-20210610095958183.png)
-
-- var impl struct     //impl为结构体类型变量
-
-- var impl *struct   //impl为指向结构体类型变量的**指针**
 
 - **结构体继承接口注意事项：**
 
@@ -857,6 +873,37 @@ func closureTest(){
     ```
 
 
+
+- **接口提取**
+
+  若原有结构体以及继承某个接口，现在结构体需要增加一个新继承的接口。Go中无需改变原有代码（Java中需要在对象后的extends中添加新接口名），直接给原有的结构体，增加新接口定义的方法、并实现该方法即可。 
+
+  ```go
+  type Shaper interface {
+  	Area() float32
+  }
+  
+  //新接口
+  type TopologicalGenus interface {
+  	Rank() int
+  }
+  
+  type Square struct {
+  	side float32
+  }
+  
+  func (sq *Square) Area() float32 {
+  	return sq.side * sq.side
+  }
+  
+  //Square结构体新增、实现该接口（TopologicalGenus）的方法，即可实现  “接口的多继承”
+  func (sq *Square) Rank() int {
+  	return 1
+  }
+  
+  ```
+
+  
 
 **结构体、接口的使用实例**
 
@@ -991,14 +1038,6 @@ func main() {
 
 
 
-
-
-- 二元运算（Go中不存在三元运算，eg：return  num = 3 ?  true ：false）
-
-  
-
-  
-
 ### 2.5.7、**工厂函数**
 
 工厂函数的返回值为另一个函数，可用于动态添加数据。
@@ -1035,28 +1074,51 @@ func main() {
 
  
 
-- 
-- 
-- 
-- 
+### 2.5.8、动态方法
+
+通过断言实现。在判断调用何种方法时，使用空接口接收传入的参数（对象），然后使用断言，判断该对象是否继承自某个接口（实现该接口中的方法）。若满足需求，则返回该接口的方法。不满足，则使用其他的处理方式。
+
+```go
+/*************  定义接口  *******************/
+type xmlWriter interface {
+	WriteXML(w io.Writer) error
+}
+
+/*************  定义：调用动态方法的函数  *******************/
+func StreamXML(v interface{}, w io.Writer) error {
+    //断言：判断传入的对象是否继承了xmlWriter接口
+	if xw, ok := v.(xmlWriter); ok {
+        //继承了：返回接口中的方法
+		return xw.WriteXML(w)
+	}
+    //未继承：返回其他方法
+	return encodeToXML(v, w)
+}
+
+func encodeToXML(v interface{}, w io.Writer) error {
+	// ...
+}
+```
+
+
 
 ## 2.6、并发
 
-- 通道
+- **通道**
 
   类似于java中的队列，先进先出。
 
-  - 定义：
+  - **定义：**
 
     ch := make(chan 存入的数据类型,  缓存空间大小)
 
     **默认缓存空间为0，即ch存入数据的同时，需要立刻将其取出。因此，通常需要指定一定大小的缓存空间，以存放数据，等待协程将其取出**
 
-  - 存数据：
+  - **存数据：**
 
     ch <- 2
 
-  - 取数据：
+  - **取数据：**
 
     val := <- ch
 
@@ -1093,7 +1155,7 @@ func main() {
 
   
 
-- 协程
+- **协程**
 
   属于轻量级线程，和java中的线程不同。Go协程不涉及锁的升级、状态转换等，因此速度更快。协程使用sync包中的Mutex（互斥锁）、Channel（通道、信道）来保证各个协程之间的并发控制。
 
@@ -1127,7 +1189,7 @@ func main() {
 
   
 
-- 锁
+- **锁**
 
   使用sync.Mutex中的Lock()、Unlock()方法进行上锁、解锁操作。
 
