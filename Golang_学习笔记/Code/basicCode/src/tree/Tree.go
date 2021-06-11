@@ -5,3 +5,4 @@ type Tree struct{
 	Left *Tree
 	Right *Tree
 }
+

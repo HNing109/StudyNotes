@@ -2,10 +2,14 @@ package main
 
 import (
 	"bytes"
-	"embeded_interface"
+	"myreflect"
+	"reflect"
+
+	//"embeded_interface"
 	"fmt"
 	"sort"
 	//"time"
+
 )
 import "longparam"
 
@@ -92,6 +96,11 @@ func main() {
 	sort.Ints(arr9)
 	fmt.Println(arr9)
 	fmt.Println(sort.SearchInts(arr9, 1))
+
+
+	wwwwwww()
+	qqq()
+
 }
 
 func init() {
@@ -117,5 +126,75 @@ func fibo(num int64) int64 {
 		return 1
 	} else {
 		return fibo(num-1) + fibo(num-2)
+	}
+}
+
+
+
+var i = 5
+var str = "ABC"
+
+type Person struct {
+	name string
+	age  int
+}
+
+type Any interface{}
+
+func wwwwwww() {
+	var val Any
+	val = 5
+	fmt.Printf("val has the value: %v\n", val)
+	val = str
+	fmt.Printf("val has the value: %v\n", val)
+	pers1 := new(Person)
+	pers1.name = "Rob Pike"
+	pers1.age = 55
+	val = pers1
+	fmt.Printf("val has the value: %v\n", val)
+	switch t := val.(type) {
+	case int:
+		fmt.Printf("Type int %T\n", t)
+	case string:
+		fmt.Printf("Type string %T\n", t)
+	case bool:
+		fmt.Printf("Type boolean %T\n", t)
+	case *Person:
+		fmt.Printf("Type pointer to Person %T\n", t)
+	default:
+		fmt.Printf("Unexpected type %T", t)
+	}
+
+	lambda := func(any interface{}) string{
+		switch val := any.(type){
+		case bool:
+			return "this param type is bool"
+		case string:
+			return "this param " + val +" type is string"
+		default:
+			return "unknow param type"
+		}
+	}
+
+	var str = "chris"
+	res := lambda(str)
+	fmt.Println(res)
+
+}
+
+func qqq() {
+	ref := myreflect.ReflectTest{Name:"chris"}
+	value := reflect.ValueOf(ref)
+	typeOf := reflect.TypeOf(ref)
+	fmt.Println(value, typeOf)
+
+	//获取对象中的属性值
+	for index := 0; index < value.NumField(); index++ {
+		fmt.Println("file ", index , " : ", value.Field(index))
+	}
+
+	//获取对象中的方法
+	for index := 0; index < value.NumMethod(); index++ {
+		fmt.Println("method ", index, " : ", value.Method(index))
 	}
 }

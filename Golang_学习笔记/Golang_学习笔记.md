@@ -2,9 +2,47 @@ Go中文API手册：https://studygolang.com/pkgdoc
 
 Go官方教程：https://tour.golang.org/welcome/1
 
-# 1、基本语法
+# 1、Goland编译器使用
 
-## 1.1、数据类型
+## 1.1、配置
+
+1. 增加Gopath路径，添加自己工程的路径
+
+   ![image-20210607161124609](Golang_学习笔记.assets/image-20210607161124609.png)
+
+2. 不使用Go Modules
+
+   ![image-20210607161150777](Golang_学习笔记.assets/image-20210607161150777.png)
+
+
+
+## 1.2、调用自定义包中的函数
+
+**<font color='red'>问题：若不在src文件夹中新建package包存放新的.go文件，则无法在同一个包中调用其他类的方法，亦无法使用File方式运行.go文件。</font>**
+
+**<font color='red'>解决方式</font>：这是由于Goland编译器的底层调用机制原因，导致无法调用同一个package包中其他类的方法。需要配置run configuration中的Run kind为Package模式，然后运行**。
+
+1. 调用代码的地方
+
+   ![image-20210607161402982](Golang_学习笔记.assets/image-20210607161402982.png)
+
+2. 被调用的代码
+
+   ![image-20210607161416210](Golang_学习笔记.assets/image-20210607161416210.png)
+
+   
+
+## 1.3、cmd命令
+
+- `go build` 编译自身包和依赖包
+
+- `go install` 编译并安装自身包和依赖包
+
+  
+
+# 2、基本语法
+
+## 2.1、数据类型
 
 - **<font color='red'>Go数据之间的比较，必须是建立在两个数据类型相同的情况下，否则无法进行比较，未编译之前就报错</font>**
 - **Go中不存在this、self等关键字**
@@ -16,7 +54,7 @@ Go官方教程：https://tour.golang.org/welcome/1
   - %s：输出字符串
   - %c：输出字符
 
-### 1.1.1、基本数据类型
+### 2.1.1、基本数据类型
 
 基本数据类型在赋值时，是将内存地址中的数据进行复制，并不会修改原有内存地址中的数据。
 
@@ -77,7 +115,7 @@ Go官方教程：https://tour.golang.org/welcome/1
 
 
 
-### 1.1.2、引用数据类型
+### 2.1.2、引用数据类型
 
 引用数据类型，本质上是指向内存地址中的数据，可以直接修改内存地址中的数据。
 
@@ -100,7 +138,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 
 
-## 1.2、变量
+## 2.2、变量
 
 仅全局变量可被声明但不使用。局部变量必须声明且使用（否则会报错）
 
@@ -171,7 +209,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 - 
 
-## 1.3、基本控制流程语句
+## 2.3、基本控制流程语句
 
 - if-else
 
@@ -290,7 +328,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 -  
 
-## 1.4、集合
+## 2.4、集合
 
 - 数组
 
@@ -444,473 +482,565 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 
 
-## 1.5、常用的编程类型
+## 2.5、常用的编程类型
 
-- **函数值（“回调”）**
+### 2.5.1、**函数值（“回调”）**
 
-  将函数作为参数传入另一个函数中，在该函数中可以之接使用传入的函数，进行运算
+将函数作为参数传入另一个函数中，在该函数中可以之接使用传入的函数，进行运算
 
-  ```go
-  //f为传入的函数值
-  func funcVal(f func(float64, float64) float64, x float64, y float64) float64{
-     return f(x, y)
-  }
-  
-  func funcValTest(){
-     //作为参数传入的函数
-     mySqrt := func(x float64, y float64) float64{
-        sum := 1.0
-        for index := 1; index <= int(y); index++{
-           sum = sum * x
-        }
-        return sum
-     }
-     //两者等效
-     fmt.Println(funcVal(mySqrt, 3, 4))
-     fmt.Println(funcVal(math.Pow, 3, 4))
-  }
-  ```
+```go
+//f为传入的函数值
+func funcVal(f func(float64, float64) float64, x float64, y float64) float64{
+   return f(x, y)
+}
 
+func funcValTest(){
+   //作为参数传入的函数
+   mySqrt := func(x float64, y float64) float64{
+      sum := 1.0
+      for index := 1; index <= int(y); index++{
+         sum = sum * x
+      }
+      return sum
+   }
+   //两者等效
+   fmt.Println(funcVal(mySqrt, 3, 4))
+   fmt.Println(funcVal(math.Pow, 3, 4))
+}
+```
+
+ 
+
+### 2.5.2、**lambda函数**
+
+（本质也是“匿名函数”）
+
+当函数只需要在一个函数中被调用时，可以使用lambda函数（为了精简）
+
+```go
+func main(){
+    //any interface{}：空接口可用于接收任何类型的参数（类似于Java中的Object）
+	lambda := func(any interface{}) string{
+		switch val := any.(type){
+		case bool:
+			return "this param type is bool"
+		case string:
+			return "this param " + val +" type is string"
+		default:
+			return "unknow param type"
+		}
+	}
+    
+    var str = "chris"
+    res := lambda(str)
+    fmt.Println(res)
+}
+```
+
+
+
+
+
+### 2.5.3、**闭包**
+
+（也称之为“匿名函数”）
+
+本质：函数A返回另一个函数B的返回值，并且函数A中的局部变量可被缓存、重复使用
+
+```go
+//closure：即为函数A
+func closure() func(int) int{
+   //该值可被缓存
+   sum := 0
+   //匿名函数func(x int)：将x值循环叠加（return 函数B）
+   return func(x int) int{
+      sum += x
+      return sum
+   }
+}
+
+func closureTest(){
+   //f1、 f2对应一个闭包：闭包中的数值会一直存在，可以循环叠加
+   f1, f2 := closure(), closure()
+   for index := 0; index < 10; index++{
+      //index即为传入的x值
+      fmt.Println(f1(index), f2(-2 * index))
+   }
    
+   //匿名函数：自动迭代运行10 
+    sum := func (iterator int) int{
+        temp := 0
+        for index := 0; index < iterator; index++{
+            temp += index
+        }
+        return temp
+    }(10)
+    fmt.Println("sum = ", sum)
+}
+```
 
-- **闭包（也称之为“匿名函数”）**
 
-  本质：函数A返回另一个函数B的返回值，并且函数A中的局部变量可被缓存、重复使用
+
+### 2.5.4、**结构体**
+
+结构体中，最好重写String()方法，方便后期打印结构体中的数据。
+
+- **结构体的方法**   
+
+  - 方法和函数不同：方法有接收者，而函数没有
+
+  - Go中没有类，使用该方式给结构体增加方法，相当于java中定义类的方法。
+
+  - **由结构体创建对象时，只能使用 new()  或者  :=  。**不能使用make创建，否则会引发编译错误。
+
+  
+
+  **方法的定义**：
+
+  - **func (参数名  结构体名)  方法名(参数名  类型)  返回值{}**
+    
+    - **结构体名**：可使用指针接收者*，也可不使用
+      
+      **<font color='red'>下面两种方法均可被：结构体类型变量的指针、结构体类型变量   调用</font>**
+      
+      - **值接收者**（少用，无法改变传入结构体的属性、数据值），该方法称之为“**指针方法**”
+      - **指针接收者**（常用，可以改变传入结构体的属性、数据值），该方法称之为“**值方法**”
+      
+    - **<font color='red'>方法名（变全局量名也一样）</font>**：
+      - **首字母大写**：即java中的public方法，可被所有类调用
+      - **首字母小写**：即java中的protected方法，只能被类内、包内的类调用。包外的类无法访问。
+    
+  - **结构体的方法可以在不同.go文件中，但是必须与该结构体在同一个包里面**
 
   ```go
-  //closure：即为函数A
-  func closure() func(int) int{
-     //该值可被缓存
-     sum := 0
-     //匿名函数func(x int)：将x值循环叠加（return 函数B）
-     return func(x int) int{
-        sum += x
-        return sum
-     }
+  /*
+  结构体
+  */
+  type way struct{
+  	x float64
+  	y float64
   }
   
-  func closureTest(){
-     //f1、 f2对应一个闭包：闭包中的数值会一直存在，可以循环叠加
-     f1, f2 := closure(), closure()
-     for index := 0; index < 10; index++{
-        //index即为传入的x值
-        fmt.Println(f1(index), f2(-2 * index))
-     }
-     
-     //匿名函数：自动迭代运行10 
-      sum := func (iterator int) int{
-          temp := 0
-          for index := 0; index < iterator; index++{
-              temp += index
-          }
-          return temp
-      }(10)
-      fmt.Println("sum = ", sum)
+  /**
+  值接收者（少用）：myWay way，该方式仅仅修改way结构体中数据的副本（退出该函数后，不影响原有的数据）
+   */
+  func (myWay way) ABS() float64{
+  	if myWay.x - myWay.y >= 0{
+  		return myWay.x - myWay.y
+  	} else{
+  		return myWay.y - myWay.x
+  	}
+  }
+  
+  /**
+  指针接收者（常用）：myWay *way，可以直接改变way结构体中的数据
+   */
+  func (myWay *way) Scale(num float64){
+  	myWay.x = myWay.x * num
+  	myWay.y = myWay.y * num
+  }
+  //将上述的  方法  重写为  函数
+  func ScaleFunc(myWay *way, num float64){
+  	myWay.x = myWay.x * num
+  	myWay.y = myWay.y * num
+  }
+  
+  /**
+  该方法：仅能被类内、包内的类调用
+  */
+  func (myWay *way) getData() (float64, float64){
+      return myWay.x, myWay.y
+  }
+  
+  func wayTest(){
+      //创建方式1：结构体类型变量
+  	w := way{
+  		x: 3,
+  		y: 4,
+  	}
+      
+      //创建方式1：指向结构体类型变量的指针
+  	w1 := &way{
+  		x: 5,
+  		y: 6,
+  	}
+  	//调用 ： 方法
+  	w.Scale(10)
+  	//调用 ： 函数   (两者等效)
+  	//ScaleFunc(&w, 10)
+  
+  	fmt.Printf("w = %v, w1 = %v \n", w, w1)
+  	fmt.Println(w.ABS())
   }
   ```
 
+  
 
+- **如何强制使用New()方法（防止使用new()创建对象）、Set()、Get()**
 
-- **结构体**
+  -  将结构体名的首字母小写，其他包无法使用new()、package.结构体名创建对象。在结构体所在的.go文件中新建New方法，返回结构体即可。用户直接使用New方法创建对象。 
 
-  结构体中，最好重写String()方法，方便后期打印结构体中的数据。
-
-  - **结构体的方法**   
-
-    - 方法和函数不同：方法有接收者，而函数没有
-
-    - Go中没有类，使用该方式给结构体增加方法，相当于java中定义类的方法。
-
-    - **由结构体创建对象时，只能使用 new()  或者  :=  。**不能使用make创建，否则会引发编译错误。
-
-    
-
-    **方法的定义**：
-
-    - **func (参数名  结构体名)  方法名(参数名  类型)  返回值{}**
-      
-      - **结构体名**：可使用指针接收者*，也可不使用
-        
-        **<font color='red'>下面两种方法均可被：结构体类型变量的指针、结构体类型变量   调用</font>**
-        
-        - **值接收者**（少用，无法改变传入结构体的属性、数据值），该方法称之为“**指针方法**”
-        - **指针接收者**（常用，可以改变传入结构体的属性、数据值），该方法称之为“**值方法**”
-        
-      - **<font color='red'>方法名（变全局量名也一样）</font>**：
-        - **首字母大写**：即java中的public方法，可被所有类调用
-        - **首字母小写**：即java中的protected方法，只能被类内、包内的类调用。包外的类无法访问。
-      
-    - **结构体的方法可以在不同.go文件中，但是必须与该结构体在同一个包里面**
-
-    ```go
-    /*
-    结构体
-    */
-    type way struct{
-    	x float64
-    	y float64
-    }
-    
-    /**
-    值接收者（少用）：myWay way，该方式仅仅修改way结构体中数据的副本（退出该函数后，不影响原有的数据）
-     */
-    func (myWay way) ABS() float64{
-    	if myWay.x - myWay.y >= 0{
-    		return myWay.x - myWay.y
-    	} else{
-    		return myWay.y - myWay.x
-    	}
-    }
-    
-    /**
-    指针接收者（常用）：myWay *way，可以直接改变way结构体中的数据
-     */
-    func (myWay *way) Scale(num float64){
-    	myWay.x = myWay.x * num
-    	myWay.y = myWay.y * num
-    }
-    //将上述的  方法  重写为  函数
-    func ScaleFunc(myWay *way, num float64){
-    	myWay.x = myWay.x * num
-    	myWay.y = myWay.y * num
-    }
-    
-    /**
-    该方法：仅能被类内、包内的类调用
-    */
-    func (myWay *way) getData() (float64, float64){
-        return myWay.x, myWay.y
-    }
-    
-    func wayTest(){
-        //创建方式1：结构体类型变量
-    	w := way{
-    		x: 3,
-    		y: 4,
-    	}
-        
-        //创建方式1：指向结构体类型变量的指针
-    	w1 := &way{
-    		x: 5,
-    		y: 6,
-    	}
-    	//调用 ： 方法
-    	w.Scale(10)
-    	//调用 ： 函数   (两者等效)
-    	//ScaleFunc(&w, 10)
-    
-    	fmt.Printf("w = %v, w1 = %v \n", w, w1)
-    	fmt.Println(w.ABS())
-    }
-    ```
-
-    
-
-  - **如何强制使用New()方法（防止使用new()创建对象）、Set()、Get()**
-
-    -  将结构体名的首字母小写，其他包无法使用new()、package.结构体名创建对象。在结构体所在的.go文件中新建New方法，返回结构体即可。用户直接使用New方法创建对象。 
-
-    - Set、Get方法同理。
-
-    ```go
-    package factory_struct
-    
-    //将结构体首字母小写，强制用户只能使用NewFactoryStruct方法创建对象
-    type factoryStruct struct {
-    	name string
-    	age int
-    	address string
-    }
-    
-    //等同于java中的构造函数
-    func NewFactoryStruct(name string, age int, address string) *factoryStruct{
-    	object := new(factoryStruct)
-    	object.name = name
-    	object.age = age
-    	object.address = address
-    	return object
-    }
-    
-    //等同于Java中的Set方法
-    func (this *factoryStruct) SetName(name string){
-    	this.name = name
-    }
-    
-    //等同于Java中的Get方法
-    func (this *factoryStruct) GetName() string{
-    	return this.name
-    }
-    
-    /******************************   main    **************************************/
-    package main
-    
-    import (
-    	"factory_struct"
-    	"fmt"
-    )
-    
-    func main() {
-    	object := factory_struct.NewFactoryStruct("chris", 18, "shanghai")
-    	fmt.Println(*object)
-    	object.SetName("FYJ")
-    	fmt.Println(object.GetName())
-    }
-    
-    ```
-
-    
-
-  - **内嵌结构体**
-
-    - 可实现类似  **继承**  的效果  （内嵌多个结构体，即：多重继承）
-
-      - 内嵌的结构体，其参数同样遵循首字母大写（public）、首字母小写（protected）的访问原则。
-
-        **（即：外部结构体，可直接访问内嵌结构体内的所有属性、方法，但其他包中的类无法直接访问内嵌结构体的protected属性、方法）**
-
-      - 外部结构体、内嵌结构体的属性**尽量不重名**（本质上可以重名，在使用时通过指明使用哪个结构体中的属性即可）
-
-      - 两个内嵌结构体中（统一层次），出现重名属性：直接报错。
-
-    ```go
-    package embeded_struct
-    
-    type outer struct{
-    	Name string
-    	age int
-    	//内嵌结构体
-    	Inner inner
-    }
-    
-    type inner struct{
-    	Name string
-    	Sex string
-    }
-    
-    //构造器
-    func NewOuter(name string, age int) *outer{
-    	return &outer{Name: name, age: age}
-    }
-    
-    
-    /******************************   main    **************************************/
-    package main
-    
-    import (
-    	"embeded_struct"
-    	"fmt"
-    )
-    
-    func main() {
-    	var outer = embeded_struct.NewOuter("chris", 18)
-    	//输出：{chris 18 { }}
-    	fmt.Println(*outer)
-    	//访问内部类
-    	outer.Inner.Name = "Fyj"
-    	outer.Inner.Sex = "women"
-    	//输出：{chris 18 {Fyj women}}
-    	fmt.Println(*outer)
-    }
-    ```
-
-    
-
-- **接口**
-
-  和java中的接口类似。可以对接口中的方法进行重写，eg：Error（）、String（）等方法
-
-  - **使用&struct{}创建对象，其底层依然会调用new(struct)方式创建（两者等价）**
-
-    <font color='red'>两者的区别：（内存中的数据分布情况）</font>
-
-    ![image-20210610095947781](Golang_学习笔记.assets/image-20210610095947781.png)
-
-    ![image-20210610095958183](Golang_学习笔记.assets/image-20210610095958183.png)
-
-  - var impl struct     //impl为结构体类型变量
-  - var impl *struct   //impl为指向结构体类型变量的**指针**
+  - Set、Get方法同理。
 
   ```go
-  /*****************************  接口  ***********************************/
-  //接口
-  type I interface{
-  	Say()
-      Set(... string) string
-  }
+  package factory_struct
   
-  /*****************************  结构体  ***********************************/
-  //结构体
-  type T struct{
+  //将结构体首字母小写，强制用户只能使用NewFactoryStruct方法创建对象
+  type factoryStruct struct {
   	name string
   	age int
+  	address string
   }
   
-  //实现接口I中的方法
-  func (t *T) Say(){
-  	fmt.Println(t.name)
-  }
-  //传入的...不定长参数name为数组
-  func (t *T) Set(names ...string) string{
-      t.name = names[0]
-      return "set name = " + names[0] + "success"
-  }
-  
-  //重写fmt中的String()方法
-  func (t *T) String() string{
-  	return fmt.Sprintf("%v :(%d year)", t.name, t.age)
+  //等同于java中的构造函数
+  func NewFactoryStruct(name string, age int, address string) *factoryStruct{
+  	object := new(factoryStruct)
+  	object.name = name
+  	object.age = age
+  	object.address = address
+  	return object
   }
   
-  //重写Error()方法：当出现错误时，若需要返回error对象，则会调用该重写的方法打印信息
-  func (t *T) Error() string{
-  	if t.name == ""  || t.age <= 0 {
-  		return fmt.Sprintf("name or age is error")
-  	}
-  	return ""
+  //等同于Java中的Set方法
+  func (this *factoryStruct) SetName(name string){
+  	this.name = name
   }
   
-  //创建新的对象
-  func CreateNew(name string, age int) error{
-  	return &T{name, age}
+  //等同于Java中的Get方法
+  func (this *factoryStruct) GetName() string{
+  	return this.name
   }
   
-  /*****************************  main  ***********************************/
-  func main()  {
-      //创建方式1  （指针）
-      var impl := new(T)
-      impl.name = "chris"
-      impl.age = 18
-      
-      //创建方式2（指针，底层依然会使用new()的方式创建）
-  	var impl I = &T{name: "chris", age: 18}
-      
-      //创建方式3：（结构体类型变量）
-      var imp I
-      impl.name = "chris"
-      impl.age = 18
-      
-  	impl.Say()
-  	//重写String(), 使用自定义的输出格式
-  	fmt.Println(impl)
-  	//重写error()
-  	if err := CreateNew("chris", -1); err != nil {
-  		fmt.Println(err)
-  	} else{
-  		fmt.Println("success")
-  	}
-  }
-  ```
-
-  
-
-- **断言：**
-
-  - 使用形式：**接口名.(类型)**
-  - 用于判断结构体，是否继承某个接口
-
-  ```go
-  /******************************  接口  ******************************************/
-  package embeded_interface
-  
-  type Shaper interface {
-  	Area() float32
-  }
-  
-  //嵌套接口
-  type AllShaper interface {
-  	Shaper
-  	Color() string
-  }
-  
-  /*********************  结构体（继承接口，实现接口方法）  ****************************/
-  
-  package embeded_interface
-  
-  import "math"
-  
-  type Square struct {
-  	Side float32
-  }
-  
-  //实现接口方法（即：继承接口）
-  func (sq *Square) Area() float32 {
-  	return sq.Side * sq.Side
-  }
-  
-  /******************************  main  ******************************************/
+  /******************************   main    **************************************/
   package main
   
   import (
-  	em "embeded_interface"
+  	"factory_struct"
   	"fmt"
   )
   
-  //断言：用于判断结构体，是否继承某个接口
   func main() {
-  	var shaper em.Shaper
-  	sq := &em.Square{Side: 18}
-  
-  	shaper = sq
-  	//断言： 接口变量.(*结构体名)
-  	if val, ok := shaper.(*em.Square); ok{
-  		fmt.Println("val = ", val)
-  	}
+  	object := factory_struct.NewFactoryStruct("chris", 18, "shanghai")
+  	fmt.Println(*object)
+  	object.SetName("FYJ")
+  	fmt.Println(object.GetName())
   }
   
   ```
 
   
 
+- **内嵌结构体**
+
+  - 可实现类似  **继承**  的效果  （内嵌多个结构体，即：多重继承）
+
+    - 内嵌的结构体，其参数同样遵循首字母大写（public）、首字母小写（protected）的访问原则。
+
+      **（即：外部结构体，可直接访问内嵌结构体内的所有属性、方法，但其他包中的类无法直接访问内嵌结构体的protected属性、方法）**
+
+    - 外部结构体、内嵌结构体的属性**尽量不重名**（本质上可以重名，在使用时通过指明使用哪个结构体中的属性即可）
+
+    - 两个内嵌结构体中（统一层次），出现重名属性：直接报错。
+
+  ```go
+  package embeded_struct
   
+  type outer struct{
+  	Name string
+  	age int
+  	//内嵌结构体
+  	Inner inner
+  }
+  
+  type inner struct{
+  	Name string
+  	Sex string
+  }
+  
+  //构造器
+  func NewOuter(name string, age int) *outer{
+  	return &outer{Name: name, age: age}
+  }
+  
+  
+  /******************************   main    **************************************/
+  package main
+  
+  import (
+  	"embeded_struct"
+  	"fmt"
+  )
+  
+  func main() {
+  	var outer = embeded_struct.NewOuter("chris", 18)
+  	//输出：{chris 18 { }}
+  	fmt.Println(*outer)
+  	//访问内部类
+  	outer.Inner.Name = "Fyj"
+  	outer.Inner.Sex = "women"
+  	//输出：{chris 18 {Fyj women}}
+  	fmt.Println(*outer)
+  }
+  ```
+
+  
+
+### 2.5.5、**接口**
+
+和java中的接口类似。可以对接口中的方法进行重写，eg：Error（）、String（）等方法
+
+- **空接口**，可用于接收任意类型的数据（类似于Java中的**Object对象**）。
+
+  - 本质上，**Go中的任何类型都实现了空接口**
+
+  - 空接口占用的内存：2个字节，分别存放：存储的数据类型、指向数据的指针
+
+  **（使用空接口的特性，可以写出通用的结构体）**
+
+  ```go
+  type Any interface{
+     
+  }
+  
+  type Human struct{
+      //使用空接口定义一个可接收任意参数的属性
+      arr []Any
+  }
+  
+  func main(){
+      var any Any
+      var str = "Chris"
+      any = str		//此时，any的类型为String，值为Chris
+      
+  }
+  ```
+
+  
+
+- **使用&struct{}创建对象，其底层依然会调用new(struct)方式创建（两者等价）**
+
+  <font color='red'>两者的区别：（内存中的数据分布情况）</font>
+
+  ![image-20210610095947781](Golang_学习笔记.assets/image-20210610095947781.png)
+
+  ![image-20210610095958183](Golang_学习笔记.assets/image-20210610095958183.png)
+
+- var impl struct     //impl为结构体类型变量
+
+- var impl *struct   //impl为指向结构体类型变量的**指针**
+
+- **结构体继承接口注意事项：**
+
+  - 结构体和接口的.go文件尽量存放在同一个包内（虽然放在不同包亦可以继承，但是容易造成包的管理混乱）
+
+  - 接口可以定义带不定长度参数的方法（参数名可以忽略不写）。结构体在继承实现时，均已数组方式传入参数。
+
+    ```go
+    //接口
+    type I interface{
+        //可不带参数
+    	Say()
+        //or Set(name string) stirng
+        Set(... string) string
+    }
+    
+    //结构体
+    type T struct{
+    	name string
+    	age int
+    }
+    //实现方法：传入的...不定长参数name为数组
+    func (t *T) Set(names ...string) string{
+        t.name = names[0]
+        return "set name = " + names[0] + "success"
+    }
+    ```
+
+
+
+**结构体、接口的使用实例**
+
+```go
+/*****************************  接口  ***********************************/
+//接口
+type I interface{
+    //可不带参数
+	Say()
+    //or Set(name string) stirng
+    Set(... string) string
+}
+
+/*****************************  结构体  ***********************************/
+//结构体
+type T struct{
+	name string
+	age int
+}
+
+//实现接口I中的方法
+func (t *T) Say(){
+	fmt.Println(t.name)
+}
+//传入的...不定长参数name为数组
+func (t *T) Set(names ...string) string{
+    t.name = names[0]
+    return "set name = " + names[0] + "success"
+}
+
+//重写fmt中的String()方法
+func (t *T) String() string{
+	return fmt.Sprintf("%v :(%d year)", t.name, t.age)
+}
+
+//重写Error()方法：当出现错误时，若需要返回error对象，则会调用该重写的方法打印信息
+func (t *T) Error() string{
+	if t.name == ""  || t.age <= 0 {
+		return fmt.Sprintf("name or age is error")
+	}
+	return ""
+}
+
+//创建新的对象
+func CreateNew(name string, age int) error{
+	return &T{name, age}
+}
+
+/*****************************  main  ***********************************/
+func main()  {
+    //创建方式1  （指针）
+    var impl := new(T)
+    impl.name = "chris"
+    impl.age = 18
+    
+    //创建方式2（指针，底层依然会使用new()的方式创建）
+	var impl I = &T{name: "chris", age: 18}
+    
+    //创建方式3：（结构体类型变量）
+    var imp I
+    impl.name = "chris"
+    impl.age = 18
+    
+	impl.Say()
+	//重写String(), 使用自定义的输出格式
+	fmt.Println(impl)
+	//重写error()
+	if err := CreateNew("chris", -1); err != nil {
+		fmt.Println(err)
+	} else{
+		fmt.Println("success")
+	}
+}
+```
+
+
+
+### 2.5.6、**断言**
+
+- 使用形式：**接口名.(类型)**
+- 用于判断结构体，是否继承某个接口
+
+```go
+/******************************  接口  ******************************************/
+package embeded_interface
+
+type Shaper interface {
+	Area() float32
+}
+
+//嵌套接口
+type AllShaper interface {
+	Shaper
+	Color() string
+}
+
+/*********************  结构体（继承接口，实现接口方法）  ****************************/
+package embeded_interface
+
+import "math"
+
+type Square struct {
+	Side float32
+}
+
+//实现接口方法（即：继承接口）
+func (sq *Square) Area() float32 {
+	return sq.Side * sq.Side
+}
+
+/******************************  main  ******************************************/
+package main
+
+import (
+	em "embeded_interface"
+	"fmt"
+)
+
+//断言：用于判断结构体，是否继承某个接口
+func main() {
+	var shaper em.Shaper
+	sq := &em.Square{Side: 18}
+
+	shaper = sq
+	//断言： 接口变量.(*结构体名)
+	if val, ok := shaper.(*em.Square); ok{
+		fmt.Println("val = ", val)
+	}
+}
+
+```
+
+
+
+
 
 - 二元运算（Go中不存在三元运算，eg：return  num = 3 ?  true ：false）
 
   
 
-- **工厂函数**
-
-  工厂函数的返回值为另一个函数，可用于动态添加数据。
-
-  ```go
-  package factory_function
   
-  func AddSuffix(suffix string) func(string) string{
-  	return func (name string) string{
-  		return name + suffix
-  	}
-  }
-  
-  /****************************  main  *****************************************/
-  package main
-  
-  import (
-      //给包起别名：factory
-  	factory "factory_function"
-  	"fmt"
-  )
-  
-  func main() {
-  	//使用工厂函数：创建新的函数
-  	addBmp := factory.AddSuffix(".bmp")
-  	addJpg := factory.AddSuffix(".jpg")
-  
-  	//动态添加后缀
-  	bmpFile := addBmp("picture_1")
-  	jpgFile := addJpg("picture_2")
-  	fmt.Println(bmpFile, jpgFile)
-  }
-  ```
 
-   
+### 2.5.7、**工厂函数**
 
--  
+工厂函数的返回值为另一个函数，可用于动态添加数据。
 
--  
+```go
+package factory_function
 
--    
+func AddSuffix(suffix string) func(string) string{
+	return func (name string) string{
+		return name + suffix
+	}
+}
+
+/****************************  main  *****************************************/
+package main
+
+import (
+    //给包起别名：factory
+	factory "factory_function"
+	"fmt"
+)
+
+func main() {
+	//使用工厂函数：创建新的函数
+	addBmp := factory.AddSuffix(".bmp")
+	addJpg := factory.AddSuffix(".jpg")
+
+	//动态添加后缀
+	bmpFile := addBmp("picture_1")
+	jpgFile := addJpg("picture_2")
+	fmt.Println(bmpFile, jpgFile)
+}
+```
+
+ 
 
 - 
+- 
+- 
+- 
 
-## 1.6、并发
+## 2.6、并发
 
 - 通道
 
@@ -1051,42 +1181,120 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   }
   ```
 
+
+
+
+## 2.7、反射
+
+- 和Java的反射类似。都是可以通过参数，反向获取参数的类型、数值、方法
+
+  需要使用reflect包中的函数
+
+  - reflect.**ValueOf**(**param**)   （**<font color='red'>主要使用这个方法</font>**）：获取param对象的值  
+
+    （此方法对param进行数据拷贝，无法通过反射的方式修改param的数据）
+
+    - reflect.ValueOf(param).**Type()**  ：获取类型
+
+    - reflect.ValueOf(param).**Kind()**   ：获取pram的类型。若为对象，则返回struct。若为常量，则获取常量的类型（int、float等）
+
+    - reflect.ValueOf(param)**.Float()**   ：获取常量的数值
+
+    - reflect.ValueOf(param)**.Interface()**：以接口的形式，返回param的数值
+
+      
+
+      **（若需要通过反射的方式修改param对象，则需要使用指针的方式传入param，即：需要通过内存地址来修改数据）**
+
+    - reflect.ValueOf(**&param**).**CanSet()**  ：param是否可以使用反射的方式设置参数
+
+    - reflect.ValueOf(**&param**).**SetFloat(value)**  ：设置param的数值为value
+
+      
+
+  - reflect.**TypeOf**(param)：获取param对象的类型（即：对象所在的  **包名.结构体名**）
+
+  ```go
+  var param float64 = 3.14
+  val := reflect.ValueOf(param)
+  fmt.Println(val)
+  //打印类型
+  fmt.Println("type = ", val.Type())
+  //打印常量的类型
+  fmt.Println("kind = ", val.Kind())
+  //reflect.ValueOf(param).Float()：打印的就是param的数值
+  fmt.Println("value = ", val.Float())
+  
+  
+  //通过反射修改对象中的数据
+  //需要使用指针，获取对象中的数据
+  val_1 := reflect.ValueOf(&param)
+  //
+  val_1 = val_1.Elem()
+  //该参数是否可以设置
+  fmt.Println("can set = ", val_1.CanSet())
+  val_1.SetFloat(22)
+  fmt.Println("set value = ",val_1.Interface() )
+  ```
+
   
 
-# 2、Goland编译器使用
+- 获取对象中的属性、方法
 
-## 2.1、配置
+  ```go
+  /************************ 结构体 *****************************/
+  package myreflect
+  
+  import (
+  	"fmt"
+  	"reflect"
+  )
+  type ReflectTest struct{
+  	Name string
+  	age int
+  }
+  
+  func (this *ReflectTest)ReflectTypeValue(){
+  	var param float64 = 3.14
+  	val := reflect.ValueOf(param)
+  	typ := reflect.TypeOf(param)
+  
+  	fmt.Println(val, typ)
+  	//打印类型
+  	fmt.Println("type = ", val.Type())
+  	fmt.Println("kind = ", val.Kind())
+  	//reflect.ValueOf(param).Float()：打印的就是param的数值
+  	fmt.Println("value = ", val.Float())
+  
+  }
+  
+  
+  /************************ main *****************************/
+  func main() {
+  	ref := myreflect.ReflectTest{Name:"chris"}
+  	value := reflect.ValueOf(ref)
+  	typeOf := reflect.TypeOf(ref)
+  	fmt.Println(value, typeOf)
+  
+  	//获取对象中的属性值
+  	for index := 0; index < value.NumField(); index++ {
+  		fmt.Println("file ", index , " : ", value.Field(index))
+  	}
+  
+  	//获取对象中的方法
+  	for index := 0; index < value.NumMethod(); index++ {
+  		fmt.Println("method ", index, " : ", value.Method(index))
+  	}
+  }
+  ```
 
-1. 增加Gopath路径，添加自己工程的路径
-
-   ![image-20210607161124609](Golang_学习笔记.assets/image-20210607161124609.png)
-
-2. 不使用Go Modules
-
-   ![image-20210607161150777](Golang_学习笔记.assets/image-20210607161150777.png)
-
-
-
-## 2.2、调用自定义包中的函数
-
-**<font color='red'>问题：若不在src文件夹中新建package包存放新的.go文件，则无法在同一个包中调用其他类的方法，亦无法使用File方式运行.go文件。</font>**
-
-**<font color='red'>解决方式</font>：这是由于Goland编译器的底层调用机制原因，导致无法调用同一个package包中其他类的方法。需要配置run configuration中的Run kind为Package模式，然后运行**。
-
-1. 调用代码的地方
-
-   ![image-20210607161402982](Golang_学习笔记.assets/image-20210607161402982.png)
-
-2. 被调用的代码
-
-   ![image-20210607161416210](Golang_学习笔记.assets/image-20210607161416210.png)
    
-   
 
-## 2.3、cmd命令
+-  
 
-- `go build` 编译自身包和依赖包
-- `go install` 编译并安装自身包和依赖包
+
+
+- 
 
 
 
