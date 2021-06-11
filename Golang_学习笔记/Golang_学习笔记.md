@@ -794,6 +794,66 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
   
 
+- **断言：**
+
+  - 使用形式：**接口名.(类型)**
+  - 用于判断结构体，是否继承某个接口
+
+  ```go
+  /******************************  接口  ******************************************/
+  package embeded_interface
+  
+  type Shaper interface {
+  	Area() float32
+  }
+  
+  //嵌套接口
+  type AllShaper interface {
+  	Shaper
+  	Color() string
+  }
+  
+  /*********************  结构体（继承接口，实现接口方法）  ****************************/
+  
+  package embeded_interface
+  
+  import "math"
+  
+  type Square struct {
+  	Side float32
+  }
+  
+  //实现接口方法（即：继承接口）
+  func (sq *Square) Area() float32 {
+  	return sq.Side * sq.Side
+  }
+  
+  /******************************  main  ******************************************/
+  package main
+  
+  import (
+  	em "embeded_interface"
+  	"fmt"
+  )
+  
+  //断言：用于判断结构体，是否继承某个接口
+  func main() {
+  	var shaper em.Shaper
+  	sq := &em.Square{Side: 18}
+  
+  	shaper = sq
+  	//断言： 接口变量.(*结构体名)
+  	if val, ok := shaper.(*em.Square); ok{
+  		fmt.Println("val = ", val)
+  	}
+  }
+  
+  ```
+
+  
+
+  
+
 - 二元运算（Go中不存在三元运算，eg：return  num = 3 ?  true ：false）
 
   
