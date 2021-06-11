@@ -1,3 +1,7 @@
+Go中文API手册：https://studygolang.com/pkgdoc
+
+Go官方教程：https://tour.golang.org/welcome/1
+
 # 1、基本语法
 
 ## 1.1、数据类型
@@ -342,6 +346,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   - 获取切片中的片段
 
     - // startIndex：可从0开始    ；  endIndex：最终获取的结果不包括endIndex所在的元素。
+<<<<<<< HEAD
 
       newSlice := slice[startIndex : endIndex]   
 
@@ -349,6 +354,15 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
       newSlice := silce[:]
 
+=======
+
+      newSlice := slice[startIndex : endIndex]   
+
+    - //获取整个silce中的元素
+
+      newSlice := silce[:]
+
+>>>>>>> master
       
 
   - len(切片)：获取切片中现存元素的个数
