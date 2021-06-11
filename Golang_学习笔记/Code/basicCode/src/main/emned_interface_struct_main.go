@@ -11,8 +11,11 @@ func main() {
 	sq := &em.Square{Side: 18}
 
 	shaper = sq
+
+	fmt.Println(shaper.Set("chris"))
+
 	//断言： 接口变量.(*结构体名)
 	if val, ok := shaper.(*em.Square); ok {
-		fmt.Println("val = ", val)
+		fmt.Println("ok = , val = ", ok, val)
 	}
 }
