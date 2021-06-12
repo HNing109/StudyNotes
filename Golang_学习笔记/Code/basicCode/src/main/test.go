@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"myreflect"
+	"os"
 	"reflect"
+	"strings"
 
 	//"embeded_interface"
 	"fmt"
@@ -100,6 +102,7 @@ func main() {
 
 	wwwwwww()
 	qqq()
+
 
 }
 

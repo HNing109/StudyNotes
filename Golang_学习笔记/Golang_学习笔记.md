@@ -599,6 +599,7 @@ func closureTest(){
 
   - var impl struct                                           //impl为结构体类型变量
 - var impl *struct                                         //impl为指向结构体类型变量的  **指针**
+  
   - impl := person{filedName: "chris"}		//impl为结构体类型的变量
 - impl := &person{filedName: "chris"}     //impl为指向结构体类型变量的  **指针**  （该方式，可直接赋初始值）
   - impl := new(person)                                 //impl为指向结构体类型变量的  **指针**  （该方式，需要自己手动给属性赋值）
@@ -1514,6 +1515,363 @@ D:/Files/StudyNotes/Golang_学习笔记/Code/basicCode/src/main/factory_main.go:
 -  
 
 -   
+
+
+
+## 3.8、fmt包
+
+- **Scanf**
+
+  - fmt.Scanln()
+
+    遇见换行，终止数据输入
+
+  - fmt.Scanf()
+
+    按照特定的格式输入数据
+
+  - fmt.Sscanf()
+
+    按照指定的format格式，读取字符串str中的数据，并分配数据给相应的变量
+
+  ```go
+  var(
+  	first_name string
+  	address string
+  	f float32
+  	j int
+  	s string
+  	input = "56.12 / 5212 / Go"
+  	format_0 = "%f %d %s"
+  	format_1 = "%f / %d / %s"
+  )
+  
+  func main() {
+  	fmt.Println("input name and address:")
+  	//遇见换行符，终止输入
+  	fmt.Scanln(&first_name, &address)
+  	fmt.Println(first_name, address)
+  
+  	fmt.Println("input data ：")
+  	//按照特定格式，输入数据
+  	fmt.Scanf(format_0, &f, &j, &s)
+  	fmt.Println( f, j, s)
+  
+  	//按照format格式，读取input字符串，并分发给对应的参数
+  	fmt.Sscanf(input, format_1, &f, &j, &s)
+  	fmt.Println("From the string we read: ", f, j, s)
+  }
+  ```
+
+  
+
+-  
+
+- 
+
+ 
+
+## 3.9、bufio包
+
+以缓存的方式进行文件数据的读写
+
+- 换行符：
+
+  - Linux：\n
+  - Windows：\r\n
+
+  
+
+- 读文件
+
+  ```go
+  //打开文件
+  inputFile, inputError := os.Open("input.dat")
+  if inputError != nil {
+      fmt.Printf("An error occurred on opening the inputfile\n")
+      return 
+  }
+  //退出程序时，关闭文件（防止程序异常时，该文件还处于打开状态，占用资源）
+  defer inputFile.Close()
+  
+  //获取文件句柄
+  inputReader := bufio.NewReader(inputFile)
+  for {
+      //按行读取文件
+      inputString, readerError := inputReader.ReadString('\n')
+      fmt.Printf("The input was: %s", inputString)
+      if readerError == io.EOF {
+          return
+      }      
+  }
+  ```
+
+  
+
+- 写文件
+
+   ```go
+  package main
+  
+  import (
+  	"os"
+  	"bufio"
+  	"fmt"
+  )
+  
+  func main () {
+  	// 以：只写、创建文件的方式打开文件（0666：对应权限“读写”）
+  	outputFile, outputError := os.OpenFile("output.dat", os.O_WRONLY|os.O_CREATE, 0666)
+  	if outputError != nil {
+  		fmt.Printf("An error occurred with file opening or creation\n")
+  		return  
+  	}
+  	defer outputFile.Close()
+      //获得文件句柄
+  	outputWriter := bufio.NewWriter(outputFile)
+  	outputString := "hello world!\n"
+  
+  	for i:=0; i<10; i++ {
+          //写入数据
+  		outputWriter.WriteString(outputString)
+  	}
+      //将数据存入内存中
+  	outputWriter.Flush()
+  }
+   ```
+
+  
+
+-  
+
+- 
+
+
+
+## 3.10、os包
+
+- os.Open(文件路径)
+
+  打开文件，返回一个*os.File类型的对象（文件句柄）
+
+  ```go
+  //打开文件
+  inputFile , inputError := os.Open("data.dat")
+  //出现错误
+  if inputError != nil {
+      fmt.Printf("An error occurred on opening the inputfile\n")
+      return 
+  }
+  //退出程序时，关闭文件
+  defer inputFile.Close()
+  ```
+
+  
+
+- os.Args
+
+  可以读取启动程序时，在命令行后面添加的参数数据 
+
+  ```go
+  func main() {
+  	who := "Alice "
+      //为什么要＞1：因为，程序启动时，第一个参数就是程序的绝对路径
+  	if len(os.Args) > 1 {
+          //拼接：命令行输入的参数
+  		who += strings.Join(os.Args[1:], " ")
+  	}
+  	fmt.Println("Good Morning", who)
+  }
+  ```
+
+  
+
+- os.Stdout.WriteString(str) 
+
+  和fmt.Println(str)功能一样。都是在控制台打印是数据。fmt.Println的底层实现是基于os.Stdout.WriteString的。 
+
+  
+
+- os.Exit(状态码)
+
+  - 作用 ：立即退出程序。让程序以给定的“状态码”退出。
+    - 0：表示成功
+    - 非0：表示出错。**立即退出程序，且程序不会执行defer部分的代码**
+  - 和return的不同之处：
+    - return：结束当前的**函数**，并返回数据
+    - os.Exit()：结束当前的**程序**
+
+
+
+## 3.11、flag包
+
+用来获取程序执行时，命令行后添加的参数。
+
+- flag.Parse()
+
+  获取命令行输入的参数
+
+- flag.NArg()
+
+  参数的数量
+
+- flag.Arg(index)
+
+  获取第index个参数
+
+```go
+import (
+	"flag" 
+	"os"
+)
+
+//定义：仅当命令行有输入参数 -n  时，NewLing = true
+var NewLine = flag.Bool("n", false, "print newline") 
+
+const (
+	Space   = " "
+	Newline = "\n"
+)
+
+func main() {
+	flag.PrintDefaults()
+    //获取命令行输入的参数
+	flag.Parse() 
+	var s string = ""
+	for i := 0; i < flag.NArg(); i++ {
+		if i > 0 {
+			s += " "
+            //当输入 -n 参数时，添加回车、换行（\n）
+			if *NewLine { 
+				s += Newline
+			}
+		}
+		s += flag.Arg(i)
+	}
+	os.Stdout.WriteString(s)
+}
+```
+
+
+
+## 3.12、encoding/json序列化
+
+将对象中的数据转换成JSON格式。需要转为JSON格式的对象，其对应的struct的属性名应为public（即：首字母大写）。否则，最终得到的数据为空。
+
+- json.Marshal(序列化的对象)
+
+  ```go
+  json, _ := json.Marshal(序列化的对象)
+  ```
+
+  
+
+- json.Unmarshal(json数据, 接收数据的对象)
+
+  ```go
+  //使用空接口接收数据
+  var f interface{}
+  err := json.Unmarshal(b, &f)
+  
+  //map对应的数据结构为map[string]interface{}
+  //例如
+  map[string]interface{} {
+  	"Name": "Wednesday",
+  	"Age":  6,
+  	"Parents": []interface{} {
+  		"Gomez",
+  		"Morticia",
+  	},
+  }
+  ```
+
+  
+
+```go
+/**************************  序列化  ********************************/
+package serialize
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
+)
+
+type Address struct{
+	Province string
+	City string
+	Town string
+	Road string
+
+}
+
+type IDCard struct{
+	Name      string
+	Age       int
+	Addresses []*Address
+}
+
+type Serialize struct{
+}
+
+/**
+注意：转换成JSON格式的数据，其对应的struct的属性名应为public（即：首字母大写）
+否则，无法完成数据转换
+ */
+func (s *Serialize) Encoded(){
+	chris_fj := &Address{"FuJian","quanzhou","jinjiang","189"}
+
+
+	chris_sh := &Address{"shanghai","shanghai","xujiahui","130"}
+
+	idInfo := IDCard{"chris", 18,[]*Address{chris_fj, chris_sh}}
+	//进行数据转换
+	js, _ := json.Marshal(idInfo)
+	fmt.Printf("JSON format: %s", js)
+
+	//将数据写入文件
+	file, _ := os.OpenFile("./data/idCard.json", os.O_CREATE|os.O_WRONLY, 0666)
+	defer file.Close()
+	enc := json.NewEncoder(file)
+	err := enc.Encode(idInfo)
+	if err != nil {
+		log.Println("Error in encoding json")
+	}
+}
+
+/**************************  main  ********************************/
+package main
+
+import "serialize"
+
+func main() {
+	seri := serialize.Serialize{}
+	seri.Encoded()
+}
+```
+
+
+
+
+
+
+
+
+
+# 常见问题
+
+## 1、序列化、反序列化
+
+- 序列化
+
+  将内存中的数据转换成指定的格式（eg：数据 -> JSON格式）
+
+- 反序列化
+
+  还原转换成指定格式的数据
+
+
 
 
 
