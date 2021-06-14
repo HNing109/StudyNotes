@@ -1353,13 +1353,165 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
    
 
--  
+## 2.8、错误处理
+
+Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-recover**机制处理错误。结合switch，可以处理相应类型的错误。（fmt.Errorf，可用于床架一个错误对象--输出错误信息）
+
+- 自定义错误
+
+  - erros.New(错误信息)：创建错误对象
+
+  ```go
+  import (
+  	"errors"
+  	"fmt"
+  	"math"
+  )
+  
+  //自定义错误
+  var errorNoNegative error = errors.New("Number is negative")
+  
+  func MySqrt(number float64)(float64, error){
+  	if number < 0 {
+  		return -1, errorNoNegative
+  	}
+  	return math.Sqrt(number), nil
+  }
+  
+  func main(){
+  	number := -2.0
+  	//错误处理
+  	if val, err := MySqrt(number); err != nil{
+  		fmt.Println(err)
+  	} else{
+  		fmt.Printf("sqrt(%f) = %f",number, val)
+  	}
+  }
+  ```
+
+  
+
+- **painc(错误信息)**
+
+  - **painc()函数可多层嵌套使用**（即：Go paincking）。当程序执行painc()之后，就会列结束当前运行的函数，并执行defer，然后逐级返回。在运行至最顶层的函数时，painc可以获取到所有的错误。（本质上，就是一个栈中数据出栈的过程）
+
+  - 结合**defer**调用 **recover()**  函数，捕捉错误，可使得painc()函数停止向上执行，防止程序因painc报错，导致程序终止运行。（即：上层的painc()不再调用，起到修复程序的作用）
+
+    **经recover处理之后，程序可正常运行，不会因为painc抛出错误而终止程序**。
+
+  - 结合**error**接口，将painc获取的错误，封装为error，然后返回。用户根据这个错误进行相应的处理。（即：将错误隐藏在包内）
+
+  ```go
+  import (
+  	"fmt"
+  )
+  
+  func badCall() {
+  	panic("bad end")
+  }
+  
+  func test() {
+  	defer func() {
+          //捕捉错误，recover
+  		if e := recover(); e != nil {
+  			fmt.Printf("Panicing %s\r\n", e)
+  		}
+  	}()
+      //调用painc错误
+  	badCall()
+  	fmt.Printf("After bad call\r\n") 
+  }
+  
+  func main() {
+  	fmt.Printf("Calling test\r\n")
+  	test()
+  	fmt.Printf("Test completed\r\n")
+  }
+  ```
+
+  
+
+## 2.9、单元测试
+
+- **测试文件**：
+
+  Go中的文件**以  _test.go  结尾**，不会被编译器编译，这些文件是被用于测试的（即使这些文件被放到生产环境中，也不会被部署）
+
+  
+
+- **测试函数**：
+
+  **以TestXxx开头** （Test + 首字母大写），需要接收testing.T类型的参数
+
+  eg：func TestAbcde(t *testing.T)
+
+- 通知测试失败的函数：
+
+  - func (t *T) Fail()
+
+    标记测试函数，测试失败。并且继续执行后面的测试
+
+  - func (t *T) FailNow()
+
+    标记测试函数为失败并中止执行；文件中别的测试也被略过，继续执行下一个文件。
+
+  - func (t *T) Log(args ...interface{})
+
+    args 被用默认的格式格式化并打印到错误日志中
+
+  - func (t *T) Fatal(args ...interface{})
+
+    效果：先执行 3），然后执行 2）的效果
+
+    
+
+- **运行测试程序**：
+
+  使用命令go test，执行所有**Testxx的函数** 
+
+  - -v 或 --chatty：打印测试函数、测试状态
+
+  eg：go test chris_test.go -v
+
+  
+
+-  **基准测试** 
+
+  - 基准测试的函数需要**以BenchmarkXxx开头**（Benchmark+ 首字母大写），需要接收testing.B类型的参数
+
+  - 基准测试的函数可以执行N次，并可以获得函数执行的平均时间（单位：ns）
+
+  - 运行基准测试函数的命令：
+
+    go test -test.bench=.*
+
+  
+
+- **表驱动测试**
+
+  将测试数据和预期结果存放到一张表中，程序运行测试数据之后，将测试结果和预期结果进行对比。
 
 
 
-- 
+- **性能测试**
 
+  - **测试耗时、内存消耗**
 
+    ```shell
+    #!/bin/sh
+    
+    #分别对应用户时间，系统时间，实际时间、最大内存占用
+    
+    /usr/bin/time -f '%Uu %Ss %er %MkB %C' "$@"
+    ```
+
+    
+
+  - **pprof**
+
+    属于runtime/pprof包，可进行测试数据可视化。 
+
+  
 
 # 3、常用函数
 
@@ -1415,7 +1567,7 @@ func main(){
 
 ## 3.3、painc()
 
-
+详见2.8
 
 
 
@@ -1638,7 +1790,7 @@ D:/Files/StudyNotes/Golang_学习笔记/Code/basicCode/src/main/factory_main.go:
       //将数据存入内存中
   	outputWriter.Flush()
   }
-   ```
+  ```
 
   
 
@@ -1703,6 +1855,51 @@ D:/Files/StudyNotes/Golang_学习笔记/Code/basicCode/src/main/factory_main.go:
 
 
 
+- os.StartProcess
+
+  - 启动外部程序 
+
+    ```go
+    /* Linux:环境 */
+    env := os.Environ()
+    procAttr := &os.ProcAttr{
+    			Env: env,
+    			Files: []*os.File{
+    				os.Stdin,
+    				os.Stdout,
+    				os.Stderr,
+    			},
+    		}
+    // 启动/bin/ls中的程序，并获取进程的pid
+    pid, err := os.StartProcess("/bin/ls", []string{"ls", "-l"}, procAttr)  
+    if err != nil {
+    		fmt.Printf("Error %v starting process!", err)  //
+    		os.Exit(1)
+    }
+    fmt.Printf("The process id is %v", pid)
+    ```
+
+    
+
+  - 显示所有启动的程序
+
+     ```go
+    pid, err = os.StartProcess("/bin/ps", []string{"ps", "-e", "-opid,ppid,comm"}, procAttr)  
+    
+    if err != nil {
+    		fmt.Printf("Error %v starting process!", err)  //
+    		os.Exit(1)
+    }
+    
+    fmt.Printf("The process id is %v", pid)
+     ```
+
+    
+
+- 
+
+
+
 ## 3.11、flag包
 
 用来获取程序执行时，命令行后添加的参数。
@@ -1754,7 +1951,9 @@ func main() {
 
 
 
-## 3.12、encoding/json序列化
+## 3.12、encoding
+
+### 3.12.1、json序列化
 
 将对象中的数据转换成JSON格式。需要转为JSON格式的对象，其对应的struct的属性名应为public（即：首字母大写）。否则，最终得到的数据为空。
 
@@ -1792,24 +1991,24 @@ func main() {
 package serialize
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
-	"os"
+    "encoding/json"
+    "fmt"
+    "log"
+    "os"
 )
 
 type Address struct{
-	Province string
-	City string
-	Town string
-	Road string
+    Province string
+    City string
+    Town string
+    Road string
 
 }
 
 type IDCard struct{
-	Name      string
-	Age       int
-	Addresses []*Address
+    Name      string
+    Age       int
+    Addresses []*Address
 }
 
 type Serialize struct{
@@ -1820,24 +2019,24 @@ type Serialize struct{
 否则，无法完成数据转换
  */
 func (s *Serialize) Encoded(){
-	chris_fj := &Address{"FuJian","quanzhou","jinjiang","189"}
+    chris_fj := &Address{"FuJian","quanzhou","jinjiang","189"}
 
 
-	chris_sh := &Address{"shanghai","shanghai","xujiahui","130"}
+    chris_sh := &Address{"shanghai","shanghai","xujiahui","130"}
 
-	idInfo := IDCard{"chris", 18,[]*Address{chris_fj, chris_sh}}
-	//进行数据转换
-	js, _ := json.Marshal(idInfo)
-	fmt.Printf("JSON format: %s", js)
+    idInfo := IDCard{"chris", 18,[]*Address{chris_fj, chris_sh}}
+    //进行数据转换
+    js, _ := json.Marshal(idInfo)
+    fmt.Printf("JSON format: %s", js)
 
-	//将数据写入文件
-	file, _ := os.OpenFile("./data/idCard.json", os.O_CREATE|os.O_WRONLY, 0666)
-	defer file.Close()
-	enc := json.NewEncoder(file)
-	err := enc.Encode(idInfo)
-	if err != nil {
-		log.Println("Error in encoding json")
-	}
+    //将数据写入文件
+    file, _ := os.OpenFile("./data/idCard.json", os.O_CREATE|os.O_WRONLY, 0666)
+    defer file.Close()
+    enc := json.NewEncoder(file)
+    err := enc.Encode(idInfo)
+    if err != nil {
+        log.Println("Error in encoding json")
+    }
 }
 
 /**************************  main  ********************************/
@@ -1846,14 +2045,64 @@ package main
 import "serialize"
 
 func main() {
-	seri := serialize.Serialize{}
-	seri.Encoded()
+    seri := serialize.Serialize{}
+    seri.Encoded()
 }
 ```
 
 
 
+### 3.12.2、Gob（Go binary）
 
+- 作用：
+
+  类似于Java中的Serialization，采用二进制的形式传输序列化、反序列化数据（Gob是一种数据格式）
+
+- 应用场景：
+
+  一般用于RPC远程端口调用中，传输数据。和JSON、XML不同，Gob的效率更高，采用二进制传输的方式，不会使得数据的解码、编码，被编程语言所限制。
+
+  可以结合hash、crypto包中的加密算法进行数据加密。
+
+```go
+import (
+	"bytes"
+	"encoding/gob"
+	"fmt"
+	"log"
+)
+
+type P struct {
+	X, Y int
+	Name    string
+}
+
+type Q struct {
+	X, Y *int32
+	Name string
+}
+
+func main() {
+	var network bytes.Buffer   // Stand-in for a network connection
+	//通过网络发送数据
+	enc := gob.NewEncoder(&network)
+	//通过网络读取数据
+	dec := gob.NewDecoder(&network)
+	// 编码
+	err := enc.Encode(P{3, 4, "Pythagoras"})
+	if err != nil {
+		log.Fatal("encode error:", err)
+	}
+	// 解码
+	var q Q
+	err = dec.Decode(&q)
+	if err != nil {
+		log.Fatal("decode error:", err)
+	}
+	//打印解码后的数据
+	fmt.Printf("decode: %q: {%d, %d}\n", q.Name, q.X, q.Y)
+}
+```
 
 
 
