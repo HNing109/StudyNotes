@@ -1511,7 +1511,16 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
     属于runtime/pprof包，可进行测试数据可视化。 
 
-  
+
+
+
+## 2.10、协程
+
+
+
+
+
+
 
 # 3、常用函数
 
@@ -1892,7 +1901,7 @@ D:/Files/StudyNotes/Golang_学习笔记/Code/basicCode/src/main/factory_main.go:
     }
     
     fmt.Printf("The process id is %v", pid)
-     ```
+    ```
 
     
 
