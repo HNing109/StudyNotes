@@ -584,6 +584,7 @@ func closureTest(){
             temp += index
         }
         return temp
+     //10：为func传入的参数，赋给iterator形参的值   
     }(10)
     fmt.Println("sum = ", sum)
 }
@@ -1113,7 +1114,11 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
     ch := make(chan 存入的数据类型,  缓存空间大小)
 
-    **默认缓存空间为0，即ch存入数据的同时，需要立刻将其取出。因此，通常需要指定一定大小的缓存空间，以存放数据，等待协程将其取出**
+    **默认缓存空间为0，即ch存入数据的同时，需要立刻将其取出（即：具有同步阻塞的特性）。因此，通常需要指定一定大小的缓存空间，以存放数据，等待协程将其取出**
+
+  
+
+  <font color='red'>（通道中存、取数据操作都是原子操作，不会相互影响）</font>
 
   - **存数据：**
 
@@ -1123,11 +1128,26 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
     val := <- ch
 
+  - **适用范围：**
+
+    Go中所有的类型都可使用通道传递数据，包括：**空接口**
+
+    * **使用锁的情景：**
+      - 访问共享数据结构中的缓存信息
+      - 保存应用程序上下文和状态信息数据
+    
+    * **使用通道的情景：**
+      - 与异步操作的结果进行交互
+      - 分发任务
+      - 传递数据所有权
+    
   - **channel会出现堵塞的情况**：
 
     channel缓存区满：写数据堵塞，读数据不堵塞
 
     channel缓存区空：读数据堵塞，写数据不堵塞
+    
+    **若不设置channel的缓存区，则默认为0，即：channel中的数据一旦存入，就需要被取出，否则会出现deadlock死锁错误（可以使用go协程，编写生产者-消费者模型，即可实现0缓冲区channel的数据存取）**
 
   ```go
   func fibonacci(num int, ch chan int){
@@ -1141,7 +1161,7 @@ func encodeToXML(v interface{}, w io.Writer) error {
   		next = pre + temp
   	}
   	//结束数据输入后：关闭信道
-  	close(ch)
+  	defer close(ch)
   }
   
   func main(){
@@ -1156,13 +1176,54 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
   
 
+  使用Go协程 + channel，实现数据阻塞读写。
+
+  ```go
+  func main(){
+      var ch = make(chan int, 10)
+  	go func(ch chan int) {
+  		for index := 0; index < TOTAL_NUM; index++{
+  			time.Sleep(500 * time.Millisecond)
+  			ch <- 1
+  			fmt.Printf("th %d: input data = %d, len = %d\n", index, 1, len(ch))
+  		}
+  	}(ch)
+  	go func(ch chan int){
+  		for index := 0; index < TOTAL_NUM; index++{
+  			time.Sleep(1000 * time.Millisecond)
+  			fmt.Printf("th %d: get data = %d, len = %d\n",index, <-ch, len(ch))
+  		}
+  	}(ch)
+  }
+  ```
+
+  
+
 - **协程**
 
   属于轻量级线程，和java中的线程不同。Go协程不涉及锁的升级、状态转换等，因此速度更快。协程使用sync包中的Mutex（互斥锁）、Channel（通道、信道）来保证各个协程之间的并发控制。
 
-  - 开启方式
+  - **基本概念**
+
+    - Go中，协程的并发处理使用的时Channel，而不是syn包中的锁（会降低处理速度）
+    
+    - 协程时在栈中创建的（在同一个地址空间中，开辟独立的栈空间），对栈进行分割，动态改变占用的大小（当协程执行完成之后，自动释放占用的内存），不需要使用GC对栈进行管理。
+    
+    - Go的协程是并发运行（不是并行运行的），即：同一时间只有一个协程在运行。可通过设置GOMAXPROCS变量，配置可同时并行运行的协程数量。
+    
+      **一般情况下，若处理器为n核，则GOMAXPROCS设置的协程数量m = n - 1  性能最佳。m > 1 + GOMAXPROCS > 1**
+    
+  - **开启方式**
 
     go 方法名(参数)
+    
+  - **关闭协程**
+
+    runtime.Goexit()
+
+  - 
+
+  -  
 
   ```go
   func goForSum(arr []int, ch chan int) {
@@ -1397,10 +1458,12 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
   - 结合**defer**调用 **recover()**  函数，捕捉错误，可使得painc()函数停止向上执行，防止程序因painc报错，导致程序终止运行。（即：上层的painc()不再调用，起到修复程序的作用）
 
+    正常情况下，recover()返回值为nil
+
     **经recover处理之后，程序可正常运行，不会因为painc抛出错误而终止程序**。
 
   - 结合**error**接口，将painc获取的错误，封装为error，然后返回。用户根据这个错误进行相应的处理。（即：将错误隐藏在包内）
-
+  
   ```go
   import (
   	"fmt"
@@ -1428,7 +1491,7 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
   	fmt.Printf("Test completed\r\n")
   }
   ```
-
+  
   
 
 ## 2.9、单元测试
@@ -1514,9 +1577,9 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
 
 
-## 2.10、协程
+## 2.10、
 
-
+- 
 
 
 
@@ -1612,6 +1675,7 @@ D:/Files/StudyNotes/Golang_学习笔记/Code/basicCode/src/main/factory_main.go:
   xxxxxxxx执行函数
   
   var end := time.Now()
+  //计算时间
   fmt.Println("time = ", end.Sub(start))
   ```
 
