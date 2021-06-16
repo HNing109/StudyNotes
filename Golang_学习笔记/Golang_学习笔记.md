@@ -1710,6 +1710,7 @@ func (h * HttpPkg) Test(){
 }
 
 /***************************  main  *****************************/
+//测试URL：http://localhost:8080/asdfgf
 package main
 
 import "http_pkg"
