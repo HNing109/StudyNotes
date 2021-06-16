@@ -1577,9 +1577,150 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
 
 
-## 2.10、
+## 2.10、网络通信
 
-- 
+### 2.10.1、TCP
+
+ ```go
+/******************************  tcp server  ***********************************/
+package tcp_pkg
+
+import (
+	"fmt"
+	"net"
+)
+
+type TcpServer struct{
+
+}
+
+func (t *TcpServer) Start() {
+	fmt.Println("Starting the server ...")
+	// 创建 listener
+	listener, err := net.Listen("tcp", "localhost:50000")
+	if err != nil {
+		fmt.Println("Error listening", err.Error())
+		return //终止程序
+	}
+	// 监听并接受来自客户端的连接
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			fmt.Println("Error accepting", err.Error())
+			return // 终止程序
+		}
+		go t.doServerStuff(conn)
+	}
+}
+
+func (t *TcpServer) doServerStuff(conn net.Conn) {
+	for {
+		buf := make([]byte, 512)
+		len, err := conn.Read(buf)
+		if err != nil {
+			fmt.Println("Error reading", err.Error())
+			return //终止程序
+		}
+		fmt.Printf("Received data: %v\n", string(buf[:len]))
+	}
+}
+
+
+/******************************  tcp client  ***********************************/
+package tcp_pkg
+
+import (
+	"bufio"
+	"fmt"
+	"net"
+	"os"
+	"strings"
+)
+
+type TcpClient struct{
+
+}
+
+func (t * TcpClient) Start() {
+	//打开连接:
+	conn, err := net.Dial("tcp", "localhost:50000")
+	if err != nil {
+		//由于目标计算机积极拒绝而无法创建连接
+		fmt.Println("Error dialing", err.Error())
+		return // 终止程序
+	}
+
+	inputReader := bufio.NewReader(os.Stdin)
+	fmt.Println("First, what is your name?")
+	clientName, _ := inputReader.ReadString('\n')
+	// fmt.Printf("CLIENTNAME %s", clientName)
+	trimmedClient := strings.Trim(clientName, "\r\n") // Windows 平台下用 "\r\n"，Linux平台下使用 "\n"
+	// 给服务器发送信息直到程序退出：
+	for {
+		fmt.Println("What to send to the server? Type Q to quit.")
+		input, _ := inputReader.ReadString('\n')
+		trimmedInput := strings.Trim(input, "\r\n")
+		// fmt.Printf("input:--%s--", input)
+		// fmt.Printf("trimmedInput:--%s--", trimmedInput)
+		if trimmedInput == "Q" {
+			return
+		}
+		_, err = conn.Write([]byte(trimmedClient + " says: " + trimmedInput))
+	}
+}
+ ```
+
+
+
+ ### 2.10.2、HTTP
+
+
+
+```go
+/***************************  http  *****************************/
+package http_pkg
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+)
+
+type HttpPkg struct{
+
+}
+/**
+http.ResponseWriter：通过此对象进行数据输出
+http.Request：网页服务器发送的响应对象
+ */
+func (h *HttpPkg) HelloWordServer(w http.ResponseWriter, req *http.Request){
+	fmt.Println("Hello world server")
+	//[1:] ： 从1开始，是为了滤除根目录/
+	fmt.Fprintf(w, "hello, " + req.URL.Path[1:])
+}
+
+func (h * HttpPkg) Test(){
+	//访问的URL、对应的处理函数
+	http.HandleFunc("/", h.HelloWordServer)
+	//监听本地端口8080
+	err := http.ListenAndServe("localhost:8080", nil)
+	if err != nil{
+		log.Fatal("ListenAndServer: ", err.Error())
+	}
+}
+
+/***************************  main  *****************************/
+package main
+
+import "http_pkg"
+
+func main() {
+	var http = new(http_pkg.HttpPkg)
+	http.Test()
+}
+```
+
+
 
 
 
