@@ -79,10 +79,10 @@ Go中只有二元运算，不存在三元运算，例如Java中的：return  num
 
   
 
-- int：int8（-128 -> 127）、  int16 、 int32 、 int64
-  uint：uint8（0-> 255）、 uint16、 uint32、 uint64 
+- **int：**int8（-128 -> 127）、  int16 、 int32 、 int64
+  **uint：**uint8（0-> 255）、 uint16、 uint32、 uint64 
 
-  uintptr：无符号整型，用于存放指针
+  **uintptr：**无符号整型，用于存放指针
   
   `int`, `uint` 和 `uintptr` 在 32 位系统上通常为 32 位宽，在 64 位系统上则为 64 位宽。 当需要一个整数值时应使用 `int` 类型，除非你有特殊的理由使用固定大小或无符号的整数类型。
   
@@ -274,18 +274,65 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
   **原理**：推迟的函数调用会被压入一个**栈**中。当外层函数返回时，被推迟的函数会按照后进先出的顺序调用
 
-  ```go
-  func deferTest(){
-     //加锁操作
-     mu.Lock()  
-     //等待程序结束后，释放锁 
-     defer mu.Unlock() 
-      
-     for index := 0; index < 10; index++{
-        defer fmt.Print(index)
-     }
-  }
-  ```
+  
+  
+  - defer在return之后执行的
+  
+    ```go
+    func main() {
+    	// defer 和 return之间的顺序是先返回值, i=0，后defer
+    	fmt.Println("return:", test1())
+    	//i = 2
+    	fmt.Println("return:", test2())
+    }
+    
+    //返回值未命名（此函数的defer不改变return值）
+    func test1() int {
+    	var i int
+    	defer func() {
+    		i++
+    		fmt.Println("defer1", i) //作为闭包引用，i=2
+    	}()
+    	defer func() {
+    		i++
+    		fmt.Println("defer2", i) //作为闭包引用，i=1
+    	}()
+    	return i
+    }
+    
+    
+    //返回值有命名（此函数的defer可改变return值）
+    func test2() (i int) { //返回值命名i
+    	defer func() {
+    		i++
+    		fmt.Println("defer1", i)
+    	}()
+    	defer func() {
+    		i++
+    		fmt.Println("defer2", i)
+    	}()
+    	return i
+    }
+    ```
+  
+    
+  
+  - 加锁、解锁
+  
+    ```go
+    func deferTest(){
+       //加锁操作
+       mu.Lock()  
+       //等待程序结束后，释放锁 
+       defer mu.Unlock() 
+        
+       for index := 0; index < 10; index++{
+          defer fmt.Print(index)
+       }
+    }
+    ```
+  
+    
 
 
 
@@ -553,9 +600,9 @@ func main(){
 
 ### 2.5.3、**闭包**
 
-（也称之为“匿名函数”）
+（也称之为 **“ 匿名函数 ”** ）
 
-本质：函数A返回另一个函数B的返回值，并且函数A中的局部变量可被缓存、重复使用
+**本质：**函数A返回另一个函数B的返回值，并且函数A中的局部变量可被缓存、重复使用
 
 ```go
 //closure：即为函数A
@@ -632,11 +679,21 @@ func closureTest(){
       **<font color='red'>下面两种方法均可被：结构体类型变量的指针、结构体类型变量   调用</font>**
       
       - **值接收者**（少用，无法改变传入结构体的属性、数据值），该方法称之为“**指针方法**”
+      
+        在**栈**中分配内存，直接传递、**拷贝数据**。
+      
       - **指针接收者**（常用，可以改变传入结构体的属性、数据值），该方法称之为“**值方法**”
+      
+        **新建一个对象**，在**堆**中分配内存，并将对象迁移至堆中（导致占用更多的内存）
+      
+        
       
     - **<font color='red'>方法名（变全局量名也一样）</font>**：
       - **首字母大写**：即java中的public方法，可被所有类调用
+      
       - **首字母小写**：即java中的protected方法，只能被类内、包内的类调用。包外的类无法访问。
+      
+        
     
   - **结构体的方法可以在不同.go文件中，但是必须与该结构体在同一个包里面**
 
@@ -815,7 +872,9 @@ func closureTest(){
 
 ### 2.5.5、**接口**
 
-和java中的接口类似。可以对接口中的方法进行重写，eg：Error（）、String（）等方法
+和java中的接口类似。可以对接口中的方法进行**重写**，eg：Error（）、String（）等方法。
+
+**<font color='red'>接口本身就是一个指针，因此不可以使用指针变量指向接口。</font>**
 
 - **空接口**
 
@@ -1138,8 +1197,12 @@ func encodeToXML(v interface{}, w io.Writer) error {
     
     * **使用通道的情景：**
       - 与异步操作的结果进行交互
+      
       - 分发任务
+      
       - 传递数据所有权
+      
+        
     
   - **channel会出现堵塞的情况**：
 
@@ -1148,6 +1211,31 @@ func encodeToXML(v interface{}, w io.Writer) error {
     channel缓存区空：读数据堵塞，写数据不堵塞
     
     **若不设置channel的缓存区，则默认为0，即：channel中的数据一旦存入，就需要被取出，否则会出现deadlock死锁错误（可以使用go协程，编写生产者-消费者模型，即可实现0缓冲区channel的数据存取）**
+    
+    
+    
+  - **检测通道是否关闭**
+
+     使用range或者  val, ok := ch判断
+
+    ```go
+    //方式一
+    for input := range ch {
+        Process(input)
+    }
+    
+    //方式二
+    for {
+        if input, open := <-ch; !open {
+            break // 通道是关闭的
+        }
+        Process(input)
+    }
+    ```
+
+    
+
+  使用go协程、channel计算斐波那契数列
 
   ```go
   func fibonacci(num int, ch chan int){
@@ -1416,9 +1504,9 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
 ## 2.8、错误处理
 
-Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-recover**机制处理错误。结合switch，可以处理相应类型的错误。（fmt.Errorf，可用于床架一个错误对象--输出错误信息）
+Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-recover**机制处理错误。结合switch，可以处理相应类型的错误。（fmt.Errorf，可用于创建一个错误对象——输出错误信息）
 
-- 自定义错误
+- **自定义错误**
 
   - erros.New(错误信息)：创建错误对象
 
@@ -1674,7 +1762,40 @@ func (t * TcpClient) Start() {
 
  ### 2.10.2、HTTP
 
+- http.Head(url)
 
+  获取url请求的返回值
+
+- http.Get(url)
+
+  获取网页内容，body部分
+
+- http.Redirect(w ResponseWriter, r *Request, url string, code int)：
+
+  会让浏览器重定向到 url（可以是基于请求 url 的相对路径），同时指定状态码。
+
+- http.NotFound(w ResponseWriter, r *Request)：
+
+  将返回网页没有找到，HTTP 404错误。
+
+- http.Error(w ResponseWriter, error string, code int)：
+
+  返回特定的错误信息和 HTTP 代码。
+
+- req.Method
+
+  http.Request对象req的重要属性，这是一个包含 GET或 POST字符串，用来描述网页是以何种方式被请求的。
+
+- **Gohttp中定义的错误代码**
+
+  http.StatusContinue	    	= 100
+  http.StatusOK			           = 200
+  http.StatusFound		         = 302
+  http.StatusBadRequest	   = 400
+  http.StatusUnauthorized	= 401
+  http.StatusForbidden		  = 403
+  http.StatusNotFound		   = 404
+  http.StatusInternalServerError	= 500
 
 ```go
 /***************************  http  *****************************/
@@ -1720,6 +1841,160 @@ func main() {
 	http.Test()
 }
 ```
+
+
+
+## 2.11、RPC
+
+和java中使用feign搭建的RPC服务器类似。都是用于客户端远程调用服务器API。
+
+- 需要使用的包：
+  - net/rpc：建立在gob包之上，封装了rpc的所有功能
+  - http：用于获取客户端的DialHTTP请求，建立server-client之间的连接
+  - tcp：
+- 
+
+```go
+/*************************  rpc-object  ***************************/
+package rpc_pkg
+
+/**
+Rpc：调用的对象
+ */
+type Args struct{
+	N, M int
+}
+
+func(a *Args) Multiply(args * Args, reply *int) error{
+	*reply = args.N * args.M
+	return nil
+}
+
+func NewRpcObject(N, M int) *Args{
+	obj := new(Args)
+	obj.N = N
+	obj.M = M
+	return obj
+}
+
+/*************************  rpc-server  ***************************/
+package rpc_pkg
+
+import (
+	"log"
+	"net"
+	"net/http"
+	"net/rpc"
+	"time"
+)
+
+/**
+RPC服务器：开启RPC的功能
+ */
+type RpcServer struct{
+
+}
+
+func(r *RpcServer) StartServer(){
+	log.Println("Starting Rc-server......")
+	//创建rpc调用对象
+	rpcObject := new(Args)
+	//注册RPC调用的对象
+	rpc.Register(rpcObject)
+	rpc.HandleHTTP()
+	//以tcp方式监听本地端口
+	listen, err := net.Listen("tcp", "localhost:8888")
+	if err != nil{
+		log.Fatal("Starting Rpc-server Error :", err)
+	}
+	//使用协程处理监听到的http请求
+	go http.Serve(listen, nil)
+	time.Sleep(1000 * time.Second)
+}
+
+/*************************  rpc-client  ***************************/
+package rpc_pkg
+
+import (
+	"fmt"
+	"log"
+	"net/rpc"
+	"strconv"
+)
+/**
+RCP客户端：模拟远程调用RCP
+ */
+type RpcClient struct{
+
+}
+
+//远程RPC服务器的地址
+const RpcServerHost = "localhost:"
+const RpcPort = 8888
+
+func (r *RpcClient) StartClient(){
+	log.Println("Starting Rc-client......")
+	//以TCP方式拨号，连接RPC服务器
+	client, errServer := rpc.DialHTTP("tcp", RpcServerHost + strconv.Itoa(RpcPort))
+	if errServer != nil{
+		log.Fatal("Starting Rpc-client error: ", errServer)
+	}
+	//创建相应的RPC调用的对象
+	args := NewRpcObject(3,4)
+	var reply int
+	//调用远程的Args.Multiply()方法，传入args对象作为参数，响应结果存入reply
+	errClient := client.Call("Args.Multiply", args, &reply)
+	if errClient != nil{
+		log.Fatal("Args Error: ", errClient)
+	}
+	fmt.Printf("call rpc success: args.n = %d, args.M = %d, reply = %d", args.N, args.M, reply)
+}
+
+```
+
+
+
+## 2.12、网络通道netchan
+
+区别于channel通道（仅限于本机内存中的数据传输），netchan可用于两台不同的计算机之间的数据传输，且netchan支持缓存（即：网络通道为异步数据传输）
+
+- 使用的方法：
+
+  - netchan.NewExporter(通讯协议, 地址)
+
+    创建数据发送端
+
+  - netchan.NewImporter(通讯协议, 地址)
+
+    创建数据接收端
+
+````go
+/************************  数据发送端  **************************/
+//创建数据发送端
+exp, err := netchan.NewExporter("tcp", "netchanserver.mydomain.com:1234")
+if err != nil {
+	log.Fatalf("Error making Exporter: %v", err)
+}
+ch := make(chan myType)
+//发送数据
+err := exp.Export("sendmyType", ch, netchan.Send)
+if err != nil {
+	log.Fatalf("Send Error: %v", err)
+}
+
+/************************  数据接收端  **************************/
+//创建数据接收端
+imp, err := netchan.NewImporter("tcp", "netchanserver.mydomain.com:1234")
+if err != nil {
+	log.Fatalf("Error making Importer: %v", err)
+}
+ch := make(chan myType)
+//接收数据
+err = imp.Import("sendmyType", ch, netchan.Receive)
+if err != nil {
+	log.Fatalf("Receive Error: %v", err)
+}
+````
 
 
 
@@ -1779,7 +2054,7 @@ func main(){
 
 
 
-## 3.3、painc()
+## 3.3、painc()函数
 
 详见2.8
 
@@ -2166,7 +2441,7 @@ func main() {
 
 
 
-## 3.12、encoding
+## 3.12、编码encoding
 
 ### 3.12.1、json序列化
 
@@ -2318,6 +2593,26 @@ func main() {
 	fmt.Printf("decode: %q: {%d, %d}\n", q.Name, q.X, q.Y)
 }
 ```
+
+
+
+## 3.13、strconv包
+
+- strconv.Atoi( string )
+
+  string to int
+
+-  strconv.Itoa( int )
+
+  int to string
+
+- strconv.ParseInt( string, 10, 64)
+
+  string转int64
+
+- strconv.FormatInt(int64, 10)
+
+  int64转string
 
 
 
