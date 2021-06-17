@@ -275,12 +275,20 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   **原理**：推迟的函数调用会被压入一个**栈**中。当外层函数返回时，被推迟的函数会按照后进先出的顺序调用
 
   
-  
-  - defer在return之后执行的
-  
+
+  - **defer在return之后执行的**
+
+    **<font color='red'>return运行机制（重要）：</font>**实际上return返回数据分为两步执行（并非原子操作），包含：赋值 -> 返回值
+
+    - 首先，return默认指定了一个返回值A，若函数未指定返回值名，则在return时自动将 return B 中的B赋值给A，然后返回。（而return后执行的defer，操作的是B，和A无关，因此不会影响return的值）
+    - 其次，若函数指定了返回值名B，则在执行return B时，将A 和 B绑定，即：修改B的数据，A也会修改。（因此，下面的test2()函数中：defer执行后，return的值也被修改了）
+
+    
+
     ```go
     func main() {
-    	// defer 和 return之间的顺序是先返回值, i=0，后defer
+    	// defer 和 return之间的顺序是先返回值,后defer
+        //i=0
     	fmt.Println("return:", test1())
     	//i = 2
     	fmt.Println("return:", test2())
@@ -297,28 +305,28 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
     		i++
     		fmt.Println("defer2", i) //作为闭包引用，i=1
     	}()
-    	return i
+    	return i  //i=0
     }
     
     
-    //返回值有命名（此函数的defer可改变return值）
-    func test2() (i int) { //返回值命名i
+    //返回值有命名i（此函数的defer可改变return值）
+    func test2() (i int) { 
     	defer func() {
     		i++
-    		fmt.Println("defer1", i)
+    		fmt.Println("defer1", i) //i=2
     	}()
     	defer func() {
     		i++
-    		fmt.Println("defer2", i)
+    		fmt.Println("defer2", i) //i=1
     	}()
-    	return i
+    	return i   //i=2
     }
     ```
-  
+
     
-  
+
   - 加锁、解锁
-  
+
     ```go
     func deferTest(){
        //加锁操作
@@ -331,7 +339,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
        }
     }
     ```
-  
+
     
 
 
