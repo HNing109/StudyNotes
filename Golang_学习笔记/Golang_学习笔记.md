@@ -84,7 +84,7 @@ Go中只有二元运算，不存在三元运算，例如Java中的：return  num
 
   **uintptr：**无符号整型，用于存放指针
   
-  `int`, `uint` 和 `uintptr` 在 32 位系统上通常为 32 位宽，在 64 位系统上则为 64 位宽。 当需要一个整数值时应使用 `int` 类型，除非你有特殊的理由使用固定大小或无符号的整数类型。
+  `int`, `uint` 和 `uintptr` 在 32 位系统上通常为 32 位宽，在 64 位系统上则为 64 位宽。 当需要一个整数值时应使用 `int` 类型，除非在特定的场景需要使用固定大小或无符号的整数类型。
   
 - byte ：uint8 的别名
 
@@ -148,9 +148,9 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 - 定义变量的方式
 
-  - var param string = “chris”  //（显式类型定义）需要写明参数类型、初值
+  - var param string = “chris”  //（**显式**类型定义）需要写明参数类型、初值
 
-  - var param := “chris”            //（隐式类型定义）自动根据初值类型，获取相应的类型
+  - var param := “chris”            //（**隐式**类型定义）自动根据初值类型，获取相应的类型
 
   - param := “chris”                  //自动根据初值类型，获取相应的类型
 
@@ -190,7 +190,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
   - **作用**：<font color='red'>**...  +  空接口**</font>   可实现  **“函数重载”**  的效果（Go中并不允许函数重载，使用该方式可以起到类似效果）。
 
-    ​			**实现函数重载的方式**：在所定义的函数中，其结尾的传入形参，定义为： vars ...interface{}  
+    ​			**实现函数重载的方式**：在所定义的函数中，其结尾的传入形参，定义为： vars ...interface{}   ，即：该函数可接受任意类型的参数
 
     ​                                                  eg: func getData(name string, vars ...interface{}){   }
 
@@ -217,7 +217,6 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
   
 
-- 
 
 ## 2.3、基本控制流程语句
 
@@ -263,28 +262,30 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
   
 
-- defer
+- **defer**
 
   defer推迟调用函数：仅当外层函数执行完后，在**return之后**执行defer的函数。
 
-  **作用**：
-
+  - **作用**：
   - 可用于追踪代码执行的位置（因为，defer是在函数执行完成之后，才会执行的）
-  - 可用于程序结束时，释放资源（类似于java中的finally）：释放锁、关闭数据库连接
+  
+    - 可用于程序结束时，释放资源（类似于java中的finally）：释放锁、关闭数据库连接
 
-  **原理**：推迟的函数调用会被压入一个**栈**中。当外层函数返回时，被推迟的函数会按照后进先出的顺序调用
+      
+
+  - **原理**：推迟的函数调用会被压入一个**栈**中。当外层函数返回时，被推迟的函数会按照后进先出的顺序调用
 
   
 
   - **defer在return之后执行的**
 
-    **<font color='red'>return运行机制（重要）：</font>**实际上return返回数据分为两步执行（并非原子操作），包含：赋值 -> 返回值
-
-    - 首先，return默认指定了一个返回值A，若函数未指定返回值名，则在return时自动将 return B 中的B赋值给A，然后返回。（而return后执行的defer，操作的是B，和A无关，因此不会影响return的值）
-    - 其次，若函数指定了返回值名B，则在执行return B时，将A 和 B绑定，即：修改B的数据，A也会修改。（因此，下面的test2()函数中：defer执行后，return的值也被修改了）
+    **<font color='red'>return运行机制（重要）：</font>**实际上return返回数据分为两步执行（并非原子操作），包含：**赋值 -> 返回值**
+  
+  - 首先，return默认指定了一个返回值A（***隐性不可见***），若函数未指定返回值名，则在return时自动将 return B 中的B赋值给A，然后返回。（而return后执行的defer，操作的是B，和A无关，因此不会影响return的值）
+    - 其次，若函数指定了返回值名B，则在执行return B时，将A 和 B绑定，即：修改B的数据，A也会修改。（因此，下面的test2()函数中：defer执行后修改了B，return的值A也被修改了）
 
     
-
+  
     ```go
     func main() {
     	// defer 和 return之间的顺序是先返回值,后defer
@@ -320,13 +321,13 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
     		fmt.Println("defer2", i) //i=1
     	}()
     	return i   //i=2
-    }
+  }
     ```
 
     
 
   - 加锁、解锁
-
+  
     ```go
     func deferTest(){
        //加锁操作
@@ -337,9 +338,9 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
        for index := 0; index < 10; index++{
           defer fmt.Print(index)
        }
-    }
+  }
     ```
-
+  
     
 
 
@@ -654,20 +655,24 @@ func closureTest(){
 - 创建对象
 
   - var impl struct                                           //impl为结构体类型变量
-- var impl *struct                                         //impl为指向结构体类型变量的  **指针**
+  
+- var impl *struct                                                //impl为指向结构体类型变量的  **指针**
   
   - impl := person{filedName: "chris"}		//impl为结构体类型的变量
-- impl := &person{filedName: "chris"}     //impl为指向结构体类型变量的  **指针**  （该方式，可直接赋初始值）
+  
+- impl := &person{filedName: "chris"}            //impl为指向结构体类型变量的  **指针**  （该方式，可直接赋初始值）
   - impl := new(person)                                 //impl为指向结构体类型变量的  **指针**  （该方式，需要自己手动给属性赋值）
 
-  **使用&struct{}创建对象，其底层依然会调用new(struct)方式创建（两者等价）**<font color='red'>两者的区别：（内存中的数据分布情况）</font>
+  **使用&struct{}创建对象，其底层依然会调用new(struct)方式创建（两者等价）**
+
+- <font color='red'>使用impl := person{filedName:} 和impl := &person{filedName: }的区别：（内存中的数据分布情况，如下所示）</font>
 
   ![image-20210610095947781](Golang_学习笔记.assets/image-20210610095947781.png)
 
   ![image-20210610095958183](Golang_学习笔记.assets/image-20210610095958183.png)
+
   
-  
-  
+
 - **结构体的方法**   
 
   - 方法和函数不同：方法有接收者，而函数没有
@@ -696,7 +701,8 @@ func closureTest(){
       
         
       
-    - **<font color='red'>方法名（变全局量名也一样）</font>**：
+    - **<font color='red'>方法名（全局变量名也一样）</font>**：
+      
       - **首字母大写**：即java中的public方法，可被所有类调用
       
       - **首字母小写**：即java中的protected方法，只能被类内、包内的类调用。包外的类无法访问。
@@ -827,7 +833,7 @@ func closureTest(){
 
   - 可实现类似  **继承**  的效果  （内嵌多个结构体，即：**多重继承**）
 
-    - 内嵌的结构体，其参数同样遵循首字母大写（public）、首字母小写（protected）的访问原则。
+    - 内嵌的结构体，其参数同样遵循**首字母大写（public）**、**首字母小写（protected）**的访问原则。
 
       **（即：外部结构体，可直接访问内嵌结构体内的所有属性、方法，但其他包中的类无法直接访问内嵌结构体的protected属性、方法）**
 
@@ -943,7 +949,7 @@ func closureTest(){
 
 
 
-- **接口提取**
+- **结构体新增接口**
 
   若原有结构体以及继承某个接口，现在结构体需要增加一个新继承的接口。Go中无需改变原有代码（Java中需要在对象后的extends中添加新接口名），直接给原有的结构体，增加新接口定义的方法、并实现该方法即可。 
 
@@ -1052,7 +1058,14 @@ func main()  {
 
 ### 2.5.6、**断言**
 
-- 使用形式：**接口名.(类型)**
+- 使用方法：
+
+  **接口类型的变量.(类型)**
+
+  若左边不是接口类型的变量，则会报错：invalid type assertion: varI.(T) (non-interface type (type of varI) on left)
+
+  通常情况下使用new创建对象之后，为获得接口类型的变量，需要将new出来的对象赋给一个接口类型的变量，然后使用这个变量进行断言操作。
+
 - 用于判断结构体，是否继承某个接口
 
 ```go
@@ -1200,10 +1213,12 @@ func encodeToXML(v interface{}, w io.Writer) error {
     Go中所有的类型都可使用通道传递数据，包括：**空接口**
 
     * **使用锁的情景：**
+      
       - 访问共享数据结构中的缓存信息
-      - 保存应用程序上下文和状态信息数据
-    
+    - 保存应用程序上下文和状态信息数据
+      
     * **使用通道的情景：**
+      
       - 与异步操作的结果进行交互
       
       - 分发任务
@@ -1317,11 +1332,10 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
     runtime.Goexit()
 
-  - 
+    
 
-  -  
-
-  ```go
+  
+```go
   func goForSum(arr []int, ch chan int) {
   	res := 0
   	for _, val := range arr{
@@ -1344,9 +1358,9 @@ func encodeToXML(v interface{}, w io.Writer) error {
   	fmt.Println(res1, res2, res1 + res2)
   }
   ```
-
   
 
+  
 - **锁**
 
   使用sync.Mutex中的Lock()、Unlock()方法进行上锁、解锁操作。
@@ -1416,7 +1430,10 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
     - reflect.ValueOf(param).**Type()**  ：获取类型
 
-    - reflect.ValueOf(param).**Kind()**   ：获取pram的类型。若为对象，则返回struct。若为常量，则获取常量的类型（int、float等）
+    - reflect.ValueOf(param).**Kind()**   ：获取param的类型。
+
+      - 若为对象，则返回struct。
+      - 若为常量，则获取常量的类型（int、float等）
 
     - reflect.ValueOf(param)**.Float()**   ：获取常量的数值
 
@@ -1550,7 +1567,7 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
 - **painc(错误信息)**
 
-  - **painc()函数可多层嵌套使用**（即：Go paincking）。当程序执行painc()之后，就会列结束当前运行的函数，并执行defer，然后逐级返回。在运行至最顶层的函数时，painc可以获取到所有的错误。（本质上，就是一个栈中数据出栈的过程）
+  - **painc()函数可多层嵌套使用**（即：Go paincking）。当程序执行painc()之后，就会列结束当前运行的函数，并执行defer，然后逐级返回。在运行至最顶层的函数时，painc可以获取到所有的错误。（本质上，就是一个栈中数据出栈的过程，**多个defer嵌套使用，满足先进后出的原则**）
 
   - 结合**defer**调用 **recover()**  函数，捕捉错误，可使得painc()函数停止向上执行，防止程序因painc报错，导致程序终止运行。（即：上层的painc()不再调用，起到修复程序的作用）
 
@@ -1606,19 +1623,19 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
 - 通知测试失败的函数：
 
-  - func (t *T) Fail()
+  - 1）func (t *T) Fail()
 
     标记测试函数，测试失败。并且继续执行后面的测试
 
-  - func (t *T) FailNow()
+  - 2）func (t *T) FailNow()
 
     标记测试函数为失败并中止执行；文件中别的测试也被略过，继续执行下一个文件。
 
-  - func (t *T) Log(args ...interface{})
+  - 3）func (t *T) Log(args ...interface{})
 
-    args 被用默认的格式格式化并打印到错误日志中
+    args 被用默认的格式，格式化并打印到错误日志中
 
-  - func (t *T) Fatal(args ...interface{})
+  - 4）func (t *T) Fatal(args ...interface{})
 
     效果：先执行 3），然后执行 2）的效果
 
@@ -1634,7 +1651,7 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
   
 
--  **基准测试** 
+- **基准测试** 
 
   - 基准测试的函数需要**以BenchmarkXxx开头**（Benchmark+ 首字母大写），需要接收testing.B类型的参数
 
@@ -1643,6 +1660,42 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
   - 运行基准测试函数的命令：
 
     go test -test.bench=.*
+
+  ```go
+  import (
+  	"fmt"
+  	"testing"
+  )
+  
+  func main() {
+  	fmt.Println(" sync", testing.Benchmark(BenchmarkChannelSync).String())
+  	fmt.Println("buffered", testing.Benchmark(BenchmarkChannelBuffered).String())
+  }
+  
+  func BenchmarkChannelSync(b *testing.B) {
+  	ch := make(chan int)
+  	go func() {
+  		for i := 0; i < b.N; i++ {
+  			ch <- i
+  		}
+  		close(ch)
+  	}()
+  	for range ch {
+  	}
+  }
+  
+  func BenchmarkChannelBuffered(b *testing.B) {
+  	ch := make(chan int, 128)
+  	go func() {
+  		for i := 0; i < b.N; i++ {
+  			ch <- i
+  		}
+  		close(ch)
+  	}()
+  	for range ch {
+  	}
+  }
+  ```
 
   
 
@@ -1854,7 +1907,7 @@ func main() {
 
 ## 2.11、RPC
 
-和java中使用feign搭建的RPC服务器类似。都是用于客户端远程调用服务器API。
+和java中使用Feign搭建的RPC服务器类似。都是用于客户端远程调用服务器API，采用HTTP的方式传输数据。即：RPC服务器处理的是HTTP请求，客户端调用远程API时，就是通过模拟浏览器HTTP请求的方式，来发送数据给RPC服务器。
 
 - 需要使用的包：
   - net/rpc：建立在gob包之上，封装了rpc的所有功能
@@ -2034,7 +2087,7 @@ if err != nil {
 
 - panic：用于错误处理
 
-  recover：用于错误处理
+  recover：用于修复程序，捕捉panic抛出的错误，防止程序因painc抛出的错误而退出
 
 -  
 
@@ -2097,7 +2150,7 @@ D:/Files/StudyNotes/Golang_学习笔记/Code/basicCode/src/main/factory_main.go:
   ```go
   var start := time.Now()
   
-  xxxxxxxx执行函数
+  xxxxxxxx执行代码xxxxxxxx
   
   var end := time.Now()
   //计算时间
@@ -2453,7 +2506,7 @@ func main() {
 
 ### 3.12.1、json序列化
 
-将对象中的数据转换成JSON格式。需要转为JSON格式的对象，其对应的struct的属性名应为public（即：首字母大写）。否则，最终得到的数据为空。
+将对象中的数据转换成JSON格式。**<font color='red'>需要转为JSON格式的对象，其对应的struct的属性名应为public（即：首字母大写）。否则，最终得到的数据为空。</font>**
 
 - json.Marshal(序列化的对象)
 
@@ -2554,11 +2607,11 @@ func main() {
 
 - 作用：
 
-  类似于Java中的Serialization，采用二进制的形式传输序列化、反序列化数据（Gob是一种数据格式）
+  类似于Java中的Serialization，采用 **二进制** 的形式传输序列化、反序列化数据（**Gob是一种数据格式**）
 
 - 应用场景：
 
-  一般用于RPC远程端口调用中，传输数据。和JSON、XML不同，Gob的效率更高，采用二进制传输的方式，不会使得数据的解码、编码，被编程语言所限制。
+  一般用于RPC远程端口调用中的传输数据。和JSON、XML不同，Gob的效率更高，采用二进制传输的方式，使得数据的解码、编码，不会被编程语言所限制。
 
   可以结合hash、crypto包中的加密算法进行数据加密。
 
