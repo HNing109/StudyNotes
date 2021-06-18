@@ -64,7 +64,9 @@ Go中只有二元运算，不存在三元运算，例如Java中的：return  num
 
 - bool
 
-- string：Go中的字符串可根据需要，自动调整占用内存大小（1~4字节），java中的string固定占用2字节
+- string：Go中的字符串可根据需要，自动调整占用内存大小（1~4字节），java中的string固定占用2字节。
+
+  Go中的string字符串改用UTF-8编码，因此在编写web应用时，并不会出现乱码。
 
   **字符串、数组相互转换：**[]byte、string()
 
@@ -86,9 +88,9 @@ Go中只有二元运算，不存在三元运算，例如Java中的：return  num
   
   `int`, `uint` 和 `uintptr` 在 32 位系统上通常为 32 位宽，在 64 位系统上则为 64 位宽。 当需要一个整数值时应使用 `int` 类型，除非在特定的场景需要使用固定大小或无符号的整数类型。
   
-- byte ：uint8 的别名
+- byte ：uint8 的别名（8位，1个字节，表示范围0-255）
 
-- rune ：int32 的别名，表示一个 Unicode 码点
+- rune ：uint32 的别名，表示一个 Unicode 码点（32位，4个字节，表示范围0-65535）。虽然有uint32类型，但uint32直观感觉是整数（实际上uint32可以表示字符），因此新增rune用于表示字符。
   
 - float32（少用）
 
@@ -267,11 +269,11 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   defer推迟调用函数：仅当外层函数执行完后，在**return之后**执行defer的函数。
 
   - **作用**：
-  - 可用于追踪代码执行的位置（因为，defer是在函数执行完成之后，才会执行的）
-  
+
+    - 可用于追踪代码执行的位置（因为，defer是在函数执行完成之后，才会执行的）
     - 可用于程序结束时，释放资源（类似于java中的finally）：释放锁、关闭数据库连接
 
-      
+    
 
   - **原理**：推迟的函数调用会被压入一个**栈**中。当外层函数返回时，被推迟的函数会按照后进先出的顺序调用
 
@@ -280,12 +282,13 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   - **defer在return之后执行的**
 
     **<font color='red'>return运行机制（重要）：</font>**实际上return返回数据分为两步执行（并非原子操作），包含：**赋值 -> 返回值**
-  
-  - 首先，return默认指定了一个返回值A（***隐性不可见***），若函数未指定返回值名，则在return时自动将 return B 中的B赋值给A，然后返回。（而return后执行的defer，操作的是B，和A无关，因此不会影响return的值）
+
+    - 首先，return默认指定了一个返回值A（***隐性不可见***），若函数未指定返回值名，则在return时自动将 return B 中的B赋值给A，然后返回。（而return后执行的defer，操作的是B，和A无关，因此不会影响return的值）
+
     - 其次，若函数指定了返回值名B，则在执行return B时，将A 和 B绑定，即：修改B的数据，A也会修改。（因此，下面的test2()函数中：defer执行后修改了B，return的值A也被修改了）
 
     
-  
+
     ```go
     func main() {
     	// defer 和 return之间的顺序是先返回值,后defer
@@ -321,13 +324,13 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
     		fmt.Println("defer2", i) //i=1
     	}()
     	return i   //i=2
-  }
+    }
     ```
 
     
 
   - 加锁、解锁
-  
+
     ```go
     func deferTest(){
        //加锁操作
@@ -338,9 +341,9 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
        for index := 0; index < 10; index++{
           defer fmt.Print(index)
        }
-  }
+    }
     ```
-  
+
     
 
 
@@ -396,76 +399,110 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 ## 2.4、集合
 
-- 数组
+### 2.4.1、数组
 
-  - 定义方式（所有的定义方式，其数组的初始值均为 ： 0~num）
+- 定义方式（所有的定义方式，其数组的初始值均为 ： 0~num）
 
-    - var := [3]int {1,2,3}					//**类型为：[3]int**
+  - var := [3]int {1,2,3}					//**类型为：[3]int**
 
-    - var arr [3]int = [3]int {1,2,3}   //**类型为：[3]int**
-    - var arr = new([3]int)                 //**类型为：*[3]int**，属于**指针**
+  - var arr [3]int = [3]int {1,2,3}   //**类型为：[3]int**
 
-  - 遍历数组
+  - var arr = new([3]int)                 //**类型为：*[3]int**，属于**指针**
 
+  - var arr = [...]int{1, 2, 4: 1, 5: 1}**//类型为：[6]int，{1，2，0，0，1，1}**
+
+    
+
+- 数组类型：
+
+  ```go
+  // 字符串数组
+  var s1 = [2]string{"hello", "world"}
+  var s2 = [...]string{"你好", "世界"}
+  var s3 = [...]string{1: "世界", 0: "你好", }
+  
+  // 结构体数组
+  var line1 [2]image.Point
+  var line2 = [...]image.Point{image.Point{X: 0, Y: 0}, image.Point{X: 1, Y: 1}}
+  
+  // 图像解码器数组
+  var decoder1 [2]func(io.Reader) (image.Image, error)
+  
+  // 接口数组
+  var unknown1 [2]interface{}
+  var unknown2 = [...]interface{}{123, "你好"}
+  
+  // 管道数组
+  var chanList = [2]chan int{}
+  ```
+
+  
+
+- 遍历数组
+
+  ```go
+  var arr [3]int = [3]int {1,2,3}
+  for index := 0; index < len(arr); index++{
+     fmt.Println(arr[index])
+  }
+  
+  arr1 := [3]int {2,2,3}
+  for index := 0; index < len(arr); index++{
+     fmt.Println(arr1[index])
+  }
+  ```
+
+
+
+### 2.4.2、**切片**
+
+**（数组可以转化为切片）**
+
+切片的长度可以扩充，数组是固定的长度（底层为一个数组，当数组未被使用时，其所占用的内存才会被回收（GC））
+
+- 定义方式
+
+  - slice := []int {1, 2, 3}
+
+  - var slice []int
+
+  - var silce []int = make([]int, 长度, 容量)   // 容量：可选填。**未填写cap，则默认len = cap**
+
+    或者 slice := make([]int, 长度, 容量)
+    
+     **eg：**两者等价
+    
+    slice := make([]int, 100, 100)
+    
+    silce := new([100]int)[0:100]		//new([cap]int)[0:len]
+    
+    
+
+- 切片初始化
+
+  slice := []int {1, 2, 3}
+
+  
+
+- 获取切片中的片段
+
+  - // startIndex：可从0开始    ；  endIndex：最终获取的结果不包括endIndex所在的元素。
+
+    newSlice := slice[startIndex : endIndex]   
+    
+  - //获取整个silce中的元素
+  
+    newSlice := silce[:]
+    
     ```go
-    var arr [3]int = [3]int {1,2,3}
-    for index := 0; index < len(arr); index++{
-       fmt.Println(arr[index])
-    }
+     newSlice := slice[startIndex : endIndex]   
     
-    arr1 := [3]int {2,2,3}
-    for index := 0; index < len(arr); index++{
-       fmt.Println(arr1[index])
-    }
-    ```
-
-- **切片**（数组可以转化为切片）
-
-  切片的长度可以扩充，数组是固定的长度（底层为一个数组，当数组未被使用时，其所占用的内存才会被回收（GC））
-
-  - 定义方式
-
-    - slice := []int {1, 2, 3}
-
-    - var slice []int
-
-    - var silce []int = make([]int, 长度, 容量)   // 容量：可选填。**未填写cap，则默认len = cap**
-
-      或者 slice := make([]int, 长度, 容量)
-      
-       eg：两者等价
-      
-      slice := make([]int, 100, 100)
-      
-      silce := new([100]int)[0:100]		//new([cap]int)[0:len]
-      
-      
-
-  - 切片初始化
-
-    slice := []int {1, 2, 3}
-
-    
-
-  - 获取切片中的片段
-
-    - // startIndex：可从0开始    ；  endIndex：最终获取的结果不包括endIndex所在的元素。
-
-      newSlice := slice[startIndex : endIndex]   
-      
     - //获取整个silce中的元素
     
-      newSlice := silce[:]
-      
-      ```go
-       newSlice := slice[startIndex : endIndex]   
-      
-      - //获取整个silce中的元素
-      
-      newSlice := silce[:]
-      ```
-      
-      
+    newSlice := silce[:]
+    ```
+    
+    
 
 
   - len(切片)：获取切片中现存元素的个数
@@ -480,6 +517,40 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
     
 
+  - 判断切片是否为空
+
+    一般使用len()获取切片元素的长度，来判断是否为空。而不是和nil对比。
+
+
+
+
+  - 删除切片元素
+
+    ```go
+    //方式一：
+    a = []int{1, 2, 3}
+    //移动指针
+    a[0] = nil // GC回收第一个元素内存（置为nil，确保GC可发现需要被回收的内存空间——防止内存泄露）
+    a = a[1:]  // 删除开头1个元素
+    //append
+    a = append(a[:0], a[1:]...) // 删除开头1个元素
+    //copy
+    a = a[:copy(a, a[1:])]      // 删除开头1个元素
+    
+    //方式二：原地删除切片元素（不会出现内存不足的情况）
+    func Filter(s []byte, fn func(x byte) bool) []byte {
+    	b := s[:0]
+    	for _, x := range s {
+    		if !fn(x) {
+    			b = append(b, x)
+    		}
+    	}
+    	return b
+    }
+    ```
+
+     
+
   - 遍历切片
 
     ```go
@@ -492,59 +563,129 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
     
 
--  map（映射）
+- **<font color='red'>切片和数组的关系</font>** 
 
-  存放键值对，和java的hashmap类似（都是无序存放）
+  - 对数组进行切片，所得到的切片是原数组的引用（共享内存中的数据）
 
-  **不要使用new创建map，否则会得到一个nil指针（即：获得一个未初始化变量的地址）。必须使用make创建map**
+    （即：切片引用数组的内存地址，对切片上的数据进行操作，也会改变元素组的数据——改变同位置上的数据）
+
+    
+
+  - 切片的长度和容量不同：
+
+    - len()：长度为实际包含的元素个数，即**：切片可以索引位置的范围，0 ~ (len(slice) - 1)**
+    - cap()：容量为endIndex - startIndex
+
+    eg：从数组切片，获取长度和容量不相同的切片
+
+    slice := arr[stratIndex : endIndex : cap + startIndex]   //  arr[起始位置 ：结束位置 ：容量 + startIndex] 
+
+    
+
+  - **切片的切片：**
+
+    由于切片是对数组的引用，因此可以通过对切片再次切片，获取原数组上的元素片段。（注意：切片虽然能够再次获得原数组的数据，但是在访问切片数据的时候，依然只能访问到被映射出来的数据，超出索引范围的数据（即：**访问的索引值 < len(slice)**）是不能被访问到的）
+
+  ```go
+  func main() {
+      var numbers4 = [...]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+      //获取长度和容量不相等的切片
+      myslice := numbers4[4:6:8]		//{5,6}  ; len() = 2;  cap() = 4
+      fmt.Printf("myslice为 %d, 其长度为: %d\n", myslice, len(myslice))
   
-   ```go
-   /**
-   映射：类似于java中的hashmap：存放的是键值对
-    */
-   type websites struct{
-   	name string
-   	ip string
-   }
-   
-   /*
-   map中key为string，value为websites结构体
-   */
-   var m = map[string]websites{
-   	//websites可以省略
-   	"baidu": websites{
-   		"baidu",
-   		"1,2,3,4",
-   	},
-   	"google": websites{
-   		"google",
-   		"8.7.9.7",
-   	},
-   }
-   
-   func mapTest(){
-   	fmt.Println(m)
-   	//获取元素
-   	fmt.Println(m["baidu"])
-   
-   	//修改元素
-   	m["baidu"] = websites{m["baidu"].name, "2.2.2.2"}
-   	fmt.Println(m["baidu"])
-   
-   	//查找元素是否存在
-   	if val, ok := m["baidu"]; ok{
-   		//删除元素
-   		delete(m, "baidu")
-   		fmt.Println("delete val = ", val)
-   	}
-   	fmt.Println(m)
-       
-       //遍历map
-       for key, val := range m{
-           fmt.Printf("key = %s, val = %s\n", key, val)
-       }
-   }
-   ```
+      myslice = myslice[:cap(myslice)]  //{5,6，7，8}  ; len() = 4;  cap() = 4
+      fmt.Printf("myslice的第四个元素为: %d", myslice[3])
+  }
+  ```
+
+  
+
+  
+
+### 2.4.3、map（映射）
+
+存放键值对，和java的hashmap类似（都是无序存放）
+
+**不要使用new创建map，否则会得到一个nil指针（即：获得一个未初始化变量的地址）。必须使用make创建map**
+
+```go
+ /**
+ 映射：类似于java中的hashmap：存放的是键值对
+  */
+ type websites struct{
+ 	name string
+ 	ip string
+ }
+ 
+ /*
+ map中key为string，value为websites结构体
+ */
+ var m = map[string]websites{
+ 	//websites可以省略
+ 	"baidu": websites{
+ 		"baidu",
+ 		"1,2,3,4",
+ 	},
+ 	"google": websites{
+ 		"google",
+ 		"8.7.9.7",
+ 	},
+ }
+ 
+ func mapTest(){
+ 	fmt.Println(m)
+ 	//获取元素
+ 	fmt.Println(m["baidu"])
+ 
+ 	//修改元素
+ 	m["baidu"] = websites{m["baidu"].name, "2.2.2.2"}
+ 	fmt.Println(m["baidu"])
+ 
+ 	//查找元素是否存在
+ 	if val, ok := m["baidu"]; ok{
+ 		//删除元素
+ 		delete(m, "baidu")
+ 		fmt.Println("delete val = ", val)
+ 	}
+ 	fmt.Println(m)
+     
+     //遍历map
+     for key, val := range m{
+         fmt.Printf("key = %s, val = %s\n", key, val)
+     }
+ }
+```
+
+
+
+### 2.4.4、数组、字符串、切片的异同
+
+- 数组
+
+  - 数组的长度大小是固定的，且存储数据的类型固定。
+
+  - Go中的数组作为参数传递时，并不同于C语言（C传递的是数组的第一个元素的地址），**Go中传递的数组是复制整个数组的元素值，然后进行传递**，因此若传递较大的数组会消耗较大的内存。（可以使用一个数组指针A，指向数组，然后将指针A作为参数进行传递，就可以将数组的地址作为参数传递出去）
+
+  - 对于len()——获取元素的个数、cap()——获取数组最大容量，数组获得的数值都是一样的。
+
+  - **支持切片操作**
+
+    
+
+- 字符串
+
+  - Go中字符串低层也是采用数组组成，但该数组不支持数据修改
+
+  - 字符串赋值只是复制了数据地址和对应的长度，而不会复制底层数据。
+
+  - **支持切片操作**
+
+    
+
+- 切片
+
+  - 切片的底层数据结构也是数组，该数组可以修改数据。
+  - 每个切片有独立的长度和容量信息，切片赋值和函数传参数时也是将切片头信息部分按**传值方式**处理。因为切片头含有底层数据的指针，故对切片赋值时，可直接改变原始数据（未进行数据复制操作）。
 
 
 
@@ -609,16 +750,18 @@ func main(){
 
 ### 2.5.3、**闭包**
 
-（也称之为 **“ 匿名函数 ”** ）
+（当**“ 匿名函数 ”**中引用了外部的变量，该匿名函数即可称之为 “**闭包**” ）
 
-**本质：**函数A返回另一个函数B的返回值，并且函数A中的局部变量可被缓存、重复使用
+**闭包的本质：**函数B引用另一个函数A中的变量（可以起到类似缓存的效果，即：函数A中的局部变量可被缓存、重复使用）。
+
+**<font color='red'>闭包在使用外部变量时，采用的是引用传递的方式（而不是值传递，Go中仅此一处使用引用传递）</font>**
 
 ```go
-//closure：即为函数A
+//closure：即为函数A，（return 函数B）
 func closure() func(int) int{
    //该值可被缓存
    sum := 0
-   //匿名函数func(x int)：将x值循环叠加（return 函数B）
+   //闭包：匿名函数func(x int)即为函数B：使用的外部变量为sum，可将sum值循环叠加
    return func(x int) int{
       sum += x
       return sum
@@ -652,19 +795,17 @@ func closureTest(){
 
 结构体中，最好重写String()方法，方便后期打印结构体中的数据。
 
-- 创建对象
+- **创建对象**
 
   - var impl struct                                           //impl为结构体类型变量
   
-- var impl *struct                                                //impl为指向结构体类型变量的  **指针**
-  
+  - var impl *struct                                         //impl为指向结构体类型变量的  **指针**
   - impl := person{filedName: "chris"}		//impl为结构体类型的变量
-  
-- impl := &person{filedName: "chris"}            //impl为指向结构体类型变量的  **指针**  （该方式，可直接赋初始值）
+  - impl := &person{filedName: "chris"}     //impl为指向结构体类型变量的  **指针**  （该方式，可直接赋初始值）
   - impl := new(person)                                 //impl为指向结构体类型变量的  **指针**  （该方式，需要自己手动给属性赋值）
-
+  
   **使用&struct{}创建对象，其底层依然会调用new(struct)方式创建（两者等价）**
-
+  
 - <font color='red'>使用impl := person{filedName:} 和impl := &person{filedName: }的区别：（内存中的数据分布情况，如下所示）</font>
 
   ![image-20210610095947781](Golang_学习笔记.assets/image-20210610095947781.png)
@@ -675,18 +816,20 @@ func closureTest(){
 
 - **结构体的方法**   
 
-  - 方法和函数不同：方法有接收者，而函数没有
+  - **方法和函数异同**
 
-  - Go中没有类，使用该方式给结构体增加方法，相当于java中定义类的方法。
+    方法有接收者（方法属于结构体），而函数没有（函数则独立存在）
+
+  - Go中没有类，使用该方式给结构体增加方法，相当于java中定义类的方法。（java中的方法不能独立存在，一定属于某个类）
 
   - **由结构体创建对象时，只能使用 new()  或者  :=  。**不能使用make创建，否则会引发编译错误。
 
   
 
-  **方法的定义**：
+- **方法的定义**：
 
   - **func (参数名  结构体名)  方法名(参数名  类型)  返回值{}**
-    
+
     - **结构体名**：可使用指针接收者*，也可不使用
       
       **<font color='red'>下面两种方法均可被：结构体类型变量的指针、结构体类型变量   调用</font>**
@@ -703,77 +846,77 @@ func closureTest(){
       
     - **<font color='red'>方法名（全局变量名也一样）</font>**：
       
-      - **首字母大写**：即java中的public方法，可被所有类调用
+      - **首字母大写**：即java中的public方法，可被所有类调用（即：该方法可被导出）
       
-      - **首字母小写**：即java中的protected方法，只能被类内、包内的类调用。包外的类无法访问。
+      - **首字母小写**：即java中的protected方法，只能被类内、包内的类调用。包外的类无法访问。（即：该方法不可被导出）
       
         
-    
+
   - **结构体的方法可以在不同.go文件中，但是必须与该结构体在同一个包里面**
 
-  ```go
-  /*
-  结构体
-  */
-  type way struct{
-  	x float64
-  	y float64
-  }
-  
-  /**
-  值接收者（少用）：myWay way，该方式仅仅修改way结构体中数据的副本（退出该函数后，不影响原有的数据）
-   */
-  func (myWay way) ABS() float64{
-  	if myWay.x - myWay.y >= 0{
-  		return myWay.x - myWay.y
-  	} else{
-  		return myWay.y - myWay.x
-  	}
-  }
-  
-  /**
-  指针接收者（常用）：myWay *way，可以直接改变way结构体中的数据
-   */
-  func (myWay *way) Scale(num float64){
-  	myWay.x = myWay.x * num
-  	myWay.y = myWay.y * num
-  }
-  //将上述的  方法  重写为  函数
-  func ScaleFunc(myWay *way, num float64){
-  	myWay.x = myWay.x * num
-  	myWay.y = myWay.y * num
-  }
-  
-  /**
-  该方法：仅能被类内、包内的类调用
-  */
-  func (myWay *way) getData() (float64, float64){
-      return myWay.x, myWay.y
-  }
-  
-  func wayTest(){
-      //创建方式1：结构体类型变量
-  	w := way{
-  		x: 3,
-  		y: 4,
-  	}
-      
-      //创建方式1：指向结构体类型变量的指针
-  	w1 := &way{
-  		x: 5,
-  		y: 6,
-  	}
-  	//调用 ： 方法
-  	w.Scale(10)
-  	//调用 ： 函数   (两者等效)
-  	//ScaleFunc(&w, 10)
-  
-  	fmt.Printf("w = %v, w1 = %v \n", w, w1)
-  	fmt.Println(w.ABS())
-  }
-  ```
+```go
+/*
+结构体
+*/
+type way struct{
+	x float64
+	y float64
+}
 
-  
+/**
+值接收者（少用）：myWay way，该方式仅仅修改way结构体中数据的副本（退出该函数后，不影响原有的数据）
+ */
+func (myWay way) ABS() float64{
+	if myWay.x - myWay.y >= 0{
+		return myWay.x - myWay.y
+	} else{
+		return myWay.y - myWay.x
+	}
+}
+
+/**
+指针接收者（常用）：myWay *way，可以直接改变way结构体中的数据
+ */
+func (myWay *way) Scale(num float64){
+	myWay.x = myWay.x * num
+	myWay.y = myWay.y * num
+}
+//将上述的  方法  重写为  函数
+func ScaleFunc(myWay *way, num float64){
+	myWay.x = myWay.x * num
+	myWay.y = myWay.y * num
+}
+
+/**
+该方法：仅能被类内、包内的类调用
+*/
+func (myWay *way) getData() (float64, float64){
+    return myWay.x, myWay.y
+}
+
+func wayTest(){
+    //创建方式1：结构体类型变量
+	w := way{
+		x: 3,
+		y: 4,
+	}
+    
+    //创建方式1：指向结构体类型变量的指针
+	w1 := &way{
+		x: 5,
+		y: 6,
+	}
+	//调用 ： 方法
+	w.Scale(10)
+	//调用 ： 函数   (两者等效)
+	//ScaleFunc(&w, 10)
+
+	fmt.Printf("w = %v, w1 = %v \n", w, w1)
+	fmt.Println(w.ABS())
+}
+```
+
+
 
 - **如何强制使用New()方法（防止使用new()创建对象）、Set()、Get()**
 
@@ -829,7 +972,7 @@ func closureTest(){
 
   
 
-- **内嵌结构体**
+- **结构体内嵌结构体**
 
   - 可实现类似  **继承**  的效果  （内嵌多个结构体，即：**多重继承**）
 
@@ -881,6 +1024,28 @@ func closureTest(){
   	fmt.Println(*outer)
   }
   ```
+
+  
+  
+- **结构体内嵌接口** 
+
+  通过内嵌匿名接口、匿名指针对象，可以实现多继承，这种继承属于“纯虚继承”（继承的是接口指定的规范，只有在真正运行时才能进行注入）。 
+
+   ```go
+   type grpcPlugin struct {
+       //内嵌匿名指针对象
+   	*generator.Generator
+   }
+   
+   func (p *grpcPlugin) Name() string { return "grpc" }
+   
+   //只有在运行时，执行init函数，才会注入Generator
+   func (p *grpcPlugin) Init(g *generator.Generator) {
+   	p.Generator = g
+   }
+   ```
+
+  
 
   
 
@@ -1186,155 +1351,166 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
 ## 2.6、并发
 
-- **通道**
+### 2.6.1、**通道**
 
-  类似于java中的队列，先进先出。
+类似于java中的队列，先进先出。
 
-  - **定义：**
+- **定义：**
 
-    ch := make(chan 存入的数据类型,  缓存空间大小)
+  ch := make(chan 存入的数据类型,  缓存空间大小)
 
-    **默认缓存空间为0，即ch存入数据的同时，需要立刻将其取出（即：具有同步阻塞的特性）。因此，通常需要指定一定大小的缓存空间，以存放数据，等待协程将其取出**
+  **默认缓存空间为0，即ch存入数据的同时，需要立刻将其取出（即：具有同步阻塞的特性）。因此，通常需要指定一定大小的缓存空间，以存放数据，等待协程将其取出**
 
+
+
+<font color='red'>（通道中存、取数据操作都是原子操作，不会相互影响）</font>
+
+- **存数据：**
+
+  ch <- 2
+
+- **取数据：**
+
+  val := <- ch
+
+- **适用范围：**
+
+  Go中所有的类型都可使用通道传递数据，包括：**空接口**
+
+  * **使用锁的情景：**
+    
+    - 访问共享数据结构中的缓存信息
+  - 保存应用程序上下文和状态信息数据
+  * **使用通道的情景：**
+    
+    - 与异步操作的结果进行交互
+    
+    - 分发任务
+    
+    - 传递数据所有权
+    
+      
   
+- **channel会出现堵塞的情况**：
 
-  <font color='red'>（通道中存、取数据操作都是原子操作，不会相互影响）</font>
+  channel缓存区满：写数据堵塞，读数据不堵塞
 
-  - **存数据：**
+  channel缓存区空：读数据堵塞，写数据不堵塞
+  
+  **若不设置channel的缓存区，则默认为0，即：channel中的数据一旦存入，就需要被取出，否则会出现deadlock死锁错误（可以使用go协程，编写生产者-消费者模型，即可实现0缓冲区channel的数据存取）**
+  
+  
+  
+- **检测通道是否关闭**
 
-    ch <- 2
-
-  - **取数据：**
-
-    val := <- ch
-
-  - **适用范围：**
-
-    Go中所有的类型都可使用通道传递数据，包括：**空接口**
-
-    * **使用锁的情景：**
-      
-      - 访问共享数据结构中的缓存信息
-    - 保存应用程序上下文和状态信息数据
-      
-    * **使用通道的情景：**
-      
-      - 与异步操作的结果进行交互
-      
-      - 分发任务
-      
-      - 传递数据所有权
-      
-        
-    
-  - **channel会出现堵塞的情况**：
-
-    channel缓存区满：写数据堵塞，读数据不堵塞
-
-    channel缓存区空：读数据堵塞，写数据不堵塞
-    
-    **若不设置channel的缓存区，则默认为0，即：channel中的数据一旦存入，就需要被取出，否则会出现deadlock死锁错误（可以使用go协程，编写生产者-消费者模型，即可实现0缓冲区channel的数据存取）**
-    
-    
-    
-  - **检测通道是否关闭**
-
-     使用range或者  val, ok := ch判断
-
-    ```go
-    //方式一
-    for input := range ch {
-        Process(input)
-    }
-    
-    //方式二
-    for {
-        if input, open := <-ch; !open {
-            break // 通道是关闭的
-        }
-        Process(input)
-    }
-    ```
-
-    
-
-  使用go协程、channel计算斐波那契数列
+   使用range或者  val, ok := ch判断
 
   ```go
-  func fibonacci(num int, ch chan int){
-  	pre := 0
-  	next := 1
-  	temp := 0
-  	for index := 0; index < num; index++{
-  		ch <- pre
-  		temp = pre
-  		pre = next
-  		next = pre + temp
-  	}
-  	//结束数据输入后：关闭信道
-  	defer close(ch)
+  //方式一
+  for input := range ch {
+      Process(input)
   }
   
-  func main(){
-  	ch := make(chan int, 10)
-  	go fibonacci(cap(ch), ch)
-      //遍历channel中的数据
-  	for val := range ch{
-  		fmt.Println(val)
-  	}
+  //方式二
+  for {
+      if input, open := <-ch; !open {
+          break // 通道是关闭的
+      }
+      Process(input)
   }
   ```
 
   
 
-  使用Go协程 + channel，实现数据阻塞读写。
+使用go协程、channel计算斐波那契数列
 
-  ```go
-  func main(){
-      var ch = make(chan int, 10)
-  	go func(ch chan int) {
-  		for index := 0; index < TOTAL_NUM; index++{
-  			time.Sleep(500 * time.Millisecond)
-  			ch <- 1
-  			fmt.Printf("th %d: input data = %d, len = %d\n", index, 1, len(ch))
-  		}
-  	}(ch)
-  	go func(ch chan int){
-  		for index := 0; index < TOTAL_NUM; index++{
-  			time.Sleep(1000 * time.Millisecond)
-  			fmt.Printf("th %d: get data = %d, len = %d\n",index, <-ch, len(ch))
-  		}
-  	}(ch)
-  }
-  ```
+```go
+func fibonacci(num int, ch chan int){
+	pre := 0
+	next := 1
+	temp := 0
+	for index := 0; index < num; index++{
+		ch <- pre
+		temp = pre
+		pre = next
+		next = pre + temp
+	}
+	//结束数据输入后：关闭信道
+	defer close(ch)
+}
+
+func main(){
+	ch := make(chan int, 10)
+	go fibonacci(cap(ch), ch)
+    //遍历channel中的数据
+	for val := range ch{
+		fmt.Println(val)
+	}
+}
+```
+
+
+
+使用Go协程 + channel，实现数据阻塞读写。
+
+```go
+func main(){
+    var ch = make(chan int, 10)
+	go func(ch chan int) {
+		for index := 0; index < TOTAL_NUM; index++{
+			time.Sleep(500 * time.Millisecond)
+			ch <- 1
+			fmt.Printf("th %d: input data = %d, len = %d\n", index, 1, len(ch))
+		}
+	}(ch)
+	go func(ch chan int){
+		for index := 0; index < TOTAL_NUM; index++{
+			time.Sleep(1000 * time.Millisecond)
+			fmt.Printf("th %d: get data = %d, len = %d\n",index, <-ch, len(ch))
+		}
+	}(ch)
+}
+```
+
+
+
+### 2.6.2、**协程**
+
+属于轻量级线程，和java中的线程不同。Go协程不涉及锁的升级、状态转换等，因此速度更快。协程使用sync包中的Mutex（互斥锁）、Channel（通道、信道）来保证各个协程之间的并发控制。
+
+- **基本概念**
+
+  - Go中，协程的并发处理使用的时Channel，而不是syn包中的锁（会降低处理速度）
+  
+  - 协程时在栈中创建的（在同一个地址空间中，开辟独立的栈空间），对栈进行分割，动态改变占用的大小（当协程执行完成之后，自动释放占用的内存），不需要使用GC对栈进行管理。
+  
+  - Go的协程是并发运行（不是并行运行的），即：同一时间只有一个协程在运行。可通过设置GOMAXPROCS变量，配置可同时并行运行的协程数量。
+  
+    **一般情况下，若处理器为n核，则GOMAXPROCS设置的协程数量m = n - 1  性能最佳。m > 1 + GOMAXPROCS > 1**
+    
+    
+  
+- **开启方式**
+
+  go 方法名(参数)
+  
+  
+  
+- **关闭协程**
+
+  runtime.Goexit()
 
   
-
-- **协程**
-
-  属于轻量级线程，和java中的线程不同。Go协程不涉及锁的升级、状态转换等，因此速度更快。协程使用sync包中的Mutex（互斥锁）、Channel（通道、信道）来保证各个协程之间的并发控制。
-
-  - **基本概念**
-
-    - Go中，协程的并发处理使用的时Channel，而不是syn包中的锁（会降低处理速度）
-    
-    - 协程时在栈中创建的（在同一个地址空间中，开辟独立的栈空间），对栈进行分割，动态改变占用的大小（当协程执行完成之后，自动释放占用的内存），不需要使用GC对栈进行管理。
-    
-    - Go的协程是并发运行（不是并行运行的），即：同一时间只有一个协程在运行。可通过设置GOMAXPROCS变量，配置可同时并行运行的协程数量。
-    
-      **一般情况下，若处理器为n核，则GOMAXPROCS设置的协程数量m = n - 1  性能最佳。m > 1 + GOMAXPROCS > 1**
-    
-  - **开启方式**
-
-    go 方法名(参数)
-    
-  - **关闭协程**
-
-    runtime.Goexit()
-
-    
-
   
+- **<font color='red'>协程在栈中的存放</font>**
+
+  Go中的goroutine存放在栈中，初始时栈空间大小为4~8kb，可动态调整栈空间大小（最大值：32bit系统为250MB，64bit系统为1GB）。
+
+  - **go1.4之前：**使用的是链表来实现动态栈，但此方法会导致创建的动态栈内存不连续，导致CPU高速缓存命中率下降。
+  - **go1.4之后：**使用动态数组来实现动态栈，虽然解决了内存不连续的问题，但是数组扩容时需要复制所有元素，并且迁移至新位置，导致栈中数据的地址会发生变化，因此在实际编程中是不可以保存数据地址的 or 不能将指针的数值保存至其他变量中。（只能引用指针来处理这些数据）
+
+
+
 ```go
   func goForSum(arr []int, ch chan int) {
   	res := 0
@@ -1357,63 +1533,63 @@ func encodeToXML(v interface{}, w io.Writer) error {
   	res2 := <- ch
   	fmt.Println(res1, res2, res1 + res2)
   }
-  ```
-  
+```
 
-  
-- **锁**
 
-  使用sync.Mutex中的Lock()、Unlock()方法进行上锁、解锁操作。
 
-  ```go
-  type mutex struct{
-  	//map：存放键值对
-  	myMap map[string]int
-  	//互斥锁
-  	mux sync.Mutex
-  }
-  
-  /**
-  增加key对应的val
-   */
-  func (m *mutex) IncVal(key string){
-  	//上锁
-  	m.mux.Lock()
-  	if val, ok := m.myMap[key]; ok{
-  		m.myMap[key] = val + 1
-  	}
-  	//释放锁
-  	m.mux.Unlock()
-  }
-  
-  /**
-  获取key对应的value
-   */
-  func (m *mutex) getValue(key string) int{
-  	m.mux.Lock()
-  	var res int
-  	if val, ok := m.myMap[key]; ok{
-  		res = val
-  	} else{
-  		res = -1
-  	}
-  	m.mux.Unlock()
-  	return res
-  }
-  
-  func main() {
-  	exam := mutex{
-  		myMap: make(map[string]int),
-  		mux:   sync.Mutex{},
-  	}
-  	exam.myMap["chris"] = 0
-  	for index := 0; index < 10; index++{
-  		go exam.IncVal("chris")
-  	}
-  	time.Sleep(1000 * time.Millisecond)
-  	fmt.Println("key = chris , value = ", exam.myMap["chris"])
-  }
-  ```
+### 2.6.3、**锁**
+
+使用sync.Mutex中的Lock()、Unlock()方法进行上锁、解锁操作。
+
+```go
+type mutex struct{
+	//map：存放键值对
+	myMap map[string]int
+	//互斥锁
+	mux sync.Mutex
+}
+
+/**
+增加key对应的val
+ */
+func (m *mutex) IncVal(key string){
+	//上锁
+	m.mux.Lock()
+	if val, ok := m.myMap[key]; ok{
+		m.myMap[key] = val + 1
+	}
+	//释放锁
+	m.mux.Unlock()
+}
+
+/**
+获取key对应的value
+ */
+func (m *mutex) getValue(key string) int{
+	m.mux.Lock()
+	var res int
+	if val, ok := m.myMap[key]; ok{
+		res = val
+	} else{
+		res = -1
+	}
+	m.mux.Unlock()
+	return res
+}
+
+func main() {
+	exam := mutex{
+		myMap: make(map[string]int),
+		mux:   sync.Mutex{},
+	}
+	exam.myMap["chris"] = 0
+	for index := 0; index < 10; index++{
+		go exam.IncVal("chris")
+	}
+	time.Sleep(1000 * time.Millisecond)
+	fmt.Println("key = chris , value = ", exam.myMap["chris"])
+}
+```
 
 
 
@@ -1822,6 +1998,14 @@ func (t * TcpClient) Start() {
 
 
  ### 2.10.2、HTTP
+
+- http.HandleFunc("/", 响应函数)
+
+  针对  /  根路径请求，注册了响应处理函数
+
+- http.ListenAndServer(通信协议, 地址+端口)
+
+  启动http服务，设置通信协议（tcp、udp），监听Http请求的地址 + 端口
 
 - http.Head(url)
 
@@ -2397,6 +2581,8 @@ D:/Files/StudyNotes/Golang_学习笔记/Code/basicCode/src/main/factory_main.go:
 
 - os.Exit(状态码)
 
+  **在main函数中，若main函数可正常执行至末尾，会自动默认调用os.Exit(0)来结束程序（以替代显式的return 0）。**
+  
   - 作用 ：立即退出程序。让程序以给定的“状态码”退出。
     - 0：表示成功
     - 非0：表示出错。**立即退出程序，且程序不会执行defer部分的代码**
@@ -2679,6 +2865,221 @@ func main() {
 
 
 
+## 3.14、atomic包
+
+与Java中的原子包Atomic类似，提供原子操作，保证数据的一致性。
+
+- atomic.LoadUint32(&变量)
+
+  加载某个变量地址的值
+
+- atomic.StoreUint32(&变量, 数据值)
+
+  将数据值存入变量地址中
+
+- 
+
+
+
+
+
+# 4、设计模式
+
+## 4.1、单例模式
+
+```go
+import (
+   "sync"
+   "sync/atomic"
+)
+
+/**
+单例模式
+ */
+
+var (
+  //用于存储new的对象  
+   instance *singleton
+   initialized uint32
+   mu sync.Mutex
+)
+
+type singleton struct{
+   name string
+}
+
+//atomic + sync 确保只能创建一个对象
+func GetSingletonInstance(name string) *singleton{
+   if atomic.LoadUint32(&initialized) == 1{
+      return instance
+   }
+
+   mu.Lock()
+   defer mu.Unlock()
+
+   if instance == nil{
+      instance = &singleton{name: name}
+      defer atomic.StoreUint32(&initialized, 1)
+   }
+   return instance
+}
+```
+
+
+
+
+
+# 5、并发模式
+
+## 5.1、CSP
+
+Go中的CSP（Communicating Sequential Process，通讯顺序进程）是并发编程的核心。通常的语言（**java**、python）在并发控制中都是**使用互斥锁**来保证同一时刻只有一个线程访问共享资源。**Go中则使用Channel控制同一时间只有一个goroutine能够访问共享资源**。并且不会使用共享内存的方式进行数据通信，而是使用通信来保证内存共享。
+
+
+
+## 5.2、顺序一致性内存模型
+
+- 代码顺序执行不一致的情况
+
+  - 在不同goroutine中对同个变量进行操作，由于两个goroutine是并发执行的，并无法确定那个gorotine先执行，因此存在执行顺序问题。
+
+    
+
+-  实现顺序同步的方式：
+
+  - 使用0缓存区channel的堵塞特性，在goroutine中存数据至channel中，另一个goroutine中取channel数据，由此可以保证两个goroutine的执行顺序。
+  - 使用sync.Mutex锁保证执行顺序。
+
+  ```go
+  /***************************** channel ***************************/
+  func main() {
+  	done := make(chan int)
+  
+  	go func(){
+  		println("你好, 世界")
+  		done <- 1
+  	}()
+  
+  	<-done
+      fmt.println("Hello world")
+  }
+  
+  /***************************** mutex ***************************/
+  func main() {
+  	var mu sync.Mutex
+  
+  	mu.Lock()
+  	go func(){
+  		println("你好, 世界")
+  		mu.Unlock()
+  	}()
+  
+  	mu.Lock()
+      fmt.println("Hello world")
+  }
+  ```
+
+  
+
+## 5.3、等待N个线程执行完成
+
+可以使用带缓冲区的channel、sync.WaitGroup实现（同Java中的CountDownLatch）
+
+```go
+/***************************** channel ***************************/
+type GoWaitChannel struct{
+
+}
+
+func(g *GoWaitChannel) Test(){
+	done := make(chan int, 10) // 带 10 个缓存
+
+	// 开N个后台打印线程
+	for i := 0; i < cap(done); i++ {
+		go func(){
+			fmt.Println("你好, 世界")
+			done <- 1
+		}()
+	}
+
+	// 等待N个后台线程完成
+	for i := 0; i < cap(done); i++ {
+		<-done
+		fmt.Println(i)
+	}
+}
+
+/***************************** wait group ***************************/
+import (
+	"fmt"
+	"sync"
+)
+
+type GoWaitWaitGroup struct{
+
+}
+
+func(g *GoWaitWaitGroup) Test() {
+	var wg sync.WaitGroup
+
+	// 开N个后台打印线程
+	for i := 0; i < 10; i++ {
+		//增加一个等待时间数
+		wg.Add(1)
+		go func() {
+			fmt.Println("你好, 世界")
+			//完成一个等待时间
+			wg.Done()
+		}()
+	}
+
+	// 等待N个后台线程完成
+	wg.Wait()
+	fmt.Println("finish all")
+}
+```
+
+
+
+## 5.4、生产者-消费者模式
+
+使用channel实现
+
+```go
+// 生产者: 生成 factor 整数倍的序列
+func Producer(factor int, out chan<- int) {
+	for i := 0; ; i++ {
+		out <- i*factor
+	}
+}
+
+// 消费者
+func Consumer(in <-chan int) {
+	for v := range in {
+		fmt.Println("consumer: ",v)
+	}
+}
+
+func main() {
+	ch := make(chan int, 64) // 成果队列
+
+	go Producer(3, ch) // 生成 3 的倍数的序列
+	go Producer(5, ch) // 生成 5 的倍数的序列
+	go Consumer(ch)    // 消费 生成的队列
+
+	// 运行一定时间后退出
+	time.Sleep(5 * time.Second)
+}
+```
+
+
+
+## 5.5、发布订阅模式
+
+
+
+
+
 # 常见问题
 
 ## 1、序列化、反序列化
@@ -2690,6 +3091,34 @@ func main() {
 - 反序列化
 
   还原转换成指定格式的数据
+
+
+
+## 2、Go程序启动流程
+
+Go中的代码从main.main()开始。
+
+- 若main中存在import xxx，则先进入xxx包中进行初始化操作（若此此包内还存在import，则继续进入包中进行初始化）
+
+- 包的初始化顺序：const常量 ➡ var变量 ➡ init()函数  （同个包中可有多个init()函数）
+
+  （上面的所有步骤均在同一个goroutine协程中执行，若init()函数中也开启了goroutine，则该goroutine会在本次初始化结束后，程序进入main.main时才会被执行）
+
+  
+
+- 当所有的init()函数被执行后，才会进入main.main()中。
+
+![image-20210618101831393](Golang_学习笔记.assets/image-20210618101831393.png)
+
+
+
+## 3、
+
+
+
+
+
+
 
 
 

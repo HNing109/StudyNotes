@@ -1,4 +1,4 @@
-package longparam
+package long_param
 
 import "fmt"
 

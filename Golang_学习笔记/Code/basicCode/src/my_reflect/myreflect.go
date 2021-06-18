@@ -1,4 +1,4 @@
-package myreflect
+package my_reflect
 
 import (
 	"fmt"
