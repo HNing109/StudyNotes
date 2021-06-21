@@ -6,7 +6,7 @@ Go官方教程：https://tour.golang.org/welcome/1
 
 ## 1.1、配置
 
-1. 增加Gopath路径，添加自己工程的路径
+1. 增加Gopath路径，添加自己工程的路径（以便能够import自己工程中定义的包，否则会出现包无法导入的问题）
 
    ![image-20210607161124609](Golang_学习笔记.assets/image-20210607161124609.png)
 
@@ -275,7 +275,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
     
 
-  - **原理**：推迟的函数调用会被压入一个**栈**中。当外层函数返回时，被推迟的函数会按照后进先出的顺序调用
+  - **执行流程**：defer推迟的函数调用会被压入一个**栈**中。当外层函数返回时，被推迟的函数会按照后进先出的顺序调用
 
   
 
@@ -395,7 +395,15 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
    
 
--  
+- **select**
+
+  select 做的就是：选择处理列出的多个通信情况中的一个。
+
+  - 如果所有的channel通道都阻塞了，会等待直到其中一个可以处理为止。
+  - 如果多个可以处理，随机选择一个
+  - 如果没有通道操作可以处理并且写了 default 语句，就会执行default。在 select中使用发送操作并且有 default可以确保发送不被阻塞！如果没有 default，select 就会一直阻塞。
+
+  
 
 ## 2.4、集合
 
@@ -569,11 +577,13 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
     （即：切片引用数组的内存地址，对切片上的数据进行操作，也会改变元素组的数据——改变同位置上的数据）
 
+     因此，<font color='red'>**对数组进行切片，当切片未被回收时，将会导致该数组所占用的内存无法被释放（增加程序所占用的内存）**</font>。可以将数组的数据克隆（append）一份至切片中，已解决该问题。
+
     
 
   - 切片的长度和容量不同：
-
-    - len()：长度为实际包含的元素个数，即**：切片可以索引位置的范围，0 ~ (len(slice) - 1)**
+  
+  - len()：长度为实际包含的元素个数，即**：切片可以索引位置的范围，0 ~ (len(slice) - 1)**
     - cap()：容量为endIndex - startIndex
 
     eg：从数组切片，获取长度和容量不相同的切片
@@ -585,7 +595,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   - **切片的切片：**
 
     由于切片是对数组的引用，因此可以通过对切片再次切片，获取原数组上的元素片段。（注意：切片虽然能够再次获得原数组的数据，但是在访问切片数据的时候，依然只能访问到被映射出来的数据，超出索引范围的数据（即：**访问的索引值 < len(slice)**）是不能被访问到的）
-
+  
   ```go
   func main() {
       var numbers4 = [...]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
@@ -595,11 +605,11 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   
       myslice = myslice[:cap(myslice)]  //{5,6，7，8}  ; len() = 4;  cap() = 4
       fmt.Printf("myslice的第四个元素为: %d", myslice[3])
-  }
+}
   ```
 
   
-
+  
   
 
 ### 2.4.3、map（映射）
@@ -808,9 +818,9 @@ func closureTest(){
   
 - <font color='red'>使用impl := person{filedName:} 和impl := &person{filedName: }的区别：（内存中的数据分布情况，如下所示）</font>
 
-  ![image-20210610095947781](Golang_学习笔记.assets/image-20210610095947781.png)
+  <img src="Golang_学习笔记.assets/image-20210610095947781.png" alt="image-20210610095947781" style="zoom:80%;" />
 
-  ![image-20210610095958183](Golang_学习笔记.assets/image-20210610095958183.png)
+  <img src="Golang_学习笔记.assets/image-20210610095958183.png" alt="image-20210610095958183" style="zoom:80%;" />
 
   
 
@@ -1507,9 +1517,83 @@ func main(){
   Go中的goroutine存放在栈中，初始时栈空间大小为4~8kb，可动态调整栈空间大小（最大值：32bit系统为250MB，64bit系统为1GB）。
 
   - **go1.4之前：**使用的是链表来实现动态栈，但此方法会导致创建的动态栈内存不连续，导致CPU高速缓存命中率下降。
+  
   - **go1.4之后：**使用动态数组来实现动态栈，虽然解决了内存不连续的问题，但是数组扩容时需要复制所有元素，并且迁移至新位置，导致栈中数据的地址会发生变化，因此在实际编程中是不可以保存数据地址的 or 不能将指针的数值保存至其他变量中。（只能引用指针来处理这些数据）
+  
+    
 
+- **使用Goroutine协程可能存在的问题**
 
+  - **内存泄漏**
+
+    若在函数中使用for、循环调用某函数，不断创建新的Goroutine，则当main函数不在调用这些新创建的Goroutine时，这些Goroutine并未被回收，这就导致内存泄漏。因此，需要  **在新建Goroutine时，使用context包、select-case语句添加一个return条件，用于关闭此Goroutine**。
+
+    
+
+     **例：Goroutine内存泄漏的代码**
+  
+    ```go
+    /*
+    当v==5时，执行break。go func所占用的内存就无法被回收，即：Goroutine一直处于开启的状态
+    */
+    func main() {
+    	ch := func() <-chan int {
+    		ch := make(chan int)
+    		go func() {
+    			for i := 0; ; i++ {
+    				ch <- i
+    			}
+    		} ()
+    		return ch
+    	}()
+    
+    	for v := range ch {
+    		fmt.Println(v)
+    		if v == 5 {
+    			break
+    		}
+    	}
+    }
+    ```
+  
+    
+  
+    使用context包、select-case解决
+  
+    ```go
+    func main() {
+    	ctx, cancel := context.WithCancel(context.Background())
+    
+    	ch := func(ctx context.Context) <-chan int {
+    		ch := make(chan int)
+    		go func() {
+    			for i := 0; ; i++ {
+    				select {
+                    //执行cancle()后， 可执行此处的return（即：释放该Goroutine所占用的内存）
+    				case <- ctx.Done():
+    					return
+    				case ch <- i:
+    				}
+    			}
+    		} ()
+    		return ch
+    	}(ctx)
+    
+    	for v := range ch {
+    		fmt.Println(v)
+    		if v == 5 {
+                //通知context执行结束
+    			cancel()
+    			break
+    		}
+    	}
+    }
+    ```
+  
+    
+  
+
+Goroutine协程计算斐波那契数列
 
 ```go
   func goForSum(arr []int, ch chan int) {
@@ -1743,14 +1827,16 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
 - **painc(错误信息)**
 
-  - **painc()函数可多层嵌套使用**（即：Go paincking）。当程序执行painc()之后，就会列结束当前运行的函数，并执行defer，然后逐级返回。在运行至最顶层的函数时，painc可以获取到所有的错误。（本质上，就是一个栈中数据出栈的过程，**多个defer嵌套使用，满足先进后出的原则**）
+  - **painc()函数可多层嵌套使用**（即：Go paincking）。<font color='red'>**当程序执行painc()之后，就会列结束当前运行的函数，并执行defer，然后逐级返回**</font>。在运行至最顶层的函数时，painc可以获取到所有的错误。（本质上，就是一个栈中数据出栈的过程，**多个defer嵌套使用，满足先进后出的原则**）
 
   - 结合**defer**调用 **recover()**  函数，捕捉错误，可使得painc()函数停止向上执行，防止程序因painc报错，导致程序终止运行。（即：上层的painc()不再调用，起到修复程序的作用）
 
-    正常情况下，recover()返回值为nil
+    正常情况下，recover()返回值为nil（因此**<font color='red'>recover()函数需要在defer中执行，可以使得触发panic时，捕捉到异常，并恢复至程序的正常执行流程</font>**）
 
     **经recover处理之后，程序可正常运行，不会因为painc抛出错误而终止程序**。
 
+  - **<font color='red'>recover()函数必须放在defer所推迟执行的函数内，不能直接defer recover()</font>**
+  
   - 结合**error**接口，将painc获取的错误，封装为error，然后返回。用户根据这个错误进行相应的处理。（即：将错误隐藏在包内）
   
   ```go
@@ -1766,7 +1852,15 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
   	defer func() {
           //捕捉错误，recover
   		if e := recover(); e != nil {
-  			fmt.Printf("Panicing %s\r\n", e)
+              //按照类型处理不同的异常
+              switch errVal := e.(type){
+                  case runtime.Error:
+                  	fmt.Println("Runtime Error")
+                  case error:
+                  	fmt.Println("common error")
+                  default:
+                  	fmt.Println("Unknow error")
+              }
   		}
   	}()
       //调用painc错误
@@ -2091,13 +2185,14 @@ func main() {
 
 ## 2.11、RPC
 
-和java中使用Feign搭建的RPC服务器类似。都是用于客户端远程调用服务器API，采用HTTP的方式传输数据。即：RPC服务器处理的是HTTP请求，客户端调用远程API时，就是通过模拟浏览器HTTP请求的方式，来发送数据给RPC服务器。
+RPC（Remote Procedure Call）远程调用，**仅适用于客户端、服务端都是用同种语言编写的场景**（若要Go编写的RPC-server需要适配不同语言编写的客户端，则需要使用json格式来转发请求，即可）。和java中使用Feign搭建的RPC服务器类似。都是用于客户端远程调用服务器API，采用HTTP的方式传输数据。即：RPC服务器处理的是HTTP请求，客户端用远程API时，就是通过模拟浏览器HTTP请求的方式，来发送数据给RPC服务器。
 
 - 需要使用的包：
   - net/rpc：建立在gob包之上，封装了rpc的所有功能
   - http：用于获取客户端的DialHTTP请求，建立server-client之间的连接
   - tcp：
-- 
+-  
+- HTTP协议的RPC
 
 ```go
 /*************************  rpc-object  ***************************/
@@ -2146,6 +2241,9 @@ func(r *RpcServer) StartServer(){
 	rpcObject := new(Args)
 	//注册RPC调用的对象
 	rpc.Register(rpcObject)
+    //或者：使用RegisterName(路径名+对象名，服务对象)  --- 可以避免出现服务对象重名的情况
+    //rpc.RegisterName(path/to/rpc_pkg.Args, rpcObject)
+    
 	rpc.HandleHTTP()
 	//以tcp方式监听本地端口
 	listen, err := net.Listen("tcp", "localhost:8888")
@@ -2187,7 +2285,7 @@ func (r *RpcClient) StartClient(){
 	//创建相应的RPC调用的对象
 	args := NewRpcObject(3,4)
 	var reply int
-	//调用远程的Args.Multiply()方法，传入args对象作为参数，响应结果存入reply
+	//调用远程方法Args.Multiply()，传入args对象作为所调用方法的参数，响应结果存入reply
 	errClient := client.Call("Args.Multiply", args, &reply)
 	if errClient != nil{
 		log.Fatal("Args Error: ", errClient)
@@ -2199,7 +2297,21 @@ func (r *RpcClient) StartClient(){
 
 
 
-## 2.12、网络通道netchan
+## 2.14、gRPC
+
+gRPC是Google公司基于Protobuf开发的跨语言RPC框架。采用HTTP/2协议，适用于移动端访问。框架如下：
+
+<img src="image-20210620111528485.png" alt="image-20210620111528485" style="zoom: 67%;" />
+
+
+
+
+
+
+
+
+
+## 2.13、网络通道netchan
 
 区别于channel通道（仅限于本机内存中的数据传输），netchan可用于两台不同的计算机之间的数据传输，且netchan支持缓存（即：网络通道为异步数据传输）
 
@@ -2251,7 +2363,7 @@ if err != nil {
 
 **Go中的函数不支持重载、不支持泛型**（可以通过接口实现泛型的效果），因为这些操作需要进行类型匹配，影响程序的性能，Go出于性能考虑，省略了这些功能。
 
-## 3.1、内置函数
+## 3.1、内置函数（builtin）
 
 - close：用于关闭管道
 
@@ -2273,7 +2385,7 @@ if err != nil {
 
   recover：用于修复程序，捕捉panic抛出的错误，防止程序因painc抛出的错误而退出
 
--  
+-  print()：打印数据
 
 - 
 
@@ -2407,11 +2519,17 @@ D:/Files/StudyNotes/Golang_学习笔记/Code/basicCode/src/main/factory_main.go:
 
 ## 3.8、fmt包
 
-- **Scanf**
+- **Scan**
+
+  传入获取存储数据的参数，必须是以指针的方式传入
 
   - fmt.Scanln()
 
     遇见换行，终止数据输入
+
+  - Scan()
+
+    与Scanln类似，但Scan读取到空格旧结束
 
   - fmt.Scanf()
 
@@ -2452,7 +2570,17 @@ D:/Files/StudyNotes/Golang_学习笔记/Code/basicCode/src/main/factory_main.go:
 
   
 
--  
+- Sprintf(数据类型格式，数据)
+
+  根据给定的格式，转换数据
+
+  ```go
+  var num int = 99
+  var str string
+  str = fmt.Sprintf("%d", num)
+  ```
+
+  
 
 - 
 
@@ -2847,19 +2975,23 @@ func main() {
 
 - strconv.Atoi( string )
 
-  string to int
+  string 转 int
 
--  strconv.Itoa( int )
+- strconv.Itoa( int )
 
-  int to string
+  int 转 string
 
-- strconv.ParseInt( string, 10, 64)
+  如果使用：string(1)，将int型的1，转化为字符串，则得到的结果是ASCII码为1对应的字符（而不是将1转化为字符串1）
 
-  string转int64
+- strconv.ParseInt( string, 几进制, 整数类型)     
+
+  string 转 int64
+
+  例如：strconv.ParseInt( string, 10, 64)   //string转换为10进制，int64
 
 - strconv.FormatInt(int64, 10)
 
-  int64转string
+  int64 转 string
 
 
 
@@ -3100,7 +3232,7 @@ Go中的代码从main.main()开始。
 
 - 若main中存在import xxx，则先进入xxx包中进行初始化操作（若此此包内还存在import，则继续进入包中进行初始化）
 
-- 包的初始化顺序：const常量 ➡ var变量 ➡ init()函数  （同个包中可有多个init()函数）
+- 包的初始化顺序**：import包 ➡ const常量 ➡ var变量 ➡ init()函数 ➡ main函数**  （同个包中可有多个init()函数）
 
   （上面的所有步骤均在同一个goroutine协程中执行，若init()函数中也开启了goroutine，则该goroutine会在本次初始化结束后，程序进入main.main时才会被执行）
 
