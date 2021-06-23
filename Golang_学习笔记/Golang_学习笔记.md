@@ -606,7 +606,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
     由于切片是对数组的引用，因此可以通过对切片再次切片，获取原数组上的元素片段。（注意：切片虽然能够再次获得原数组的数据，但是在访问切片数据的时候，依然只能访问到被映射出来的数据，超出索引范围的数据（即：**访问的索引值 < len(slice)**）是不能被访问到的）
   
   ```go
-func main() {
+  func main() {
       var numbers4 = [...]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
     //获取长度和容量不相等的切片
       myslice := numbers4[4:6:8]		//{5,6}  ; len() = 2;  cap() = 4
@@ -825,7 +825,7 @@ func closureTest(){
   
   **使用&struct{}创建对象，其底层依然会调用new(struct)方式创建（两者等价）**
   
-- <font color='red'>使用impl := person{filedName:} 和impl := &person{filedName: }的区别：（内存中的数据分布情况，如下所示）</font>
+- <font color='red'>使用impl := person{filedName:"xxx"} 和impl := &person{filedName:"xxx" }的区别：（内存中的数据分布情况，如下所示）</font>
 
   <img src="Golang_学习笔记.assets/image-20210610095947781.png" alt="image-20210610095947781" style="zoom:80%;" />
 
@@ -1600,7 +1600,6 @@ func main(){
     ```
   
     
-  
 
 Goroutine协程计算斐波那契数列
 
@@ -3218,6 +3217,193 @@ func main() {
 ## 5.5、发布订阅模式
 
 
+
+
+
+# 6、go mod
+
+- 和Java中的Maven（或gradle）类似，用于管理项目中的包，但是相较于Maven而言，go.mod仅能依赖包管理，无法进行项目构建、打包、部署。
+
+  Go1.11之后才出现go mod，先前必须将所有依赖包全部放入src目录中，导致项目臃肿。
+
+- 使用go mod管理依赖包，就必须配置go env
+
+  - 使用go env查看当前的go env配置
+
+    ```shell
+    #是否开启go module，取值：on、off、auto（自动判断项目中是否存在go.mod，以决定是否开启module模式）
+    set GO111MODULE=on
+    #目标机器的处理器架构
+    set GOARCH=amd64
+    #编译器、链接器安装位置
+    set GOBIN=
+    set GOCACHE=C:\Users\Lenovo\AppData\Local\go-build
+    #本机修改后的go env配置的存储位置
+    set GOENV=C:\Users\Lenovo\AppData\Roaming\go\env
+    #是否产生exe文件
+    set GOEXE=.exe
+    set GOFLAGS= -mod=
+    #本机处理器架构
+    set GOHOSTARCH=amd64
+    #本机运行环境
+    set GOHOSTOS=windows
+    
+    ###############################  私有使用仓库包的配置  #######################################
+    
+    #配置私有库域名，比如常用的Gitlab或Gitee。若需设置多个，使用','隔开。（私有仓库一般都需要进行登录，Linux系统配置账号密码的文件路径为~/.netrc）
+    set GOPRIVATE=git.ctyun.cn
+    #下载此域名下的包，不走代理下载
+    set GONOPROXY=git.ctyun.cn
+    #下载此域名下的包，默认采用http协议传输（而go mod默认使用https）
+    set GOINSECURE=git.ctyun.cn
+    #下载此域名下的包，默认不进行gosumdb校验（验证包的有效性）
+    set GONOSUMDB=git.ctyun.cn
+    
+    ##########################################################################################
+    
+    set GOMODCACHE=C:\Users\Lenovo\go\pkg\mod
+    #目标机器的运行环境（需要交叉编译的平台）
+    set GOOS=windows
+    #项目依赖的第三方包存放目录，包含：src、pkg、bin三个文件夹
+    set GOPATH=C:\Users\Lenovo\go
+    #本机Go安装的位置
+    set GOROOT=C:\Program Files\Go
+    #下载第三方包的代理
+    set GOPROXY=direct
+    #验证包的有效性：国内通用的检验路径
+    set GOSUMDB=sum.golang.org
+    set GOTMPDIR=
+    set GOTOOLDIR=C:\Program Files\Go\pkg\tool\windows_amd64
+    set GCCGO=gccgo
+    set AR=ar
+    set CC=gcc
+    set CXX=g++
+    set CGO_ENABLED=1
+    #go.mod文件存放路径
+    set GOMOD=C:\Code\gostack\go.mod
+    set CGO_CFLAGS=-g -O2
+    set CGO_CPPFLAGS=
+    set CGO_CXXFLAGS=-g -O2
+    set CGO_FFLAGS=-g -O2
+    set CGO_LDFLAGS=-g -O2
+    set PKG_CONFIG=pkg-config
+    set GOGCCFLAGS=-m64 -mthreads -fno-caret-diagnostics -Qunused-arguments -fmessage-length=0 -fdebug-prefix-map=C:\Users\Lenovo\AppData\Local\Temp\go-build247197874=/tmp/go-build -gno-re
+    cord-gcc-switches
+    ```
+
+    
+
+  - 使用go env -w xxx=xxx写入配置至go/env文件中
+
+    eg：go env -w GO111MODULE=on
+
+    
+
+  - **<font color='red'>启动go module之后，所有依赖的包存放在$GOPATH/pkg。所有的项目可共享此目录中的module</font>**
+
+    eg：C:\Users\Lenovo\go\pkg\mod
+
+    <img src="Golang_学习笔记.assets/image-20210622140152320.png" alt="image-20210622140152320" style="zoom:80%;" />
+
+- go mod命令
+
+  go mod命令用于管理包。
+
+  | 命令     | 说明                                               |
+  | -------- | -------------------------------------------------- |
+  | init     | 在当前目录初始化mod，即：为项目创建go.mod文件      |
+  | download | 根据go.mod文件配置的信息，下载需要的包             |
+  | edit     | 编辑go.mod                                         |
+  | tidy     | 拉取缺少的模块，移除不用的模块                     |
+  | verify   | 验证依赖是否正确                                   |
+  | vendor   | 将依赖复制到vendor下                               |
+  | graph    | 打印模块依赖图，即：打印**go.sum**文件中的依赖信息 |
+  | why      | 解释为什么需要依赖                                 |
+
+  
+
+- go.mod文件
+
+  - go.mod文件由go mod init创建后，就可以使用go toolchan管理。在执行go get、go build、go mod等命令，都会同步修改该文件中的数据。
+
+  - go.mod文件中有四个命令：
+    - `module` ：指定包的名字（路径）
+    - `require` ：指定的依赖项模块
+    - `replace` ：可以替换依赖项模块
+    - `exclude` ：可以忽略依赖项模块
+
+  ```shell
+   module git.ctyun.cn/gostack/gostack
+   
+   go 1.15
+   #导入的模块
+   require (
+   	git.ctyun.cn/gostack/gophercloud v0.13.9
+   	github.com/ahmetb/go-linq v3.0.0+incompatible
+   	github.com/beevik/etree v1.1.0
+   )
+  ```
+
+  
+
+- go.sum文件
+
+  用于记录go.mod中依赖包的关系。
+
+  
+
+- **<font color='red'>发布自己的go module至Github</font>**
+
+  - **module工程**
+
+    （必须确保工程名、go.mod文件、github仓库名，此三者名字一致）
+
+    - Goland创建工程module：并编写代码
+
+    - 创建go.mod文件
+
+      go mod init github.com/Zmq129455/module       **（go mod init Git仓库路径）** 
+
+    - 发布至Github中
+
+      - git init ：初始化本地仓库
+
+      - git add ** ：添加工程文件至暂存区
+
+      - git commit -m "内容"   ：提交至本地仓库
+
+      - git remote add origin git@github.com:Zmq129455/module.git   ：和远程仓库建立连接
+
+      - git push --set-upstream origin master ：推送至远程
+
+      - git tag v1.0.0  ： **<font color='red'>添加版本标签（用于管理不同版本的module），版本v必须是小写</font>**
+
+        git push --tags
+
+  - **使用module的工程**
+
+    - Goland创建工程useModule
+
+    - 配置Goland代理
+
+      ![image-20210622150334611](Golang_学习笔记.assets/image-20210622150334611.png)
+
+    - 创建go.mod文件   
+
+      go mod init github.com/Zmq129455/useModule
+
+      ```shell
+      module github.com/Zmq129455/useModule
+      
+      go 1.15
+      
+      require (
+      	#添加引用的模块
+          github.com/Zmq1294556/module v1.0.0
+      )
+      ```
+
+      （若不使用go.mod文件，则在程序中使用  import "github.com/Zmq1294556/module"）
 
 
 
