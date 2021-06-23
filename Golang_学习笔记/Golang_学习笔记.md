@@ -3226,7 +3226,7 @@ func main() {
 
   Go1.11之后才出现go mod，先前必须将所有依赖包全部放入src目录中，导致项目臃肿。
 
-- 使用go mod管理依赖包，就必须配置go env
+- **使用go mod管理依赖包，就必须配置go env**。**<font color='red'>（并且一定要设置代理，否则会导致无法下载第三方依赖包）</font>**
 
   - 使用go env查看当前的go env配置
 
@@ -3356,13 +3356,13 @@ func main() {
 
   - **module工程**
 
-    （必须确保工程名、go.mod文件、github仓库名，此三者名字一致）
+    （必须确保：工程名、go.mod文件中的module模块名、github仓库名，此三者名字一致）
 
     - Goland创建工程module：并编写代码
 
     - 创建go.mod文件
 
-      go mod init github.com/Zmq129455/module       **（go mod init Git仓库路径）** 
+      go mod init github.com/chriszhangmq/module       **（go mod init Git仓库路径）** 
 
     - 发布至Github中
 
@@ -3372,7 +3372,7 @@ func main() {
 
       - git commit -m "内容"   ：提交至本地仓库
 
-      - git remote add origin git@github.com:Zmq129455/module.git   ：和远程仓库建立连接
+      - git remote add origin git@github.com:chriszhangmq/module.git   ：和远程仓库建立连接
 
       - git push --set-upstream origin master ：推送至远程
 
@@ -3382,7 +3382,7 @@ func main() {
 
   - **使用module的工程**
 
-    - Goland创建工程useModule
+    - Goland创建工程use_module
 
     - 配置Goland代理
 
@@ -3390,20 +3390,20 @@ func main() {
 
     - 创建go.mod文件   
 
-      go mod init github.com/Zmq129455/useModule
+      go mod init github.com/chriszhangmq/use_module
 
       ```shell
-      module github.com/Zmq129455/useModule
+      module github.com/chriszhangmq/use_module
       
       go 1.15
       
       require (
       	#添加引用的模块
-          github.com/Zmq1294556/module v1.0.0
+          github.com/chriszhangmq/module v1.0.0
       )
       ```
 
-      （若不使用go.mod文件，则在程序中使用  import "github.com/Zmq1294556/module"）
+      （若不使用go.mod文件，则在程序中使用  import "github.com/chriszhangmq/module"）
 
 
 
