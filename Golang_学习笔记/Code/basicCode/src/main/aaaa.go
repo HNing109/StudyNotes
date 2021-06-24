@@ -10,21 +10,27 @@ func aGoroutine() {
 	close(done)
 }
 
-func main() {
-	ch := func() <-chan int {
-		ch := make(chan int)
-		go func() {
-			for i := 0; ; i++ {
-				ch <- i
-			}
-		} ()
-		return ch
-	}()
+type Q struct{
+	name string
+	age int
+}
 
-	for v := range ch {
-		fmt.Println(v)
-		if v == 5 {
-			break
-		}
-	}
+func(q *Q) aa(n string){
+	q.name = n
+}
+
+func (q Q) bb(n string){
+	q.name = n
+}
+
+func main() {
+	var q = new(Q)
+	q.name = "hhh"
+	fmt.Println(q)
+	q.aa("xxx")
+	fmt.Println(q)
+	q.bb("dddd")
+	fmt.Println(q)
+
+
 }
