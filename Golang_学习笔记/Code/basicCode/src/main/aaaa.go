@@ -23,6 +23,19 @@ func (q Q) bb(n string){
 	q.name = n
 }
 
+type human struct{
+	name string
+}
+
+func(h *human) say(){
+	fmt.Println("xxxx")
+}
+
+type man struct{
+	human
+	age int
+}
+
 func main() {
 	var q = new(Q)
 	q.name = "hhh"
@@ -32,5 +45,12 @@ func main() {
 	q.bb("dddd")
 	fmt.Println(q)
 
+	num := 10
+	fmt.Printf("%x\n",num)
+	fmt.Printf("%p",&num)
 
+	var p = new(man)
+	p.name = "chris"
+	fmt.Println(p)
+	p.say()
 }

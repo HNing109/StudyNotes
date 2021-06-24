@@ -8,9 +8,19 @@ Go官方教程：https://tour.golang.org/welcome/1
 
 1. 增加Gopath路径，添加自己工程的路径（以便能够import自己工程中定义的包，否则会出现包无法导入的问题）
 
+   （若项目中使用第三方依赖包，，则Project GOPATH就不需要设置，否则会导致第三方依赖包无法被编译器找到）
+
+   - Golbal GOPATH
+
+     go env中已经配置，用于存储下载的第三方依赖包。包含：src、pkg、bin三个文件夹。
+
+   - Project GOPATH
+
+     此工程的文件存放位置
+
    ![image-20210607161124609](Golang_学习笔记.assets/image-20210607161124609.png)
 
-2. 不使用Go Modules
+2. 不使用Go Modules（若项目中使用第三方依赖包，则必须启用该项，并且设置代理，去下载第三方依赖包）
 
    ![image-20210607161150777](Golang_学习笔记.assets/image-20210607161150777.png)
 
@@ -52,7 +62,8 @@ Go中只有二元运算，不存在三元运算，例如Java中的：return  num
 - **Go中不存在this、self等关键字**
 - 数据输出printf：
   - %d：输出整数  （%02d：输出2位数长度的int数据）
-  - %x、%X：输出十六进制
+  - %x、%X：输出十六进制形式的数据（不带0x）
+  - %p：以十六进制形式的输出参数的地址（必须使用指针的形式传入才能打印，带0x）
   - %f：输出float数据（%.2f：保留2位小数输出）
   - %e：输出科学计数法格式
   - %s：输出字符串
@@ -126,7 +137,7 @@ Go中只有二元运算，不存在三元运算，例如Java中的：return  num
 
 引用数据类型，本质上是指向内存地址中的数据，可以直接修改内存地址中的数据。
 
-Eg：使用指针结构体作为参数，传入函数中，可修改该结构体中的数据。
+Eg：使用指针结构体作为参数，传入函数中，可修改该结构体中的数据。（**指针本身有一个存储空间**，使用指针，本质上就是使用一个地址指向对象所在地址）
 
 - **指针**：Go中的指针并不支持移动（eg：*num++），简化了指针使用的难度，防止出现内存泄漏问题。
 
@@ -1010,23 +1021,37 @@ func wayTest(){
 
 - **结构体内嵌结构体**
 
-  - 可实现类似  **继承**  的效果  （内嵌多个结构体，即：**多重继承**）
+  - 可实现类似  **继承**  的效果  （结构体中内嵌多个匿名结构体，该结构体即可直接使用匿名结构体中的属性，即：**多重继承**）
 
+    ```go
+type human struct{
+    	name string
+}
+    
+type man struct{
+        //匿名结构体：实现多继承。man对象可以直接使用human中的属性
+  	human
+    	age int
+    }
+    ```
+    
+    
+    
     - 内嵌的结构体，其参数同样遵循**首字母大写（public）**、**首字母小写（protected）**的访问原则。
-
+    
       **（即：外部结构体，可直接访问内嵌结构体内的所有属性、方法，但其他包中的类无法直接访问内嵌结构体的protected属性、方法）**
-
-    - 外部结构体、内嵌结构体的属性**尽量不重名**（本质上可以重名，在使用时通过指明使用哪个结构体中的属性即可）
-
+    
+    - 外部结构体、内嵌结构体的属性**尽量不重名**（本质上可以重名，在使用时通过指明使用哪个结构体中的属性即可。或者编译器使用就近原则，由外层➡内层，逐层检索需要的字段，第一次命中时取出。）
+    
     - 两个内嵌结构体中（统一层次），出现重名属性：直接报错。
-
+  
   ```go
   package embeded_struct
   
   type outer struct{
   	Name string
   	age int
-  	//内嵌结构体
+  	//内嵌结构体（非匿名结构体）
   	Inner inner
   }
   
@@ -1046,7 +1071,7 @@ func wayTest(){
   
   import (
   	"embeded_struct"
-  	"fmt"
+	"fmt"
   )
   
   func main() {
@@ -1060,7 +1085,7 @@ func wayTest(){
   	fmt.Println(*outer)
   }
   ```
-
+  
   
   
 - **结构体内嵌接口** 
@@ -1086,6 +1111,8 @@ func wayTest(){
   
 
 ### 2.5.5、**接口**
+
+**Go中的接口是隐式实现，对象只需要实现接口中所有的方法，即可说对象实现了该接口。**
 
 和java中的接口类似。可以对接口中的方法进行**重写**，eg：Error（）、String（）等方法。
 
@@ -1180,6 +1207,18 @@ func wayTest(){
   ```
 
   
+  
+- **多态** 
+
+  Go中使用接口实现多态。多个对象实现同一个接口，但不同对象所实现的接口方法，具有不同功能。在调用接口中的方法时，根据传入的对象（该对象实现了接口）不同，可自动调用到相应对象实现的接口放方法。 
+
+  
+
+  - **多态数组：**
+
+    接口数组中，可以存放任意实现了该接口的对象。
+
+  
 
 **结构体、接口的使用实例**
 
@@ -1254,6 +1293,86 @@ func main()  {
 	}
 }
 ```
+
+
+
+实现接口方法，调用sort.Sort()方法。
+
+```go
+/**************************************** 实现接口的对象包 **********************************************/
+package polymorphic_interface
+
+type Person struct{
+	name string
+	age int
+}
+
+func(p *Person) SetName(name string){
+	p.name = name
+}
+
+func(p *Person) SetAge(age int){
+	p.age = age
+}
+
+
+//接口的切片（在此切片类型中，实现Interface{}接口，即可调用sort.Sort()）
+type PersonSlice []Person
+
+//实现Interface接口，用于使用sort.Sort()方法
+func(p PersonSlice) Len()int{
+	return len(p)
+}
+
+func(p PersonSlice) Less(i, j int) bool{
+	return p[i].age < p[j].age
+}
+
+func(p PersonSlice) Swap(i, j int){
+	temp := p[i]
+	p[i] = p[j]
+	p[j] = temp
+}
+
+
+/**************************************** main **********************************************/
+package main
+
+import (
+	"fmt"
+	"math/rand"
+	pi "polymorphic_interface"
+	"sort"
+	"strconv"
+)
+
+func main() {
+    //创建接口切片
+	var ps pi.PersonSlice
+	//初始化：随机值
+	for index := 0; index < 10; index++{
+        //创建对象
+		var p pi.Person
+		p.SetName("hero id : " + strconv.Itoa(rand.Intn(100)))
+		p.SetAge(rand.Intn(100))
+        //给接口切片添加数据
+		ps = append(ps, p)
+	}
+	fmt.Println("sort before: ")
+	for index, val := range ps{
+		fmt.Println("th : " + strconv.Itoa(index), val)
+	}
+
+	//排序（对年龄进行排序-升序）
+	fmt.Println("sorted after: ")
+	sort.Sort(ps)
+	for index, val := range ps{
+		fmt.Println("th : " + strconv.Itoa(index), val)
+	}
+}
+```
+
+
 
 
 
