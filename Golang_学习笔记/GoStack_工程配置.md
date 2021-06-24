@@ -1,4 +1,61 @@
-# 1、go env配置
+# 1、配置host文件
+
+安装switchhosts软件，新建配置文件，添加以下配置（否则gostack中的私有包无法下载）
+
+```shell
+# 屏蔽的域名
+#0.0.0.0 bs.studycoder.com
+
+# My hosts
+# from liwei
+172.28.8.27 git.ctyun.cn
+172.28.8.27 rancher.ctyun.cn
+172.28.8.27 nexus.ctyun.cn
+172.28.8.27 mockbin.ctyun.cn
+172.28.8.27 nginx.ctyun.cn
+172.28.8.27 gen.ctyun.cn
+172.28.8.241 docker.ctyun.cn
+172.28.8.27 rancher.ctyun.cn
+172.28.8.27 swagger.ctyun.cn
+172.28.8.27 moho-manual
+172.28.8.27 moho-manual.ctyun.cn
+172.28.8.27 doc.ctyun.cn
+172.28.8.27 sonar.ctyun.cn
+172.28.8.27 ntp.ctyun.cn
+172.28.8.27 host.ctyun.cn
+10.1.34.173 gitlab.engineering.ctyun.cn
+10.1.34.176 intranet.engineering.ctyun.cn
+172.28.8.27 gostack.git.ctyun.cn
+
+172.28.8.248 mariadb.cty.os
+172.28.8.248 keystone-public.cty.os
+172.28.8.248 keystone-internal.cty.os
+172.28.8.248 keystone-admin.cty.os 
+172.28.8.248 glance-api.cty.os 
+172.28.8.248 nova-api.cty.os 
+172.28.8.248 nova-api-metadata.cty.os 
+172.28.8.248 nova-placement-api.cty.os 
+172.28.8.248 neutron-server.cty.os 
+172.28.8.248 cinder-api.cty.os 
+172.28.8.248 gostack-compute.cty.os
+172.28.8.248 gostack-cron.cty.os
+```
+
+
+
+# 2、安装sshuttle
+
+- 安装软件：
+
+  apt install sshuttle
+
+- 连接远程服务器：
+
+  sshuttle --dns -r root@172.28.8.248 10.114.194.0/24 -e 'ssh -p 10000'
+
+  
+
+# 3、go env配置
 
 - go编译器版本：
 
@@ -18,7 +75,8 @@
 
   ```shell
   查看是否生效：
-  windows：C:\Users\Lenovo\AppData\Roaming\go
+  windows：C:\Users\Lenovo\AppData\Roaming\go\env
+  ubuntu:/home/chris/.config/go
   
   GO111MODULE=on
   GOINSECURE=git.ctyun.cn
@@ -89,7 +147,7 @@
 
   
 
-# 2、Goland配置
+# 4、Goland配置
 
 - 无需配置Goland，否则会出现包无法使用的情况
 
