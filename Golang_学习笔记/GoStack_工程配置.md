@@ -1,3 +1,7 @@
+**<font color='red'>注意：笔者选择的开发环境为：VMware、Ubuntu18、Goland</font>**
+
+ 
+
 # 1、配置host文件
 
 安装switchhosts软件，新建配置文件，添加以下配置（否则gostack中的私有包无法下载）
@@ -43,11 +47,15 @@
 
 
 
-# 2、安装sshuttle
+# 2、安装、配置sshuttle
 
 - 安装软件：
 
   apt install sshuttle
+
+- 配置：
+
+  需要使用本地机器上的ssh_pub（ssh公钥）
 
 - 连接远程服务器：
 
@@ -55,7 +63,15 @@
 
   
 
-# 3、go env配置
+# 3、安装libvirt
+
+sudo apt-get install libvirt-dev libvirt-daemon libvirt-clients
+
+（不安装libvirt，在gostack/cmd/gostack中执行go build时，将导致参数无法读取，无法完成build操作）
+
+
+
+# 4、go env配置
 
 - go编译器版本：
 
@@ -147,8 +163,55 @@
 
   
 
-# 4、Goland配置
+# 5、Goland配置
 
 - 无需配置Goland，否则会出现包无法使用的情况
 
   ![image-20210622101124589](GoStack工程配置.assets/image-20210622101124589.png)
+
+
+
+# 6、启动代码
+
+注意：gostack中的所有模块，都需要逐个手动启动，无法一次性全部启动
+
+- **方式一：**
+
+  - 打包gostack整个工程：
+
+    命令：
+
+    cd cmd/gostack/
+
+    go build
+
+    （打包完成后，该目录下会生成一个gostack可执行文件）
+
+  - 启动需要执行的模块
+
+    在cmd/gostack/目录下，使用命令：./gostack xxx
+
+    eg：启动scheduler，  ./gostack scheduler
+
+- **方式二：**
+
+  自己新建一个main函数，调用RunXxx，并配置对应的etc/app.yml文件路径
+
+  ![img](GoStack_工程配置.assets/PUODS6_Z91R3{FEOZX%%2.png)
+
+  
+
+  ```go
+  //图中的代码如下
+  package main
+  import "git.ctyun.cn/gostack/gostack/scheduler"
+  
+  func main() {
+  	path := "./scheduler/etc/app.yml"
+  	scheduler.RunScheduler(path)
+  }
+  ```
+
+  
+
+  

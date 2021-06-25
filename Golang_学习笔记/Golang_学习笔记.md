@@ -14,6 +14,10 @@ Go官方教程：https://tour.golang.org/welcome/1
 
      go env中已经配置，用于存储下载的第三方依赖包。包含：src、pkg、bin三个文件夹。
 
+     路径：C:\Users\用户名\go\
+
+     ![image-20210625144035245](Golang_学习笔记.assets/image-20210625144035245.png)
+
    - Project GOPATH
 
      此工程的文件存放位置
@@ -484,7 +488,9 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
   - slice := []int {1, 2, 3}	//通过引用数组，来创建切片
 
-  - var slice []int
+  - var slice := []int                   //**nil切片：**指向nil
+
+  - var slice := make([]int, 0)   //**空切片：**指向一个内存地址，但未分配内存空间，底层包含0个元素
 
   - var silce []int = make([]int, 长度, 容量)   // 容量：可选填。**未填写cap，则默认len = cap**
 
@@ -608,7 +614,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
     eg：从数组切片，获取长度和容量不相同的切片
   
-    slice := arr[stratIndex : endIndex : cap + startIndex]   //  arr[起始位置 ：结束位置 ：容量 + startIndex] 
+    slice := arr[stratIndex : endIndex : max]   //  arr[ 起始位置 ：结束位置 ：容量= max - startIndex ]  
   
     
   
@@ -1024,10 +1030,11 @@ func wayTest(){
   - 可实现类似  **继承**  的效果  （结构体中内嵌多个匿名结构体，该结构体即可直接使用匿名结构体中的属性，即：**多重继承**）
 
     ```go
-type human struct{
+    type human struct{
     	name string
-}
+    }
     
+
 type man struct{
         //匿名结构体：实现多继承。man对象可以直接使用human中的属性
   	human
@@ -1044,7 +1051,7 @@ type man struct{
     - 外部结构体、内嵌结构体的属性**尽量不重名**（本质上可以重名，在使用时通过指明使用哪个结构体中的属性即可。或者编译器使用就近原则，由外层➡内层，逐层检索需要的字段，第一次命中时取出。）
     
     - 两个内嵌结构体中（统一层次），出现重名属性：直接报错。
-  
+
   ```go
   package embeded_struct
   
@@ -1085,9 +1092,9 @@ type man struct{
   	fmt.Println(*outer)
   }
   ```
+
   
-  
-  
+
 - **结构体内嵌接口** 
 
   通过内嵌匿名接口、匿名指针对象，可以实现多继承，这种继承属于“纯虚继承”（继承的是接口指定的规范，只有在真正运行时才能进行注入）。 
@@ -3544,6 +3551,95 @@ func main() {
       ```
 
       （若不使用go.mod文件，则在程序中使用  import "github.com/chriszhangmq/module"）
+
+
+
+# 7、Go命令
+
+- go build
+
+  - 用于测试编译包（打包所有依赖包），自动忽略开头为 ‘ _ ’ 、‘ . ’ 的包。
+  - 若在普通包（非main包）中执行go build不会的得到可执行文件。
+  - 若在main包中执行go build，则可以生成可执行文件。 （若想在$GOPATH/bin目录下生成可执行文件，则使用go install命令）
+
+- go install
+
+  该命令共执行两个步骤：
+
+  - 第一步：生成结果文件(.exe可执行文件或者.a包)
+  - 第二步：把编译好的结果移到 $GOPATH/pkg 或者 $GOPATH/bin
+
+  
+
+  .exe文件： 有main函数的go文件产生的，有函数入口，因此该文件可以直接运行。
+
+  .a应用包： 不包含main函数的go文件产生的，没有函数入口，只能被调用。
+
+  
+
+- go clean
+
+  - 清除编译生成的文件
+
+  -  包括：
+
+    _obj/ ：旧的object目录，由Makefiles遗留
+    _test/ ：旧的test目录，由Makefiles遗留
+    _testmain.go： 旧的gotest文件，由Makefiles遗留
+    test.out： 旧的test记录，由Makefiles遗留
+    build.out： 旧的test记录，由Makefiles遗留
+    *.[568ao] object文件：由Makefiles遗留
+    DIR(.exe) ：由 go build 产生
+    DIR.test(.exe) ：由 go test -c 产生
+    MAINFILE(.exe) ：由 go build MAINFILE.go产生
+
+- go test
+
+  - 用于编译、运行测试文件（自动读取工程中src目录中的*_test.go文件）
+
+  - 测试结果：
+
+    ```shell
+    ok   archive/tar   0.011s
+    FAIL archive/zip   0.022s
+    ok   compress/gzip 0.033s
+    ...
+    ```
+
+    
+
+- go run
+
+  - 编译、运行指定的go文件
+
+    eg：go run test_struct.go
+
+- go fmt
+
+  - 用于格式化文件
+
+  - 格式化某文件：go fmt test_struct.go
+  - 格式化整个src目录中的文件：go fmt -w src 
+
+- go get
+
+  - 用于动态下载远程的包
+
+- go doc
+
+  - 用于查看某个包的文档
+  - eg：go doc net/http
+
+- go env
+
+  - 查看当前配置的go环境变量
+
+- go list
+
+  - 列出当前路径下所安装的包
+
+- go version
+  - 查看go编译器的版本
 
 
 
