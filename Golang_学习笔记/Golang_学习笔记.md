@@ -72,6 +72,8 @@ Go中只有二元运算，不存在三元运算，例如Java中的：return  num
   - %e：输出科学计数法格式
   - %s：输出字符串
   - %c：输出字符
+  - %T：输出数据类型
+  - %v：输出数据值（指着类型：传入*pointer，若传入pointer，会打印出  &+数据值）
 
 ### 2.1.1、基本数据类型
 
@@ -1034,6 +1036,7 @@ func wayTest(){
     	name string
     }
     
+    ```
 
 type man struct{
         //匿名结构体：实现多继承。man对象可以直接使用human中的属性
@@ -1519,13 +1522,21 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
 - **定义：**
 
-  ch := make(chan 存入的数据类型,  缓存空间大小)
+  - 通常方式（默认双向读写）：ch := make(chan 存入的数据类型,  缓存空间大小)
 
-  **默认缓存空间为0，即ch存入数据的同时，需要立刻将其取出（即：具有同步阻塞的特性）。因此，通常需要指定一定大小的缓存空间，以存放数据，等待协程将其取出**
+    **默认缓存空间为0，即ch存入数据的同时，需要立刻将其取出（即：具有同步阻塞的特性，常用于同步）。因此，通常需要指定一定大小的缓存空间，以存放数据，等待协程将其取出**
+  
+  - 定义**只写管道**：
+  
+    var writeChan **chan<-** int
+  
+  - 定义**只读管道**：
+  
+    var readChan **<-chan** int 
 
 
 
-<font color='red'>（通道中存、取数据操作都是原子操作，不会相互影响）</font>
+**<font color='red'>（通道中存、取数据操作都是原子操作，不会相互影响）</font>**
 
 - **存数据：**
 
@@ -1535,12 +1546,27 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
   val := <- ch
 
+  
+
+- **关闭管道：**
+
+  close(chan)
+
+  - 关闭管道后，只能读数据，不能写数据，相当于加了读锁。
+  
+  - **作用**：**<font color='red'>在协程中，协程A任务执行完成后关闭管道，其他协程检测到该管道关闭后，可断定协程A执行完毕，进而执行其他协程的任务（结束其他协程的阻塞状态）</font>**
+  
+  - **注意**：**<font color='red'>使用for-range遍历，若遍历结束前未关闭管道，会出现deadlocal错误。关闭管道，则可以正常遍历结果。</font>**
+  
+    ​            **for-range、select，可以保证管道被关闭，解决死锁问题**
+  
+  
+  
 - **适用范围：**
 
   Go中所有的类型都可使用通道传递数据，包括：**空接口**
 
   * **使用锁的情景：**
-    
     - 访问共享数据结构中的缓存信息
   - 保存应用程序上下文和状态信息数据
   * **使用通道的情景：**
@@ -1613,24 +1639,55 @@ func main(){
 
 
 
-使用Go协程 + channel，实现数据阻塞读写。
+**使用Go协程 + channel，实现数据阻塞读写。**
 
 ```go
-func main(){
-    var ch = make(chan int, 10)
-	go func(ch chan int) {
-		for index := 0; index < TOTAL_NUM; index++{
+func main() {
+	//数据管道
+	var chData = make(chan int, 10)
+	//退出管道
+	var chExit = make(chan int)
+	var totalNum = 20
+
+	//写入数据的协程
+	go func(chData chan int) {
+		for index := 0; index < totalNum; index++{
 			time.Sleep(500 * time.Millisecond)
-			ch <- 1
-			fmt.Printf("th %d: input data = %d, len = %d\n", index, 1, len(ch))
+			chData <- index
+			fmt.Printf("th %d: input data = %d, len = %d\n", index, index, len(chData))
 		}
-	}(ch)
-	go func(ch chan int){
-		for index := 0; index < TOTAL_NUM; index++{
-			time.Sleep(1000 * time.Millisecond)
-			fmt.Printf("th %d: get data = %d, len = %d\n",index, <-ch, len(ch))
+		//写入完成后，关闭管道
+		close(chData)
+	}(chData)
+
+
+	//读取数据的协程
+	go func(chData chan int, chExit chan int){
+		//遍历管道（方式1）：for-range，遍历结束前一定要关闭管道，否则会出现死锁
+		for val := range chData{
+			fmt.Printf("get data = %d\n", val)
 		}
-	}(ch)
+
+		//遍历管道（方式2）：while，循环判断管道是否关闭
+		//for {
+		//	if val, open := <- chData; !open{
+		//		break
+		//	} else{
+		//		fmt.Printf("get data = %d\n", val)
+		//	}
+		//}
+
+		//关闭退出管道
+		close(chExit)
+	}(chData, chExit)
+
+
+	//检测到退出管道关闭后，程序向下执行（即：退出main主函数）
+	for {
+		if _, open := <- chExit; !open{
+			break
+		}
+	}
 }
 ```
 
@@ -1649,8 +1706,10 @@ func main(){
   - Go的协程是并发运行（不是并行运行的），即：同一时间只有一个协程在运行。可通过设置GOMAXPROCS变量，配置可同时并行运行的协程数量。
   
     **一般情况下，若处理器为n核，则GOMAXPROCS设置的协程数量m = n - 1  性能最佳。m > 1 + GOMAXPROCS > 1**
-    
-    
+  
+  - 若main主线程执行完毕，则Go协程也会随之退出。
+  
+  
   
 - **开启方式**
 
@@ -1674,6 +1733,22 @@ func main(){
   
     
 
+- MPG（Goroutine调度模型）
+
+  - M
+
+    main主线程
+
+  - P
+
+    协程池，用于管理协程的上下文，调度各个协程
+  
+  - G
+  
+    协程
+  
+  
+  
 - **使用Goroutine协程可能存在的问题**
 
   - **内存泄漏**
@@ -1710,7 +1785,7 @@ func main(){
   
     
   
-    使用context包、select-case解决
+    使用context包、select-case解决goroutine内存泄露问题
   
     ```go
     func main() {
@@ -1769,6 +1844,125 @@ Goroutine协程计算斐波那契数列
   	fmt.Println(res1, res2, res1 + res2)
   }
 ```
+
+
+
+Goroutine计算素数（**启动多个协程，并行计算**）
+
+```go
+/************************************* 计算素数工具包 *******************************************/
+package go_prime_number
+
+type GoPrimeNumber struct{
+	//goroutine的数量
+	GoroutineNum int
+	//求解素数的范围
+	PrimeNumber int
+}
+
+/*
+存入数据
+*/
+func(g GoPrimeNumber) inputNum(dataChan chan int){
+	for i := 0; i < g.PrimeNumber; i++{
+		dataChan <- i
+	}
+	close(dataChan)
+}
+
+/**
+计算素数
+*/
+func(g GoPrimeNumber) countPrimeNumber(dataChan chan int, resChan chan int, exitChan chan bool){
+	var flag bool
+	for{
+		num, open := <- dataChan
+		if !open{
+			break
+		}
+		//假设是素数
+		flag = true
+		//判断素数
+		for i := 2; i < num; i++{
+			//该数不是素数
+			if num % i == 0{
+				flag = false
+				break
+			}
+		}
+		//存入素数
+		if flag{
+			resChan <- num
+		}
+	}
+	fmt.Println("有一个Goroutine执行结束")
+	exitChan <- true
+}
+
+/**
+计算素数
+ */
+func(g GoPrimeNumber) Count() (chan int, Duration){
+    //存放数据
+	dataChan := make(chan int, g.PrimeNumber)
+    //存放结果：素数
+	resChan := make(chan int, g.PrimeNumber / 2)
+    //计算素数协程的数量：记录各个协程是否执行完毕
+	exitChan := make(chan bool, g.GoroutineNum)
+
+	//存入数据
+	go g.inputNum(dataChan)
+
+	//计时开始
+	startTime := time.Now().Unix()
+
+	//计算素数：开启多个协程，计算素数
+	for i := 0; i < g.GoroutineNum; i++{
+		g.countPrimeNumber(dataChan, resChan, exitChan)
+	}
+
+	//等待：计算完毕
+	go func() {
+		for i := 0; i < g.GoroutineNum; i++{
+			<- exitChan
+		}
+		//关闭管道
+		close(resChan)
+	}()
+
+	//计时结束
+	endTime := time.Now().Unix()
+
+    return resChan, endTime.Sub(startTime)
+}
+
+/************************************* main *******************************************/
+
+package main
+
+import (
+	"fmt"
+	gpn "go_prime_number"
+)
+
+func main(){
+    //new对象
+	var goPrimeNumber = new(gpn.GoPrimeNumber)
+	//设置启动的协程数
+	goPrimeNumber.GoroutineNum = 8
+	//设置计算素数的范围：0开始
+	goPrimeNumber.PrimeNumber = 80000
+	//计算素数
+	resChan, totalTime := goPrimeNumber.Count()
+	//遍历结果
+	for val := range resChan{
+		fmt.Println(val)
+	}
+	fmt.Println("total time = ", totalTime)
+}
+```
+
+
 
 
 
@@ -2034,15 +2228,10 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
   Go中的文件**以  _test.go  结尾**，不会被编译器编译，这些文件是被用于测试的（即使这些文件被放到生产环境中，也不会被部署）
 
-  
 
-- **测试函数**：
 
-  **以TestXxx开头** （Test + 首字母大写），需要接收testing.T类型的参数
 
-  eg：func TestAbcde(t *testing.T)
-
-- 通知测试失败的函数：
+- testing包中，通知测试结果的函数：
 
   - 1）func (t *T) Fail()
 
@@ -2050,31 +2239,97 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
   - 2）func (t *T) FailNow()
 
-    标记测试函数为失败并中止执行；文件中别的测试也被略过，继续执行下一个文件。
+    标记测试函数为失败并中止该文件执行；忽略文件中剩余的测试函数，继续执行下一个文件。
 
   - 3）func (t *T) Log(args ...interface{})
 
-    args 被用默认的格式，格式化并打印到错误日志中
+    格式化并打印到错误日志中
 
   - 4）func (t *T) Fatal(args ...interface{})
 
-    效果：先执行 3），然后执行 2）的效果
+    等同于：先执行 3），然后执行 2）的效果
 
     
 
 - **运行测试程序**：
 
-  使用命令go test，执行所有**Testxx的函数** 
+  - 使用命令go test，执行所有**Testxx的函数** 
+    - -v 或 --chatty：打印测试函数、测试状态
+  - go test -v 文件名：用于测试指定文件
+    - eg：go test -v chris_test.go 
 
-  - -v 或 --chatty：打印测试函数、测试状态
 
-  eg：go test chris_test.go -v
+
+- **测试函数**
+
+  - 文件名：xxx_test.go
+  - 函数名：**以TestXxx开头** （Test + 首字母大写），需要接收testing.T类型的参数
+
+  eg：func TestAbcde(t *testing.T)
+
+  ```go
+  /******************************* 被测试函数：文件名cal.go **********************************/
+  package cal
+  
+  //一个被测试函数
+  func addUpper(n int)  int {
+  	res := 0
+  	for i := 1; i <= n - 1; i++ {
+  		res += i
+  	}
+  	return res
+  }
+  
+  //求两个数的查
+  func getSub(n1 int, n2 int) int {
+  	return n1 - n2
+  }
+  
+  /******************************* 测试函数：文件名cal_test.go **********************************/
+  package cal
+  import (
+  	"fmt"
+  	"testing" //引入go 的testing框架包
+  )
+  
+  //编写要给测试用例，去测试addUpper是否正确
+  func TestAddUpper(t *testing.T) {
+  
+  	//调用
+  	res := addUpper(10)
+  	if res != 55 {
+  		//fmt.Printf("AddUpper(10) 执行错误，期望值=%v 实际值=%v\n", 55, res)
+  		t.Fatalf("AddUpper(10) 执行错误，期望值=%v 实际值=%v\n", 55, res)
+  	}
+  
+  	//如果正确，输出日志
+  	t.Logf("AddUpper(10) 执行正确...")
+  
+  }
+  
+  //编写要给测试用例，去测试addUpper是否正确
+  func TestGetSub(t *testing.T) {
+  
+  	//调用
+  	res := getSub(10, 3)
+  	if res != 7 {
+  		//fmt.Printf("AddUpper(10) 执行错误，期望值=%v 实际值=%v\n", 55, res)
+  		t.Fatalf("getSub(10, 3) 执行错误，期望值=%v 实际值=%v\n", 7, res)
+  	}
+  
+  	//如果正确，输出日志
+  	t.Logf("getSub(10, 3) 执行正确!!!!...")
+  
+  }
+  ```
 
   
 
 - **基准测试** 
 
-  - 基准测试的函数需要**以BenchmarkXxx开头**（Benchmark+ 首字母大写），需要接收testing.B类型的参数
+  - 文件名：xxx_test.go
+
+  - 函数名：基准测试的函数需要**以BenchmarkXxx开头**（Benchmark+ 首字母大写），需要接收testing.B类型的参数
 
   - 基准测试的函数可以执行N次，并可以获得函数执行的平均时间（单位：ns）
 
@@ -2083,11 +2338,14 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
     go test -test.bench=.*
 
   ```go
+  package goTest
+  
   import (
   	"fmt"
   	"testing"
   )
   
+  //可以不用写main函数
   func main() {
   	fmt.Println(" sync", testing.Benchmark(BenchmarkChannelSync).String())
   	fmt.Println("buffered", testing.Benchmark(BenchmarkChannelBuffered).String())
@@ -2462,7 +2720,7 @@ gRPC是Google公司基于Protobuf开发的跨语言RPC框架。采用HTTP/2协�
 
 
 
-## 2.13、网络通道netchan
+## 2.13、netchan网络通道
 
 区别于channel通道（仅限于本机内存中的数据传输），netchan可用于两台不同的计算机之间的数据传输，且netchan支持缓存（即：网络通道为异步数据传输）
 
@@ -2918,7 +3176,7 @@ D:/Files/StudyNotes/Golang_学习笔记/Code/basicCode/src/main/factory_main.go:
 
 ## 3.11、flag包
 
-用来获取程序执行时，命令行后添加的参数。
+用来获取程序执行时，命令行后添加的参数。flag包相对于os包中的Args获取方式，flag包可以指定参数对应的值，因此获取程序启动参数时，可以让输入参数的顺序不受限制。
 
 - flag.Parse()
 
@@ -2932,13 +3190,45 @@ D:/Files/StudyNotes/Golang_学习笔记/Code/basicCode/src/main/factory_main.go:
 
   获取第index个参数
 
+
+
+```go
+import (
+	"flag"
+	"fmt"
+)
+
+//测试输入： -u chris -p 22
+func main() {
+	//（定义方式1）定义变量，接收命令行输入的canshu
+	var user string
+	var pwd string
+	var port int
+
+	//指定变量对应的命令行输入参数、默认值、说明
+	flag.StringVar(&user, "u", "admin", "用户名，默认为admin")
+	flag.StringVar(&pwd, "pwd", "ADMIN", "密码，默认为ADMIN")
+	flag.IntVar(&port, "p", 88, "端口号， 默认为88")
+
+	//获取命令行输入的参数：从os.Args[1:]中解析注册的flag，必须在所有flag都注册好时且未访问值时执行。
+	flag.Parse()
+
+	//打印参数
+	fmt.Printf("user = %s, pwd = %s, port = %d", user, pwd, port)
+}
+```
+
+
+
+
+
 ```go
 import (
 	"flag" 
 	"os"
 )
 
-//定义：仅当命令行有输入参数 -n  时，NewLing = true
+//（定义方式2）定义接收命令行输入参数的接收变量：仅当命令行有输入参数 -n  时，NewLing = true
 var NewLine = flag.Bool("n", false, "print newline") 
 
 const (
@@ -2946,6 +3236,7 @@ const (
 	Newline = "\n"
 )
 
+//测试输入： xxx -n 10
 func main() {
 	flag.PrintDefaults()
     //获取命令行输入的参数
@@ -2969,7 +3260,7 @@ func main() {
 
 ## 3.12、编码encoding
 
-### 3.12.1、json序列化
+### 3.12.1、JSON序列化、反序列化
 
 将对象中的数据转换成JSON格式。**<font color='red'>需要转为JSON格式的对象，其对应的struct的属性名应为public（即：首字母大写）。否则，最终得到的数据为空。</font>**
 
@@ -3004,60 +3295,105 @@ func main() {
   
 - 由于json.Marshal和需要的序列化结构体，不在同一个包中，因此，**<font color='red'>对应的struct的属性名应为public（即：首字母大写）</font>**。
 
-  但是，通常情况下，前端需要的属性名都是小写的，此时就需要给对应结构体的属性添加struct tag标签。通过json包反射获取相应的小写属性数据。
+  但是，通常情况下，前端需要的属性名都是小写的，此时就需要给对应结构体的属性添加struct tag标签。通过json包反射获取相应的属性数据，并json序列化后得到的属性名转化为tag标签指定的名字。
 
 ```go
-/**************************  序列化  ********************************/
+/**************************  序列化、反序列化  ********************************/
 package serialize
 
 import (
-    "encoding/json"
-    "fmt"
-    "log"
-    "os"
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"os"
 )
 
 type Address struct{
-    Province string `json:"province"`   //添加tag，使得序列化为json之后，对应的属性名首字母小写。
-    City string `json:"city"`
-    Town string `json:"town"`
-    Road string `json:"road"`
+	Province string
+	City string
+	Town string
+	Road string
 
 }
 
 type IDCard struct{
-    Name      string
-    Age       int
-    Addresses []*Address
+	Name      string
+	Age       int
+	Addresses []*Address
 }
 
 type Serialize struct{
+
 }
 
 /**
+序列化
 注意：转换成JSON格式的数据，其对应的struct的属性名应为public（即：首字母大写）
 否则，无法完成数据转换
  */
 func (s *Serialize) Encoded(){
-    chris_fj := &Address{"FuJian","quanzhou","jinjiang","189"}
+	chris_fj := &Address{"FuJian","quanzhou","jinjiang","189"}
 
 
-    chris_sh := &Address{"shanghai","shanghai","xujiahui","130"}
+	chris_sh := &Address{"shanghai","shanghai","xujiahui","130"}
 
-    idInfo := IDCard{"chris", 18,[]*Address{chris_fj, chris_sh}}
-    //进行数据转换
-    js, _ := json.Marshal(idInfo)
-    fmt.Printf("JSON format: %s", js)
+	idInfo := IDCard{"chris", 18,[]*Address{chris_fj, chris_sh}}
+	//进行数据转换
+	js, _ := json.Marshal(idInfo)
+	fmt.Printf("JSON format: %s \n", js)
 
-    //将数据写入文件
-    file, _ := os.OpenFile("./data/idCard.json", os.O_CREATE|os.O_WRONLY, 0666)
-    defer file.Close()
-    enc := json.NewEncoder(file)
-    err := enc.Encode(idInfo)
-    if err != nil {
-        log.Println("Error in encoding json")
-    }
+	//将数据写入文件
+	file, _ := os.OpenFile("./data/idCard.json", os.O_CREATE|os.O_WRONLY, 0666)
+	defer file.Close()
+	enc := json.NewEncoder(file)
+	err := enc.Encode(idInfo)
+	if err != nil {
+		log.Println("Error in encoding json")
+	}
 }
+
+/**
+反序列化
+ */
+func(s *Serialize) Decode() interface{}{
+	//读取文件中的数据
+	var filePath = "./data/idCard.json"
+	file, errFile := os.Open(filePath)
+	if errFile != nil{
+		fmt.Println("Error: open file failure!!, error", errFile)
+		return nil
+	}
+	defer file.Close()
+	fileReader := bufio.NewReader(file)
+	var datas string
+	for {
+		data, readErr := fileReader.ReadString('\n')
+		if readErr == io.EOF{
+			break
+		}
+		datas += data
+	}
+	fmt.Println("READ File: ",datas)
+
+
+	//创建存放数据的对象
+	var idCard IDCard
+	//反序列化
+	errUnmarshal := json.Unmarshal([]byte(datas), &idCard)
+
+	if errUnmarshal != nil{
+		fmt.Println("Error: Decode failure! ", errUnmarshal)
+	}
+	fmt.Print("DECODE JSON: ", idCard.Name, " ", idCard.Age, " ")
+	for _, val := range idCard.Addresses{
+		//打印指针中的数据
+		fmt.Printf("%v  ", *val)
+	}
+	return idCard
+}
+
 
 /**************************  main  ********************************/
 package main
@@ -3066,7 +3402,11 @@ import "serialize"
 
 func main() {
     seri := serialize.Serialize{}
-    seri.Encoded()
+	//序列化、保存
+	seri.Encoded()
+
+	//反序列化
+	seri.Decode()
 }
 ```
 
@@ -3639,6 +3979,7 @@ func main() {
   - 列出当前路径下所安装的包
 
 - go version
+  
   - 查看go编译器的版本
 
 

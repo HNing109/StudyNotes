@@ -90,7 +90,7 @@ sudo apt-get install libvirt-dev libvirt-daemon libvirt-clients
    
 
   ```shell
-  查看是否生效：
+  查看是否生效，打开以下路径的文件：
   windows：C:\Users\Lenovo\AppData\Roaming\go\env
   ubuntu:/home/chris/.config/go
   
@@ -177,13 +177,15 @@ sudo apt-get install libvirt-dev libvirt-daemon libvirt-clients
 
 - **方式一：**
 
+  该方式比较适合Linux环境使用
+
   - 打包gostack整个工程：
 
     命令：
 
-    cd cmd/gostack/
+    - cd cmd/gostack/
 
-    go build
+    - go build
 
     （打包完成后，该目录下会生成一个gostack可执行文件）
 
@@ -197,10 +199,12 @@ sudo apt-get install libvirt-dev libvirt-daemon libvirt-clients
 
   自己新建一个main函数，调用RunXxx，并配置对应的etc/app.yml文件路径
 
+  eg：windows下，启动scheduler模块
+
   ![img](GoStack_工程配置.assets/PUODS6_Z91R3{FEOZX%%2.png)
 
   
-
+  
   ```go
   //图中的代码如下
   package main
@@ -209,9 +213,9 @@ sudo apt-get install libvirt-dev libvirt-daemon libvirt-clients
   func main() {
   	path := "./scheduler/etc/app.yml"
   	scheduler.RunScheduler(path)
-  }
+}
   ```
 
   
-
+  
   
