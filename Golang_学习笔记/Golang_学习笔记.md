@@ -1522,15 +1522,23 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
 - **定义：**
 
-  - 通常方式（默认双向读写）：ch := make(chan 存入的数据类型,  缓存空间大小)
+  - 通常方式（默认双向读写）：
 
-    **默认缓存空间为0，即ch存入数据的同时，需要立刻将其取出（即：具有同步阻塞的特性，常用于同步）。因此，通常需要指定一定大小的缓存空间，以存放数据，等待协程将其取出**
+    ch := make(chan 存入的数据类型,  缓存空间大小)
   
-  - 定义**只写管道**：
+    通常需要指定一定大小的缓存空间，以存放数据，等待协程将其取出。（避免出现死锁现象）
+  
+  - 无缓冲通道：（亦称之为“同步通道”）
+  
+    ch := make(chan int)
+  
+    **缓存空间为0，即ch存入数据的同时，需要立刻将其取出（即：具有同步阻塞的特性，常用于同步）。**
+  
+  - 定义**只写通道**：
   
     var writeChan **chan<-** int
   
-  - 定义**只读管道**：
+  - 定义**只读通道**：
   
     var readChan **<-chan** int 
 
@@ -1548,17 +1556,17 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
   
 
-- **关闭管道：**
+- **关闭通道：**
 
   close(chan)
 
-  - 关闭管道后，只能读数据，不能写数据，相当于加了读锁。
+  - 关闭通道后，只能读数据，不能写数据，相当于加了读锁。
   
-  - **作用**：**<font color='red'>在协程中，协程A任务执行完成后关闭管道，其他协程检测到该管道关闭后，可断定协程A执行完毕，进而执行其他协程的任务（结束其他协程的阻塞状态）</font>**
+  - **作用**：**<font color='red'>在协程中，协程A任务执行完成后关闭通道，其他协程检测到该通道关闭后，可断定协程A执行完毕，进而执行其他协程的任务（结束其他协程的阻塞状态）</font>**
   
-  - **注意**：**<font color='red'>使用for-range遍历，若遍历结束前未关闭管道，会出现deadlocal错误。关闭管道，则可以正常遍历结果。</font>**
+  - **注意**：**<font color='red'>使用for-range遍历，若遍历结束前未关闭通道，会出现deadlocal错误。关闭通道，则可以正常遍历结果。</font>**
   
-    ​            **for-range、select，可以保证管道被关闭，解决死锁问题**
+    ​            **for-range、select，可以保证通道被关闭，解决死锁问题**
   
   
   
@@ -1587,6 +1595,12 @@ func encodeToXML(v interface{}, w io.Writer) error {
   
   **若不设置channel的缓存区，则默认为0，即：channel中的数据一旦存入，就需要被取出，否则会出现deadlock死锁错误（可以使用go协程，编写生产者-消费者模型，即可实现0缓冲区channel的数据存取）**
   
+  
+  
+- **通道异常情况：**
+
+   <img src="Golang_学习笔记.assets/image-20210628095117650.png" alt="image-20210628095117650" style="zoom:80%;" /> 
+
   
   
 - **检测通道是否关闭**
@@ -1699,11 +1713,13 @@ func main() {
 
 - **基本概念**
 
+  - Goroutine占用2KB栈空间（可以动态增长），OS系统线程占用2MB栈空间
+  
   - Go中，协程的并发处理使用的时Channel，而不是syn包中的锁（会降低处理速度）
   
   - 协程时在栈中创建的（在同一个地址空间中，开辟独立的栈空间），对栈进行分割，动态改变占用的大小（当协程执行完成之后，自动释放占用的内存），不需要使用GC对栈进行管理。
   
-  - Go的协程是并发运行（不是并行运行的），即：同一时间只有一个协程在运行。可通过设置GOMAXPROCS变量，配置可同时并行运行的协程数量。
+  - Go的协程是并发运行（不是并行运行的），即：同一时间只有一个协程在运行。可通过设置runtime.GOMAXPROCS变量，配置可同时并行运行的协程数量。
   
     **一般情况下，若处理器为n核，则GOMAXPROCS设置的协程数量m = n - 1  性能最佳。m > 1 + GOMAXPROCS > 1**
   
@@ -1728,27 +1744,11 @@ func main() {
   Go中的goroutine存放在栈中，初始时栈空间大小为4~8kb，可动态调整栈空间大小（最大值：32bit系统为250MB，64bit系统为1GB）。
 
   - **go1.4之前：**使用的是链表来实现动态栈，但此方法会导致创建的动态栈内存不连续，导致CPU高速缓存命中率下降。
-  
+
   - **go1.4之后：**使用动态数组来实现动态栈，虽然解决了内存不连续的问题，但是数组扩容时需要复制所有元素，并且迁移至新位置，导致栈中数据的地址会发生变化，因此在实际编程中是不可以保存数据地址的 or 不能将指针的数值保存至其他变量中。（只能引用指针来处理这些数据）
-  
-    
 
-- MPG（Goroutine调度模型）
+  
 
-  - M
-
-    main主线程
-
-  - P
-
-    协程池，用于管理协程的上下文，调度各个协程
-  
-  - G
-  
-    协程
-  
-  
-  
 - **使用Goroutine协程可能存在的问题**
 
   - **内存泄漏**
@@ -1757,69 +1757,71 @@ func main() {
 
     
 
-     **例：Goroutine内存泄漏的代码**
+  - **例：Goroutine内存泄漏的代码**
   
-    ```go
-    /*
-    当v==5时，执行break。go func所占用的内存就无法被回收，即：Goroutine一直处于开启的状态
-    */
-    func main() {
-    	ch := func() <-chan int {
-    		ch := make(chan int)
-    		go func() {
-    			for i := 0; ; i++ {
-    				ch <- i
-    			}
-    		} ()
-    		return ch
-    	}()
-    
-    	for v := range ch {
-    		fmt.Println(v)
-    		if v == 5 {
-    			break
-    		}
-    	}
-    }
-    ```
+  ```go
+  /*
+  当v==5时，执行break。go func所占用的内存就无法被回收，即：Goroutine一直处于开启的状态
+  */
+  func main() {
+  	ch := func() <-chan int {
+  		ch := make(chan int)
+  		go func() {
+  			for i := 0; ; i++ {
+  				ch <- i
+  			}
+  		} ()
+  		return ch
+  	}()
   
-    
+  	for v := range ch {
+  		fmt.Println(v)
+  		if v == 5 {
+  			break
+  		}
+  	}
+  }
+  ```
   
-    使用context包、select-case解决goroutine内存泄露问题
   
-    ```go
-    func main() {
-    	ctx, cancel := context.WithCancel(context.Background())
-    
-    	ch := func(ctx context.Context) <-chan int {
-    		ch := make(chan int)
-    		go func() {
-    			for i := 0; ; i++ {
-    				select {
-                    //执行cancle()后， 可执行此处的return（即：释放该Goroutine所占用的内存）
-    				case <- ctx.Done():
-    					return
-    				case ch <- i:
-    				}
-    			}
-    		} ()
-    		return ch
-    	}(ctx)
-    
-    	for v := range ch {
-    		fmt.Println(v)
-    		if v == 5 {
-                //通知context执行结束
-    			cancel()
-    			break
-    		}
-    	}
-    }
-    ```
   
-    
+  使用context包、select-case解决goroutine内存泄露问题
+  
+  ```go
+  func main() {
+  	ctx, cancel := context.WithCancel(context.Background())
+  
+  	ch := func(ctx context.Context) <-chan int {
+  		ch := make(chan int)
+  		go func() {
+  			for i := 0; ; i++ {
+  				select {
+                  //执行cancle()后， 可执行此处的return（即：释放该Goroutine所占用的内存）
+  				case <- ctx.Done():
+  					return
+  				case ch <- i:
+  				}
+  			}
+  		} ()
+  		return ch
+  	}(ctx)
+  
+  	for v := range ch {
+  		fmt.Println(v)
+  		if v == 5 {
+              //通知context执行结束
+  			cancel()
+  			break
+  		}
+  	}
+  }
+  ```
+  
+  
 
-Goroutine协程计算斐波那契数列
+
+
+- Goroutine协程计算斐波那契数列
 
 ```go
   func goForSum(arr []int, ch chan int) {
@@ -1847,7 +1849,7 @@ Goroutine协程计算斐波那契数列
 
 
 
-Goroutine计算素数（**启动多个协程，并行计算**）
+- Goroutine计算素数（**启动多个协程，并行计算**，即：<font color='red'>协程池</font>）
 
 ```go
 /************************************* 计算素数工具包 *******************************************/
@@ -1916,7 +1918,7 @@ func(g GoPrimeNumber) Count() (chan int, Duration){
 	//计时开始
 	startTime := time.Now().Unix()
 
-	//计算素数：开启多个协程，计算素数
+	//计算素数：开启多个协程，计算素数  （开启协程池，启动多个协程）
 	for i := 0; i < g.GoroutineNum; i++{
 		g.countPrimeNumber(dataChan, resChan, exitChan)
 	}
@@ -1968,57 +1970,126 @@ func main(){
 
 ### 2.6.3、**锁**
 
-使用sync.Mutex中的Lock()、Unlock()方法进行上锁、解锁操作。
+- 读写锁（互斥锁）：
 
-```go
-type mutex struct{
-	//map：存放键值对
-	myMap map[string]int
-	//互斥锁
-	mux sync.Mutex
-}
+  使用sync.Mutex中的Lock()、Unlock()方法进行上锁、解锁操作。
 
-/**
-增加key对应的val
- */
-func (m *mutex) IncVal(key string){
-	//上锁
-	m.mux.Lock()
-	if val, ok := m.myMap[key]; ok{
-		m.myMap[key] = val + 1
-	}
-	//释放锁
-	m.mux.Unlock()
-}
+  ```go
+  type mutex struct{
+      //map：存放键值对
+      myMap map[string]int
+      //互斥锁
+      mux sync.Mutex
+  }
+  
+  /**
+  增加key对应的val
+   */
+  func (m *mutex) IncVal(key string){
+      //上锁
+      m.mux.Lock()
+      if val, ok := m.myMap[key]; ok{
+          m.myMap[key] = val + 1
+      }
+      //释放锁
+      m.mux.Unlock()
+  }
+  
+  /**
+  获取key对应的value
+   */
+  func (m *mutex) getValue(key string) int{
+      m.mux.Lock()
+      var res int
+      if val, ok := m.myMap[key]; ok{
+          res = val
+      } else{
+          res = -1
+      }
+      m.mux.Unlock()
+      return res
+  }
+  
+  func main() {
+      exam := mutex{
+          myMap: make(map[string]int),
+          mux:   sync.Mutex{},
+      }
+      exam.myMap["chris"] = 0
+      for index := 0; index < 10; index++{
+          go exam.IncVal("chris")
+      }
+      time.Sleep(1000 * time.Millisecond)
+      fmt.Println("key = chris , value = ", exam.myMap["chris"])
+  }
+  ```
 
-/**
-获取key对应的value
- */
-func (m *mutex) getValue(key string) int{
-	m.mux.Lock()
-	var res int
-	if val, ok := m.myMap[key]; ok{
-		res = val
-	} else{
-		res = -1
-	}
-	m.mux.Unlock()
-	return res
-}
+  
 
-func main() {
-	exam := mutex{
-		myMap: make(map[string]int),
-		mux:   sync.Mutex{},
-	}
-	exam.myMap["chris"] = 0
-	for index := 0; index < 10; index++{
-		go exam.IncVal("chris")
-	}
-	time.Sleep(1000 * time.Millisecond)
-	fmt.Println("key = chris , value = ", exam.myMap["chris"])
-}
-```
+
+
+- 读锁、写锁
+
+  使用syn.RWMutex，
+
+  ```go
+  var (
+      x      int64
+      wg     sync.WaitGroup
+      lock   sync.Mutex
+      rwlock sync.RWMutex
+  )
+  
+  func write() {
+      rwlock.Lock() 					  // 加写锁
+      x = x + 1
+      time.Sleep(10 * time.Millisecond) // 假设读操作耗时10毫秒
+      rwlock.Unlock()                   // 解写锁
+      wg.Done()
+  }
+  
+  func read() {
+      rwlock.RLock()               // 加读锁
+      time.Sleep(time.Millisecond) // 假设读操作耗时1毫秒
+      rwlock.RUnlock()             // 解读锁
+      wg.Done()
+  }
+  
+  func main() {
+      start := time.Now()
+      for i := 0; i < 10; i++ {
+          wg.Add(1)
+          go write()
+      }
+  
+      for i := 0; i < 1000; i++ {
+          wg.Add(1)
+          go read()
+      }
+  
+      wg.Wait()
+      end := time.Now()
+      fmt.Println(end.Sub(start))
+  }
+  ```
+
+  
+
+### 2.6.4、GMP调度模型
+
+MPG（Goroutine调度模型）
+
+- M
+
+  main主线程
+
+- P
+
+  协程池，用于管理协程的上下文，调度各个协程
+
+- G
+
+  协程
 
 
 
@@ -2325,7 +2396,7 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
   
 
-- **基准测试** 
+- **基准测试（压力测试）** 
 
   - 文件名：xxx_test.go
 
@@ -2335,7 +2406,10 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
   - 运行基准测试函数的命令：
 
-    go test -test.bench=.*
+    go test命令默认不会执行Benchmark开头的函数，需要添加-test.bench命令
+    
+    - go test -test.bench=.*    ：执行所有Benchmark开头的函数
+    - go test -test.bench=文件名  ：执行指定的文件
 
   ```go
   package goTest
@@ -2706,17 +2780,11 @@ func (r *RpcClient) StartClient(){
 
 
 
-## 2.14、gRPC
+## 2.12、gRPC
 
 gRPC是Google公司基于Protobuf开发的跨语言RPC框架。采用HTTP/2协议，适用于移动端访问。框架如下：
 
-<img src="image-20210620111528485.png" alt="image-20210620111528485" style="zoom: 67%;" />
-
-
-
-
-
-
+<img src="Golang_学习笔记.assets/image-20210620111528485.png" alt="image-20210620111528485" style="zoom:67%;" />
 
 
 
@@ -3494,7 +3562,7 @@ func main() {
 
 ## 3.14、atomic包
 
-与Java中的原子包Atomic类似，提供原子操作，保证数据的一致性。
+与Java中的原子包Atomic类似，提供原子操作，保证数据的一致性。（原子操作的性能强于加锁操作，因为加锁会涉及到资源占用，原子操作则是使用CAS机制，资源占用少）
 
 - atomic.LoadUint32(&变量)
 
@@ -3507,6 +3575,178 @@ func main() {
 - 
 
 
+
+## 3.15、runtime包
+
+- runtime.Gosched()
+
+  让出CPU时间片，重新等待安排任务 
+
+- runtime.Goexit()
+
+  退出当前协程
+
+- runtime.GOMAXPROCS
+
+  Go运行时的调度器使用GOMAXPROCS参数来确定需要使用多少个OS线程来同时执行Go代码。
+
+  - go1.5之前：默认使用单核心运行
+  - go1.5之后：默认使用所有核心运行
+
+  ```go
+  func a() {
+      for i := 1; i < 10; i++ {
+          fmt.Println("A:", i)
+      }
+  }
+  
+  func b() {
+      for i := 1; i < 10; i++ {
+          fmt.Println("B:", i)
+      }
+  }
+  
+  func main() {
+      //使用1个核心运行
+      runtime.GOMAXPROCS(1)
+      go a()
+      go b()
+      time.Sleep(time.Second)
+  }
+  ```
+
+
+
+## 3.16、sync包
+
+- **锁**
+
+  - sync.Mutex
+
+    互斥锁（读写锁）
+
+    - sync.Mutex.Lock()
+    - sync.Mutex.Unlock()
+
+  - sync.RWMutex
+
+    读锁、写锁
+
+    - 读锁
+      - sync.RWMutex.RLock()
+      - sync.RWMutex.RUnRLock()
+    - 写锁
+      - sync.RWMutex.Lock()
+      - sync.RWMutex.UnLock()
+
+  
+
+- sync.WaitGroup 
+
+  等待协程执行完毕
+
+  - Add(数量)
+
+    计数器 + num：增加需要等待协程的数量
+
+  - Done()
+
+    计数器 - 1：减小一个等待数量
+
+  - Wait()
+
+    等待（阻塞）：在计数器清零之前，不会执行后面的代码
+
+  ```go
+  import (
+  	"fmt"
+  	"sync"
+  )
+  
+  type GoWaitWaitGroup struct{
+  
+  }
+  
+  func(g *GoWaitWaitGroup) Test() {
+  	var wg sync.WaitGroup
+  
+  	// 开N个后台打印线程
+  	for i := 0; i < 10; i++ {
+  		//增加一个等待协程
+  		wg.Add(1)
+  		go func() {
+  			fmt.Println("你好, 世界")
+  			//完成一个等待时间
+  			wg.Done()
+  		}()
+  	}
+  
+  	// 等待N个后台线程完成
+  	wg.Wait()
+  	fmt.Println("finish all")
+  }
+  ```
+
+  
+
+- sync.Once
+
+  - 作用：保证代码只能被执行一次。
+
+  - 原理：使用了互斥锁、bool值。通过互斥锁保证bool变量在并发情况下的安全性，由bool变量来记录操作是否被执行，以此保证代码只能被执行一次。
+
+  ```go
+  var icons map[string]image.Image
+  
+  var loadIconsOnce sync.Once
+  
+  func loadIcons() {
+      icons = map[string]image.Image{
+          "left":  loadIcon("left.png"),
+          "up":    loadIcon("up.png"),
+          "right": loadIcon("right.png"),
+          "down":  loadIcon("down.png"),
+      }
+  }
+  
+  // Icon 是并发安全的
+  func Icon(name string) image.Image {
+      //加载配置文件（只能加载一次）
+      loadIconsOnce.Do(loadIcons)
+      return icons[name]
+  }
+  ```
+
+  
+
+- sync.Map
+
+  和Java中的ConcurrentHashMap类似。该Map适用于并发情况。
+
+  sync.Map内置了诸如Store、Load、LoadOrStore、Delete、Range等操作方法
+
+  ```go
+  var m = sync.Map{}
+  
+  func main() {
+      wg := sync.WaitGroup{}
+      for i := 0; i < 20; i++ {
+          wg.Add(1)
+          go func(n int) {
+              key := strconv.Itoa(n)
+              //存数据
+              m.Store(key, n)
+              //取数据
+              value, _ := m.Load(key)
+              fmt.Printf("k=:%v,v:=%v\n", key, value)
+              wg.Done()
+          }(i)
+      }
+      wg.Wait()
+  }
+  ```
+
+  
 
 
 
@@ -3610,7 +3850,7 @@ Go中的CSP（Communicating Sequential Process，通讯顺序进程）是并发�
 
 ## 5.3、等待N个线程执行完成
 
-可以使用带缓冲区的channel、sync.WaitGroup实现（同Java中的CountDownLatch）
+可以使用带缓冲区的channel、sync.WaitGroup实现（等同Java中的CountDownLatch）
 
 ```go
 /***************************** channel ***************************/
@@ -3651,7 +3891,7 @@ func(g *GoWaitWaitGroup) Test() {
 
 	// 开N个后台打印线程
 	for i := 0; i < 10; i++ {
-		//增加一个等待时间数
+		//增加一个等待协程
 		wg.Add(1)
 		go func() {
 			fmt.Println("你好, 世界")

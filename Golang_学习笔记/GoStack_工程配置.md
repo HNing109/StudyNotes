@@ -167,7 +167,7 @@ sudo apt-get install libvirt-dev libvirt-daemon libvirt-clients
 
 - 无需配置Goland，否则会出现包无法使用的情况
 
-  ![image-20210622101124589](GoStack工程配置.assets/image-20210622101124589.png)
+  ![image-20210622101124589](GoStack_工程配置.assets/image-20210622101124589.png)
 
 
 
@@ -213,7 +213,7 @@ sudo apt-get install libvirt-dev libvirt-daemon libvirt-clients
   func main() {
   	path := "./scheduler/etc/app.yml"
   	scheduler.RunScheduler(path)
-}
+  }
   ```
 
   
