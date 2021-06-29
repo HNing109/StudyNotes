@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"runtime/trace"
 	"sync"
 	"time"
 )
@@ -33,18 +35,21 @@ func read() {
 }
 
 func main() {
-	start := time.Now()
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go write()
+	//创建trace文件
+	f, err := os.Create("trace.out")
+	if err != nil {
+		panic(err)
 	}
 
-	for i := 0; i < 1000; i++ {
-		wg.Add(1)
-		go read()
-	}
+	defer f.Close()
 
-	wg.Wait()
-	end := time.Now()
-	fmt.Println(end.Sub(start))
+	//启动trace goroutine
+	err = trace.Start(f)
+	if err != nil {
+		panic(err)
+	}
+	defer trace.Stop()
+
+	//main
+	fmt.Println("Hello World")
 }

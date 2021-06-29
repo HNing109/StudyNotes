@@ -47,7 +47,7 @@
 
 
 
-# 2、安装、配置sshuttle
+# 2、配置sshuttle（Linux）
 
 - 安装软件：
 
@@ -61,17 +61,142 @@
 
   sshuttle --dns -r root@172.28.8.248 10.114.194.0/24 -e 'ssh -p 10000'
 
+
+
+
+# 2、配置ProxyCap5.36（Windows）
+
+- **<font color='red'>安装OpenSSH</font>**
+
+  此密钥不同于git配置时生成的ssh，ProxyCap需要使用open-ssh密钥。ProxyCap推荐安装7.4
+
+  - 下载：
+
+    下载地址：https://www.mls-software.com/opensshd.html
+
+    ![image-20210629103426442](GoStack_工程配置.assets/image-20210629103426442.png)
+
+  - 安装步骤：
+
+    - 安装教程：https://jingyan.baidu.com/article/9158e0002c159ea254122821.html
+    - 安装路径必须在默认路径中（C:\Program Files\OpenSSH）
+
+    - 测试是否安装成功：CMD中执行ssh
+
+  - 生成open SSH步骤：
+
+    - 命令：
+
+      ssh-keygen -t rsa
+
+      **注意：**ssh密钥保存路径可以放在其他位置，默认在C:\Users\Lenovo\ .ssh。会和git生成的ssh密钥存放路径冲突。
+
+    - 在目标服务器上配置公钥：
+
+      将生成的id_rsa.pub发给威哥
+      
+      
+
+- **<font color='red'>安装ProxyCap5.36（注意5.26不可使用）</font>**
+
+  安装软件时，直接使用默认路径安装
+
+  - 破解：
+
+    - 关闭杀毒软件：
+
+      关闭windows defender，并且在运行proxycap破解软件path时，需要允许操作，否则无法执行path软件。
+
+      <img src="GoStack_工程配置.assets/image-20210629110522137.png" alt="image-20210629110522137" style="zoom:67%;" />
+
+    - 关闭系统后台运行的proxycap进程：
+
+      打开任务管理器，关闭proxycap相关进程
+
+      - ProxyCap UI
+      - ProxyCap service
+
+      
+
+    - 运行破解软件proxycap.5.xx.64bit-patch.exe：
+
+      <img src="GoStack_工程配置.assets/image-20210629110358414.png" alt="image-20210629110358414" style="zoom:67%;" />
+
+    - 破解结果：
+
+      **破解成功后，重启计算机。**
+      
+      <img src="GoStack_工程配置.assets/image-20210629141618328.png" alt="image-20210629141618328" style="zoom:80%;" />
+
+  - 配置ProxyCap
+
+    - 配置代理
+
+      <img src="GoStack_工程配置.assets/image-20210629134057703.png" alt="image-20210629134057703" style="zoom:80%;" />
+
+    - 配置规则
+
+      <img src="GoStack_工程配置.assets/image-20210629134448711.png" alt="image-20210629134448711" style="zoom:80%;" />
+
+    - 测试是否可以使用：
+
+      **<font color='red'>必须先开启OpenVPN，连接河北VPN，然后再使用ProxyCap进行代理</font>**
+
+      - 测试连接代理服务器：
+
+        <img src="GoStack_工程配置.assets/image-20210629135647274.png" alt="image-20210629135647274" style="zoom:80%;" />
+
+      - 测试连接保定02测试环境ETCD数据库
+
+        - 地址：
+
+          http://10.114.194.115:12000/etcdkeeper/
+
+        - 用户名: root 
+
+          密码: CTyun2020!
+
+        - 成功连接：
+
+          **此处填写ETCD的IP地址**
+
+          <img src="GoStack_工程配置.assets/image-20210629135912990.png" alt="image-20210629135912990" style="zoom:80%;" />
+
+      
+
+- **开发环境ETCD地址: （本地调试）**
+
+  - 10.114.194.115:12379 
+  - 10.114.194.115:22379 
+  - 10.114.194.115:32379 
+
+- **测试环境ETCD地址:** 
+
+  - 10.114.194.116:12379 
+  - 10.114.194.116:22379 
+  - 10.114.194.116:32379
+
   
 
-# 3、安装libvirt
+# 3、安装OpenVPN
 
-sudo apt-get install libvirt-dev libvirt-daemon libvirt-clients
-
-（不安装libvirt，在gostack/cmd/gostack中执行go build时，将导致参数无法读取，无法完成build操作）
+查看说明手册
 
 
 
-# 4、go env配置
+# 4、安装libvirt
+
+- Linux环境
+
+  sudo apt-get install libvirt-dev libvirt-daemon libvirt-clients
+
+  （不安装libvirt，在gostack/cmd/gostack中执行go build时，将导致参数无法读取，无法完成build操作）
+
+- Windows环境
+
+  
+
+# 5、go env配置
 
 - go编译器版本：
 
@@ -163,7 +288,7 @@ sudo apt-get install libvirt-dev libvirt-daemon libvirt-clients
 
   
 
-# 5、Goland配置
+# 6、Goland配置
 
 - 无需配置Goland，否则会出现包无法使用的情况
 
@@ -171,9 +296,11 @@ sudo apt-get install libvirt-dev libvirt-daemon libvirt-clients
 
 
 
-# 6、启动代码
+# 7、启动代码
 
-注意：gostack中的所有模块，都需要逐个手动启动，无法一次性全部启动
+**注意：**gostack中的所有模块，都需要逐个手动启动，无法一次性全部启动
+
+**启动代码的前提：**本机必须完成上述配置，并且 ***开启OpenVPN、ProxyCap，确保本机能够访问ETCD数据库***
 
 - **方式一：**
 
@@ -194,6 +321,8 @@ sudo apt-get install libvirt-dev libvirt-daemon libvirt-clients
     在cmd/gostack/目录下，使用命令：./gostack xxx
 
     eg：启动scheduler，  ./gostack scheduler
+    
+    
 
 - **方式二：**
 

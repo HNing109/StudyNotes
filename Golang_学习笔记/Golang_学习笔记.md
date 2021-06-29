@@ -1602,7 +1602,7 @@ func encodeToXML(v interface{}, w io.Writer) error {
    <img src="Golang_学习笔记.assets/image-20210628095117650.png" alt="image-20210628095117650" style="zoom:80%;" /> 
 
   
-  
+
 - **检测通道是否关闭**
 
    使用range或者  val, ok := ch判断
@@ -2075,24 +2075,6 @@ func main(){
 
   
 
-### 2.6.4、GMP调度模型
-
-MPG（Goroutine调度模型）
-
-- M
-
-  main主线程
-
-- P
-
-  协程池，用于管理协程的上下文，调度各个协程
-
-- G
-
-  协程
-
-
-
 
 ## 2.7、反射
 
@@ -2100,7 +2082,9 @@ MPG（Goroutine调度模型）
 
   需要使用reflect包中的函数
 
-  - reflect.**ValueOf**(**param**)   （**<font color='red'>主要使用这个方法</font>**）：获取param对象的值  
+  - reflect.**ValueOf**(**param**)   
+
+    **<font color='red'>主要使用这个方法</font>**，获取param对象的值  
 
     （此方法对param进行数据拷贝，无法通过反射的方式修改param的数据）
 
@@ -2125,7 +2109,9 @@ MPG（Goroutine调度模型）
 
       
 
-  - reflect.**TypeOf**(param)：获取param对象的类型（即：对象所在的  **包名.结构体名**）
+  - reflect.**TypeOf**(param)：
+
+    获取param对象的类型（即：对象所在的  **包名.结构体名**）
 
   ```go
   var param float64 = 3.14
@@ -3798,7 +3784,7 @@ func GetSingletonInstance(name string) *singleton{
 
 # 5、并发模式
 
-## 5.1、CSP
+## 5.1、CSP通讯顺序进程
 
 Go中的CSP（Communicating Sequential Process，通讯顺序进程）是并发编程的核心。通常的语言（**java**、python）在并发控制中都是**使用互斥锁**来保证同一时刻只有一个线程访问共享资源。**Go中则使用Channel控制同一时间只有一个goroutine能够访问共享资源**。并且不会使用共享内存的方式进行数据通信，而是使用通信来保证内存共享。
 
@@ -4224,49 +4210,248 @@ func main() {
 
 
 
-# 常见问题
+# 8、GMP调度模型
 
-## 1、序列化、反序列化
-
-- 序列化
-
-  将内存中的数据转换成指定的格式（eg：数据 -> JSON格式）
-
-- 反序列化
-
-  还原转换成指定格式的数据
+Go 调度本质是把大量的 Goroutine 分配到少量Machine线程上去执行，并利用多核并行，实现更强大的并发。
 
 
 
-## 2、Go程序启动流程
+## 8.1、早期的多线程调度
 
-Go中的代码从main.main()开始。
+- Linux中调度：进程和线程的方式一样。
+- 调度方式：通过时间片的方式，分配每个进程的执行时间，多核CPU能同时执行的进程数 = CPU的核心数。
+- 缺点：虽然该方式可以处理多个进程，但是进程之间的切换需要耗费资源，并且当其中一个进程占用资源较大时，将会导致CPU处理速度下降。
 
-- 若main中存在import xxx，则先进入xxx包中进行初始化操作（若此此包内还存在import，则继续进入包中进行初始化）
+<img src="Golang_学习笔记.assets/image-20210629145833082.png" alt="image-20210629145833082" style="zoom: 67%;" />
 
-- 包的初始化顺序**：import包 ➡ const常量 ➡ var变量 ➡ init()函数 ➡ main函数**  （同个包中可有多个init()函数）
+## 8.2、Goroutine调度模型
 
-  （上面的所有步骤均在同一个goroutine协程中执行，若init()函数中也开启了goroutine，则该goroutine会在本次初始化结束后，程序进入main.main时才会被执行）
+### 8.2.1、Goroutine协程、Machine线程概念
+
+- 用户所创建的线程（**协程**）均位于用户空间（用户态），通过绑定**内核态线程**来使得CPU执行用户创建的线程（因为，CPU并不知道用户所创建的线程，且只能运行内核态线程——Linux 的 PCB 进程控制块）
+- 协程与（内核态）线程的关系：
+  - 可以是1:1、M:1、M:N的关系，Go中**<font color='red'>G（协程）、M（内核态线程）是M : N的关系</font>**。从语言本身的设计角度出发，保证高并发的特性，**<font color='red'>P（调度器）、M（内核态线程）是1 : 1的绑定关系</font>**。**通过此方式实现G(协程) : M(线程) = M : N**。
+  - 协程：是协作式调度，仅当一个协程让出CPU权限后，才能执行下一个协程
+  - 线程：是抢占式调度，凭借优先级调度已准备好的线程
+  - 调度器：负责分配协程至哪个线程中运行
+
+<img src="Golang_学习笔记.assets/image-20210629150629078.png" alt="image-20210629150629078" style="zoom: 67%;" />
+
+### 8.2.2、GMP模型
+
+- **M：**Machine，即：Thread线程（内核态线程）
+
+  - Go程序启动时设置，默认10000。当所有M阻塞时，若有空余的M数量可创建，则创建新的M。
+
+  - 每个M都有一个自己的Goroutine，此Goroutine用于调度在M中执行的G（来自P分发的G）
+
+    **设置方式：**runtime/debug 中的 SetMaxThreads
+
+  - **自旋线程**：M线程未处于休眠状态，且绑定了P，但是P的本地队列中没有G，此时的M线程处于运行状态，循环等待执行分发的G。此时的M线程称之为 “自旋线程” 。
+
+- **P：**Processor（调度器），用于管理协程的上下文，调度各个协程。使用队列存储协程
+
+  - 本地队列：存放协程，最多存放256个协程。新建协程时，若本地队列未满，则存入本地队列。若本地队列已满，则存入全局队列。
+
+  - 全局队列：存储协程，所有调度器均可访问该队列。
+
+  - **Processor的数量**：**<font color='red'>等同于同一时间能够运行的协程数量</font>**。Go程序启动后，会创建指定数量的Processor。
+
+    **设置方式：**环境变量 $GOMAXPROCS 或者 runtime.GOMAXPROCS() 
+
+  **<font color='red'>注意：P和M存在一对一的绑定关系</font>**
+
+- **G：**Goroutine（协程）
+
+  一个Goroutine最多占用CPU  10ms的时间，防止其余Goroutine等待时间过长。
+
+<img src="Golang_学习笔记.assets/image-20210629152542643.png" alt="image-20210629152542643" style="zoom: 67%;" />
+
+
+
+- **<font color='red'>调度器的机制</font>**
+
+  - **work stealing 机制**
+
+    当前Processor没有可执行的Goroutine时，从其余Processor的本地队列中获取Goroutine执行，若无法从其余Processor的本地队列中获取Goroutine，则从全局队列中获取Goroutine。而不是销毁Processor对应的M（内核态线程）。
+
+  - **hand off 机制**
+
+    当本线程M0，因为 Goroutine 阻塞时，线程M0释放绑定的 Processor，把 Processor 转移给其他空闲的线程M1执行.
+
+
+
+- **调度器的生命周期**
+
+  - 第一个M0：
+
+    Go程序启动后，第一个M线程，负责执行初始化操作、创建第一个G。之后，此M线程和其他M线程处于同级别关系，可交互使用。
+
+  - 第一个G0：
+
+    第一个Goroutine0（G0）对应的是第一个M0。每创建一个M线程，都会创建一个Goroutine。此Goroutine用于调度在M中执行的G（来自P分发的G）.
+
+  ![调度器生命周期](Golang_学习笔记.assets/调度器生命周期.png)
+
+
+
+### 8.2.3、可视化GMP流程
+
+- **方式一：**
+
+  - 工具：go tool trace，通过web界面展示GMP的运行信息（和Java中的VisualVM类似）
+
+  - 包：runtime/trace
+
+    
+
+  **测试实例：**
+
+  ```go
+  package main
+  
+  import (
+      "os"
+      "fmt"
+      "runtime/trace"
+  )
+  
+  func main() {
+  
+      //创建trace文件
+      f, err := os.Create("trace.out")
+      if err != nil {
+          panic(err)
+      }
+  
+      defer f.Close()
+  
+      //启动trace goroutine：创建的 trace 会运行在单独的 goroutine 中
+      err = trace.Start(f)
+      if err != nil {
+          panic(err)
+      }
+      defer trace.Stop()
+  
+      //main
+      fmt.Println("Hello World")
+  }
+  ```
+
+  **运行结果：**
+
+  ```shell
+  $ go tool trace trace.out 
+  2020/02/23 10:44:11 Parsing trace...
+  2020/02/23 10:44:11 Splitting trace...
+  2020/02/23 10:44:11 Opening browser. Trace viewer is listening on http://127.0.0.1:33479
+  ```
+
+  **浏览器打开页面：**http://127.0.0.1:33479
+
+  ![image-20210629163555516](Golang_学习笔记.assets/image-20210629163555516.png)
 
   
 
-- 当所有的init()函数被执行后，才会进入main.main()中。
+- **方式二：**
 
-![image-20210618101831393](Golang_学习笔记.assets/image-20210618101831393.png)
+  - Debug trace
 
+    - 构建包：go build 文件名.go
 
+    - 以Debug方式运行：GODEBUG=schedtrace=1000 ./文件名
+
+      
+
+  - 以Debug方式运行的结果说明
+
+    - `SCHED`：调试信息输出标志字符串，代表本行是 goroutine 调度器的输出；
+    - `0ms`：即从程序启动到输出这行日志的时间；
+    - `gomaxprocs`: P 的数量，本例有 2 个 P, 因为默认的 P 的属性是和 cpu 核心数量默认一致，当然也可以通过 GOMAXPROCS 来设置；
+    - `idleprocs`: 处于 idle 状态的 P 的数量；通过 gomaxprocs 和 idleprocs 的差值，我们就可知道执行 go 代码的 P 的数量；
+    - `threads`: os threads/M 的数量，包含 scheduler 使用的 m 数量，加上 runtime 自用的类似 sysmon 这样的 thread 的数量；
+    - `spinningthreads`: 处于自旋状态的 os thread 数量；
+    - `idlethread`: 处于 idle 状态的 os thread 的数量；
+    - `runqueue=0`： Scheduler 全局队列中 G 的数量；
+    - `[0 0]`: 分别为 2 个 P 的 local queue 中的 G 的数量
+
+    
+
+    **eg：**
+    
+    ```shell
+    $ GODEBUG=schedtrace=1000 ./trace2 
+    SCHED 0ms: gomaxprocs=2 idleprocs=0 threads=4 spinningthreads=1 idlethreads=1 runqueue=0 [0 0]
+    Hello World
+    SCHED 1003ms: gomaxprocs=2 idleprocs=2 threads=4 spinningthreads=0 idlethreads=2 runqueue=0 [0 0]
+    Hello World
+    SCHED 2014ms: gomaxprocs=2 idleprocs=2 threads=4 spinningthreads=0 idlethreads=2 runqueue=0 [0 0]
+    Hello World
+    SCHED 3015ms: gomaxprocs=2 idleprocs=2 threads=4 spinningthreads=0 idlethreads=2 runqueue=0 [0 0]
+    Hello World
+    SCHED 4023ms: gomaxprocs=2 idleprocs=2 threads=4 spinningthreads=0 idlethreads=2 runqueue=0 [0 0]
+    Hello World
+    ```
+
+  
+
+### 8.2.4、go func()调度流程
+
+  **注意：**
+
+  - 当 M 执行某一个 G 时候如果发生了 syscall 或则其余阻塞操作，M 会阻塞。如果当前有一些 G 在执行，runtime 会把这个线程 M 从 P 中摘除 (detach)，然后再创建一个新的操作系统的线程 (如果有空闲的线程可用，就复用空闲线程) 来服务于这个 P。
+  - 当 M 调用结束时，M中的G 会尝试获取一个空闲的 P 执行，并放入到这个 P 的本地队列。如果获取不到 P，那么这个线程 M 变成休眠状态， 加入到空闲线程中，然后这个 G 会被放入全局队列中。
+
+  ![image-20210629160616717](Golang_学习笔记.assets/image-20210629160616717.png)
+
+  
+
+  
+
+# 常见问题
+
+  ## 1、序列化、反序列化
+
+  - 序列化
+
+    将内存中的数据转换成指定的格式（eg：数据 -> JSON格式）
+
+  - 反序列化
+
+    还原转换成指定格式的数据
+
+  
+
+## 2、Go程序启动流程
+
+  Go中的代码从main.main()开始。
+
+  - 若main中存在import xxx，则先进入xxx包中进行初始化操作（若此此包内还存在import，则继续进入包中进行初始化）
+
+  - 包的初始化顺序**：import包 ➡ const常量 ➡ var变量 ➡ init()函数 ➡ main函数**  （同个包中可有多个init()函数）
+
+    （上面的所有步骤均在同一个goroutine协程中执行，若init()函数中也开启了goroutine，则该goroutine会在本次初始化结束后，程序进入main.main时才会被执行）
+
+    
+
+  - 当所有的init()函数被执行后，才会进入main.main()中。
+
+  ![image-20210618101831393](Golang_学习笔记.assets/image-20210618101831393.png)
+
+  
 
 ## 3、
 
+  
 
+  
 
+  
 
+  
 
+  
 
+  
 
-
-
-
-
-
-
+  
