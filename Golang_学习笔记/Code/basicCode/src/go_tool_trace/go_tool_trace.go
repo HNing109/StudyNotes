@@ -7,6 +7,7 @@ import (
 )
 
 /**
+运行代码后，执行go tool trace trace.out
  * Created by Chris on 2021/6/29.
  */
 
