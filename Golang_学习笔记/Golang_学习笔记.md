@@ -2078,42 +2078,80 @@ func main(){
 
 ## 2.7、反射
 
-- 和Java的反射类似。都是可以通过参数，反向获取参数的类型、数值、方法
+### 2.7.1、反射的概念
 
-  需要使用reflect包中的函数
+- 和Java的反射类似。都是可以通过参数，反向获取参数的类型、数值、方法。
 
-  - reflect.**ValueOf**(**param**)   
+- 可在运行时，动态获取变量的信息，eg：类型（type）、类别（kind）。
 
-    **<font color='red'>主要使用这个方法</font>**，获取param对象的值  
+- 若变量为结构体，还可以获得结构体的属性、方法，并通过反射的方式修改变量的值。
 
-    （此方法对param进行数据拷贝，无法通过反射的方式修改param的数据）
+- 需要使用reflect包中的函数。
 
-    - reflect.ValueOf(param).**Type()**  ：获取类型
+- **<font color='red'>反射中，变量、Interfave{}、reflect.Value三者可以相互转换</font>**
 
-    - reflect.ValueOf(param).**Kind()**   ：获取param的类型。
-
-      - 若为对象，则返回struct。
-      - 若为常量，则获取常量的类型（int、float等）
-
-    - reflect.ValueOf(param)**.Float()**   ：获取常量的数值
-
-    - reflect.ValueOf(param)**.Interface()**：以接口的形式，返回param的数值
-
-      
-
-      **（若需要通过反射的方式修改param对象，则需要使用指针的方式传入param，即：需要通过内存地址来修改数据）**
-
-    - reflect.ValueOf(**&param**).**CanSet()**  ：param是否可以使用反射的方式设置参数
-
-    - reflect.ValueOf(**&param**).**SetFloat(value)**  ：设置param的数值为value
-
-      
-
-  - reflect.**TypeOf**(param)：
-
-    获取param对象的类型（即：对象所在的  **包名.结构体名**）
+  <img src="Golang_学习笔记.assets/image-20210629231758503.png" alt="image-20210629231758503"  />
 
   ```go
+  /*
+   一般来说，会写一个专门做反射的方法，该方法传入的参数为 空接口：interface{}
+  */
+  func Test(b interface{}){
+      //Interface{} 转 reflect.Value
+      rVal := reflect.Value(b)
+      
+      //reflect.Value 转 Interface{}
+      iVal := rVal.Interface()
+      
+      //interface{} 转 原变量类型   （使用断言的方式转换）
+      val := iVal.(原变量类型)
+  }
+  ```
+
+  
+
+- **应用场景：**
+
+  - 序列化时，结构体的属性若有指定tag，则可通过反射生成相对应的字符串
+
+  - 无法确定需要调用接口的哪个函数时，可根据传入参数，在运行时通过反射确定调用的具体接口
+
+    
+
+### 2.7.2、反射的实现
+
+- reflect.**ValueOf**(**param**)   
+
+  **<font color='red'>主要使用这个方法</font>**，返回值：Value类型的结构体。获取param对象的值  
+
+  （此方法对param进行数据拷贝，无法通过反射的方式修改param的数据）
+
+  - reflect.ValueOf(param).**Type()**  ：获取类型
+
+  - reflect.ValueOf(param).**Kind()**   ：获取param的类型。
+
+    - 若为对象，则返回struct。
+    - 若为常量，则获取常量的类型（int、float等）
+
+  - reflect.ValueOf(param)**.Float()**   ：获取常量的数值
+
+  - reflect.ValueOf(param)**.Interface()**：以接口的形式，返回param的数值
+
+    
+
+    **（若需要通过反射的方式修改param对象，则需要使用指针的方式传入param，即：需要通过内存地址来修改数据）**
+
+  - reflect.ValueOf(**&param**).**CanSet()**  ：param是否可以使用反射的方式设置参数
+
+  - reflect.ValueOf(**&param**).**SetFloat(value)**  ：设置param的数值为value
+
+    
+
+- reflect.**TypeOf**(param)：
+
+  获go取param对象的类型（即：对象所在的  **包名.结构体名**），返回值：Type类型的接口
+  
+  ```
   var param float64 = 3.14
   val := reflect.ValueOf(param)
   fmt.Println(val)
@@ -2135,7 +2173,7 @@ func main(){
   val_1.SetFloat(22)
   fmt.Println("set value = ",val_1.Interface() )
   ```
-
+  
   
 
 - 获取对象中的属性、方法
