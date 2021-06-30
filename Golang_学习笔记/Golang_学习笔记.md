@@ -2082,7 +2082,7 @@ func main(){
 
 - 和Java的反射类似。都是可以通过参数，反向获取参数的类型、数值、方法。
 
-- 可在运行时，动态获取变量的信息，eg：类型（type）、类别（kind）。
+- **<font color='red'>只能在运行时，动态获取变量的信息，编译时无法确定</font>**，eg：类型（type）、类别（kind）。
 
 - 若变量为结构体，还可以获得结构体的属性、方法，并通过反射的方式修改变量的值。
 
@@ -2096,6 +2096,7 @@ func main(){
   /*
    一般来说，会写一个专门做反射的方法，该方法传入的参数为 空接口：interface{}
   */
+  //函数形参为interface{} 时，传入常量，即可实现：  常量 转 interface{}
   func Test(b interface{}){
       //Interface{} 转 reflect.Value
       rVal := reflect.Value(b)
@@ -2126,103 +2127,167 @@ func main(){
 
   （此方法对param进行数据拷贝，无法通过反射的方式修改param的数据）
 
-  - reflect.ValueOf(param).**Type()**  ：获取类型
+  - reflect.ValueOf(param).**Type()**  ：获取Type类型的接口
 
-  - reflect.ValueOf(param).**Kind()**   ：获取param的类型。
+  - reflect.ValueOf(param).**Kind()**   ：获取参数的实际类型（**类别**）。eg：bool、int、map、slice、**struct**
 
     - 若为对象，则返回struct。
     - 若为常量，则获取常量的类型（int、float等）
 
-  - reflect.ValueOf(param)**.Float()**   ：获取常量的数值
+  - reflect.ValueOf(param)**.Float()**   ：获取参数param的Float类型的数值
 
   - reflect.ValueOf(param)**.Interface()**：以接口的形式，返回param的数值
 
+  - reflect.ValueOf(**&param**).**Elem()**：<font color='red'>（用于通过反射的方式来修改数据）</font>获得指针值指向的元素值对象（即：传入的对象s），因此调用函数修改数据时必须传入**指针类型的参数&param**
+
     
 
-    **（若需要通过反射的方式修改param对象，则需要使用指针的方式传入param，即：需要通过内存地址来修改数据）**
+  - **修改<font color='red'>变量</font>param的数据**：
 
-  - reflect.ValueOf(**&param**).**CanSet()**  ：param是否可以使用反射的方式设置参数
+    则需要使用指针的方式传入param变量，即：需要通过内存地址来修改数据
 
-  - reflect.ValueOf(**&param**).**SetFloat(value)**  ：设置param的数值为value
+    - reflect.ValueOf(**&param**).**CanSet()**  ：param是否可以使用反射的方式设置参数
+    - reflect.ValueOf(**&param**).**Elm()**.**SetFloat(value)**  ：设置param的数值为value
+
+    
+
+  - **修改<font color='red'>对象</font>param的数据**
+
+    则需要使用指针的方式传入对象，即：需要通过内存地址来修改数据
+
+    -  rValueChange := reflect.ValueOf(**&param**)**.Elem().FieldByName("属性名")**：通过指针的方式获取对象的属性名
+    -  rValueChange.**Set(reflect.ValueOf(数据值))**：修改对象的属性数据
 
     
 
 - reflect.**TypeOf**(param)：
 
   获go取param对象的类型（即：对象所在的  **包名.结构体名**），返回值：Type类型的接口
-  
-  ```
-  var param float64 = 3.14
-  val := reflect.ValueOf(param)
-  fmt.Println(val)
-  //打印类型
-  fmt.Println("type = ", val.Type())
-  //打印常量的类型
-  fmt.Println("kind = ", val.Kind())
-  //reflect.ValueOf(param).Float()：打印的就是param的数值
-  fmt.Println("value = ", val.Float())
-  
-  
-  //通过反射修改对象中的数据
-  //需要使用指针，获取对象中的数据
-  val_1 := reflect.ValueOf(&param)
-  //
-  val_1 = val_1.Elem()
-  //该参数是否可以设置
-  fmt.Println("can set = ", val_1.CanSet())
-  val_1.SetFloat(22)
-  fmt.Println("set value = ",val_1.Interface() )
-  ```
-  
-  
 
-- 获取对象中的属性、方法
+
+
+- 修改变量的数据
 
   ```go
-  /************************ 结构体 *****************************/
-  package myreflect
+  func main(){
+      var param float64 = 3.14
+      val := reflect.ValueOf(param)
+      fmt.Println(val)
+      
+      //打印Type类型的接口
+      fmt.Println("type = ", val.Type())
+      //打印常量的类型
+      fmt.Println("kind = ", val.Kind())
+      //reflect.ValueOf(param).Float()：打印的就是param的数值
+      fmt.Println("value = ", val.Float())
   
-  import (
-  	"fmt"
-  	"reflect"
-  )
-  type ReflectTest struct{
-  	Name string
-  	age int
+  
+      //通过反射修改对象中的数据
+      //需要使用指针，获取对象中的数据
+      val_1 := reflect.ValueOf(&param)
+      //获取变量的实际地址
+      val_1 = val_1.Elem()
+      //该参数是否可以设置
+      fmt.Println("can set = ", val_1.CanSet())
+      val_1.SetFloat(22)
+      fmt.Println("set value = ",val_1.Interface() )
   }
   
-  func (this *ReflectTest)ReflectTypeValue(){
-  	var param float64 = 3.14
-  	val := reflect.ValueOf(param)
-  	typ := reflect.TypeOf(param)
+  ```
+
   
-  	fmt.Println(val, typ)
-  	//打印类型
-  	fmt.Println("type = ", val.Type())
-  	fmt.Println("kind = ", val.Kind())
-  	//reflect.ValueOf(param).Float()：打印的就是param的数值
-  	fmt.Println("value = ", val.Float())
+
   
+
+- 反射变量、对象，并修改对象的属性数据
+
+  ```go
+  /************************ 测试包 *****************************/
+  package my_reflect
+  type ReflectFuncTest struct{
+  
+  }
+  
+  /**
+  对常量进行反射
+   */
+  func(r *ReflectFuncTest) ReflectVar(v interface{}){
+  	//获取reflect.TypeOf
+  	rType := reflect.TypeOf(v)
+  	fmt.Printf("rTpye = %v\n", rType)  						//rTpye = int
+  
+  	//获取reflect.ValueOf
+  	rValue := reflect.ValueOf(v)
+  	//获取reflect.ValueOf的值、类型
+  	fmt.Printf("rValue = %v, type = %T \n", rValue, rValue) //rValue = 1, type = reflect.Value 
+  	//获取参数值
+  	fmt.Println("rValue.Int() = ", rValue.Int())			//rValue.Int() = 1
+  
+  	//将reflect.ValueOf 转 interface{}
+  	rVal2Interface := rValue.Interface()
+  	fmt.Println("rVal2Interface = ", rVal2Interface)		//rVal2Interface = 1
+  
+  	//interface{} 转 变量的实际类型  (断言)
+  	value := rVal2Interface.(int)
+  	fmt.Println("value = ", value)							//value = 1
+  }
+  
+  
+  
+  /**
+  对结构体进行反射
+   */
+  type Student struct{
+  	Name string
+  	Age int
+  }
+  
+  func(r *ReflectFuncTest) ReflectStruct(s interface{}){
+  	//获取reflect.TypeOf
+  	rType := reflect.TypeOf(s)
+  	fmt.Println("rType = ", rType)							//rType = *my_reflect.Student
+  
+  	//获取reflect.ValueOf
+  	rValue := reflect.ValueOf(s)
+  
+  	//改变数据：
+      //通过Elem() 获得指针值指向的元素值对象（即：传入的对象s），因此调用函数时必须传入指针类型的s
+      //且对应的结构体属性，首字母必须大写，否则无法获取到此属性
+  	rValueChange := rValue.Elem().FieldByName("Age")
+  	//需要进行类型强转：Set只能接收Value类型的数据
+  	rValueChange.Set(reflect.ValueOf(20))
+  
+  	//获取Kind
+  	rTypeKind := rType.Kind()
+  	RvalueKind := rValue.Kind()
+      //     rTypeKind = ptr, rValueKind = ptr
+  	fmt.Printf("rTypeKind = %v, rValueKind = %v\n", rTypeKind, RvalueKind)
+  
+  	//将reflect.ValueOf 转 interface{}
+  	rValue2Interface := rValue.Interface()
+      //     value = &{chris 20}, type = *my_reflect.Student
+  	fmt.Printf("value = %v, type = %T\n", rValue2Interface, rValue2Interface)	
+  
+  	//interface{} 转 变量的实际类型   (断言)
+  	student , ok := rValue2Interface.(*Student)
+  	if ok {
+  		fmt.Println(student)		//&{chris 20}
+  	}
   }
   
   
   /************************ main *****************************/
   func main() {
-  	ref := myreflect.ReflectTest{Name:"chris"}
-  	value := reflect.ValueOf(ref)
-  	typeOf := reflect.TypeOf(ref)
-  	fmt.Println(value, typeOf)
-  
-  	//获取对象中的属性值
-  	for index := 0; index < value.NumField(); index++ {
-  		fmt.Println("file ", index , " : ", value.Field(index))
-  	}
-  
-  	//获取对象中的方法
-  	for index := 0; index < value.NumMethod(); index++ {
-  		fmt.Println("method ", index, " : ", value.Method(index))
-  	}
+  	var instance = new(my_reflect.ReflectFuncTest)
+  	//反射变量
+  	instance.ReflectVar(1)
+  	//反射结构体：使用new、&{}创建的对象都是ptr指针类型
+  	var student = new(my_reflect.Student)
+  	student.Name = "chris"
+  	student.Age = 18
+  	instance.ReflectStruct(student)
   }
+  
   ```
 
    
