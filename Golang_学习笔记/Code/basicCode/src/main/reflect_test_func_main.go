@@ -15,4 +15,9 @@ func main() {
 	student.Name = "chris"
 	student.Age = 18
 	instance.ReflectStruct(student)
+
+	var student1 my_reflect.Student
+	student1.Name = "fyj"
+	student1.Age = 10
+	instance.ReflectGetFieldAndMethod(student1)
 }

@@ -44,11 +44,12 @@ func(r *ReflectFuncTest) ReflectVar(v interface{}){
 对结构体进行反射
  */
 type Student struct{
-	Name string
-	Age int
+	//添加标签
+	Name string	`json:"name"`
+	Age int		`json:"age"`
 }
 
-func(s *Student) Say(param string){
+func(s Student) Say(param string){
 	fmt.Println("Student.Say(): ", param)
 }
 
@@ -82,3 +83,27 @@ func(r *ReflectFuncTest) ReflectStruct(s interface{}){
 	}
 }
 
+/**
+获取结构体的属性值、标签，通过反射调用结构体的方法
+ */
+func(r *ReflectFuncTest) ReflectGetFieldAndMethod(s interface{}){
+	rValue := reflect.ValueOf(s)
+	rType := reflect.TypeOf(s)
+	/******************** 获取结构体的属性值、标签 *************************/
+	numVal := rValue.NumField()
+	for i := 0; i < numVal; i++{
+		//获取属性值
+		fmt.Printf("Filed %d: val = %v\n", i, rValue.Field(i))
+		//获取标签：为json的字段值
+		tagVal := rType.Field(i).Tag.Get("json")
+		if tagVal != ""{
+			fmt.Printf("Field %d: tag = %v\n", i, tagVal)
+		}
+	}
+
+	/******************** 获取结构体的方法、并调用 *************************/
+	fmt.Println("s method number = ", rValue.NumMethod())
+	var params []reflect.Value
+	params = append(params, reflect.ValueOf("say reflect get struct function"))
+	rValue.Method(0).Call(params)
+}

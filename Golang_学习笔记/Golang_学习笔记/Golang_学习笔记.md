@@ -2151,6 +2151,12 @@ func main(){
 
   - reflect.ValueOf(**&param**).**Elem()**：<font color='red'>（用于通过反射的方式来修改数据）</font>获得指针值指向的元素值对象（即：传入的对象s），因此调用函数修改数据时必须传入**指针类型的参数&param**
 
+  - reflect.ValueOf(param).Field(索引x)：获取结构体中第x个属性的值
+
+  - reflect.ValueOf(param).**NumMethod()**：获取结构体方法的数量
+
+  - reflect.ValueOf(param).**Method(索引x).Call(参数P)**：调用结构体第x个方法，传入参数P（p必须为 []reflect.Value 类型）
+
     
 
   - **修改<font color='red'>变量</font>param的数据**：
@@ -2174,6 +2180,8 @@ func main(){
 - reflect.**TypeOf**(param)：
 
   获go取param对象的类型（即：对象所在的  **包名.结构体名**），返回值：Type类型的接口
+  
+  - reflect.TypeOf(param).**Field(索引x).Tag.Get(标签类型，eg："json")**：获取结构体第x个属性，指定标签所对应的数据值
 
 
 
@@ -2225,22 +2233,22 @@ func main(){
   func(r *ReflectFuncTest) ReflectVar(v interface{}){
   	//获取reflect.TypeOf
   	rType := reflect.TypeOf(v)
-  	fmt.Printf("rTpye = %v\n", rType)  						//rTpye = int
+  	fmt.Printf("rTpye= %v\n", rType)
   
   	//获取reflect.ValueOf
   	rValue := reflect.ValueOf(v)
   	//获取reflect.ValueOf的值、类型
-  	fmt.Printf("rValue = %v, type = %T \n", rValue, rValue) //rValue = 1, type = reflect.Value 
+  	fmt.Printf("rValue = %v, type = %T \n", rValue, rValue)
   	//获取参数值
-  	fmt.Println("rValue.Int() = ", rValue.Int())			//rValue.Int() = 1
+  	fmt.Println("rValue.Int() = ", rValue.Int())
   
   	//将reflect.ValueOf 转 interface{}
   	rVal2Interface := rValue.Interface()
-  	fmt.Println("rVal2Interface = ", rVal2Interface)		//rVal2Interface = 1
+  	fmt.Println("rVal2Interface = ", rVal2Interface)
   
   	//interface{} 转 变量的实际类型  (断言)
   	value := rVal2Interface.(int)
-  	fmt.Println("value = ", value)							//value = 1
+  	fmt.Println("value = ", value)
   }
   
   
@@ -2249,21 +2257,25 @@ func main(){
   对结构体进行反射
    */
   type Student struct{
-  	Name string
-  	Age int
+  	//添加标签
+  	Name string	`json:"name"`
+  	Age int		`json:"age"`
+  }
+  
+  func(s Student) Say(param string){
+  	fmt.Println("Student.Say(): ", param)
   }
   
   func(r *ReflectFuncTest) ReflectStruct(s interface{}){
   	//获取reflect.TypeOf
   	rType := reflect.TypeOf(s)
-  	fmt.Println("rType = ", rType)							//rType = *my_reflect.Student
+  	fmt.Println("rType = ", rType)
   
   	//获取reflect.ValueOf
   	rValue := reflect.ValueOf(s)
   
-  	//改变数据：
-      //通过Elem() 获得指针值指向的元素值对象（即：传入的对象s），因此调用函数时必须传入指针类型的s
-      //且对应的结构体属性，首字母必须大写，否则无法获取到此属性
+  	//改变数据：通过Elem() 获得指针值指向的元素值对象（即：传入的对象s），因此调用函数时必须传入指针类型的s
+  	//且对应的结构体属性，首字母必须大写，否则无法获取到此属性
   	rValueChange := rValue.Elem().FieldByName("Age")
   	//需要进行类型强转：Set只能接收Value类型的数据
   	rValueChange.Set(reflect.ValueOf(20))
@@ -2271,19 +2283,43 @@ func main(){
   	//获取Kind
   	rTypeKind := rType.Kind()
   	RvalueKind := rValue.Kind()
-      //     rTypeKind = ptr, rValueKind = ptr
   	fmt.Printf("rTypeKind = %v, rValueKind = %v\n", rTypeKind, RvalueKind)
   
   	//将reflect.ValueOf 转 interface{}
   	rValue2Interface := rValue.Interface()
-      //     value = &{chris 20}, type = *my_reflect.Student
-  	fmt.Printf("value = %v, type = %T\n", rValue2Interface, rValue2Interface)	
+  	fmt.Printf("value = %v, type = %T\n", rValue2Interface, rValue2Interface)
   
   	//interface{} 转 变量的实际类型   (断言)
   	student , ok := rValue2Interface.(*Student)
   	if ok {
-  		fmt.Println(student)		//&{chris 20}
+  		fmt.Println(student)
   	}
+  }
+  
+  /**
+  获取结构体的属性值、标签，通过反射调用结构体的方法
+   */
+  func(r *ReflectFuncTest) ReflectGetFieldAndMethod(s interface{}){
+  	rValue := reflect.ValueOf(s)
+  	rType := reflect.TypeOf(s)
+  	/********** 获取结构体的属性值、标签 *************/
+  	numVal := rValue.NumField()
+  	for i := 0; i < numVal; i++{
+  		//获取属性值
+  		fmt.Printf("Filed %d: val = %v\n", i, rValue.Field(i))
+  		//获取标签：为json的字段值
+		tagVal := rType.Field(i).Tag.Get("json")
+  		if tagVal != ""{
+  			fmt.Printf("Field %d: tag = %v\n", i, tagVal)
+  		}
+  	}
+  
+  	/********** 获取结构体的方法、并调用 ************/
+  	fmt.Println("s method number = ", rValue.NumMethod())
+  	var params []reflect.Value
+  	params = append(params, reflect.ValueOf("say reflect get struct function"))
+      //反射调用的方法，只能传入[]reflect.Value类型的参数
+  	rValue.Method(0).Call(params)
   }
   
   
@@ -2300,7 +2336,7 @@ func main(){
   }
   
   ```
-
+  
    
 
 ## 2.8、错误处理
