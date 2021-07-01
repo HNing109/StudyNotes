@@ -48,6 +48,10 @@ type Student struct{
 	Age int
 }
 
+func(s *Student) Say(param string){
+	fmt.Println("Student.Say(): ", param)
+}
+
 func(r *ReflectFuncTest) ReflectStruct(s interface{}){
 	//获取reflect.TypeOf
 	rType := reflect.TypeOf(s)
