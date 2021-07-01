@@ -66,7 +66,7 @@
 
 # 2、配置ProxyCap5.36（Windows）
 
-- **<font color='red'>安装OpenSSH</font>**
+- **<font color='red'>安装OpenSSH</font>**    **（不安装此软件也行，可直接使用git配置时生成的SSH）**
 
   此密钥不同于git配置时生成的ssh，ProxyCap需要使用open-ssh密钥。ProxyCap推荐安装7.4
 
@@ -91,8 +91,14 @@
 
       **注意：**ssh密钥保存路径可以放在其他位置，默认在C:\Users\Lenovo\ .ssh。会和git生成的ssh密钥存放路径冲突。
 
-    - 在目标服务器上配置公钥：
+      即：输入上述命令后，修改.ssh默认存放位置
 
+      Enter file in which to save the key (C:\Users\Lenovo\ .ssh): C:\Users\Lenovo\ .ssh-openssh
+    
+      
+    
+    - 在目标服务器上配置公钥：
+    
       将生成的id_rsa.pub发给威哥
       
       
@@ -176,6 +182,8 @@
   - 10.114.194.116:22379 
   - 10.114.194.116:32379
 
+-  **注意：**若ProxyCap软件无法正常运行，直接重装软件，即可解决问题。
+
   
 
 # 3、安装OpenVPN
@@ -247,7 +255,7 @@
   set GOOS=windows
   set GOPATH=C:\Users\Lenovo\go
   set GOPRIVATE=git.ctyun.cn
-  set GOPROXY=direct
+  set GOPROXY=https://goproxy.io,direct
   set GOROOT=C:\Program Files\Go
   set GOSUMDB=sum.golang.org
   set GOTMPDIR=

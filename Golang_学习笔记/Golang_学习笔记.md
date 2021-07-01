@@ -52,7 +52,18 @@ Go官方教程：https://tour.golang.org/welcome/1
 
 - `go install` 编译并安装自身包和依赖包
 
-  
+
+
+
+## 1.4、常见问题
+
+- Goland无法下载go.mod中的依赖包（或者下载依赖包超时）
+
+  则需要设置Goland代理
+
+  ![image-20210701144157499](Golang_学习笔记.assets/image-20210701144157499.png)
+
+
 
 # 2、基本语法
 
@@ -4040,90 +4051,116 @@ func main() {
 
 
 
-# 6、go mod
+# 6、go env、mod
 
-- 和Java中的Maven（或gradle）类似，用于管理项目中的包，但是相较于Maven而言，go.mod仅能依赖包管理，无法进行项目构建、打包、部署。
+和Java中的Maven（或gradle）类似，用于管理项目中的包，但是相较于Maven而言，go.mod仅能依赖包管理，无法进行项目构建、打包、部署。
 
-  Go1.11之后才出现go mod，先前必须将所有依赖包全部放入src目录中，导致项目臃肿。
+Go1.11之后才出现go mod，先前必须将所有依赖包全部放入src目录中，导致项目臃肿。
 
-- **使用go mod管理依赖包，就必须配置go env**。**<font color='red'>（并且一定要设置代理，否则会导致无法下载第三方依赖包）</font>**
+## 6.1、go env
 
-  - 使用go env查看当前的go env配置
+**使用go mod管理依赖包，就必须配置go env**。**<font color='red'>（并且一定要设置代理，否则会导致无法下载第三方依赖包）</font>**
 
-    ```shell
-    #是否开启go module，取值：on、off、auto（自动判断项目中是否存在go.mod，以决定是否开启module模式）
-    set GO111MODULE=on
-    #目标机器的处理器架构
-    set GOARCH=amd64
-    #编译器、链接器安装位置
-    set GOBIN=
-    set GOCACHE=C:\Users\Lenovo\AppData\Local\go-build
-    #本机修改后的go env配置的存储位置
-    set GOENV=C:\Users\Lenovo\AppData\Roaming\go\env
-    #是否产生exe文件
-    set GOEXE=.exe
-    set GOFLAGS= -mod=
-    #本机处理器架构
-    set GOHOSTARCH=amd64
-    #本机运行环境
-    set GOHOSTOS=windows
-    
-    ###############################  私有使用仓库包的配置  #######################################
-    
-    #配置私有库域名，比如常用的Gitlab或Gitee。若需设置多个，使用','隔开。（私有仓库一般都需要进行登录，Linux系统配置账号密码的文件路径为~/.netrc）
-    set GOPRIVATE=git.ctyun.cn
-    #下载此域名下的包，不走代理下载
-    set GONOPROXY=git.ctyun.cn
-    #下载此域名下的包，默认采用http协议传输（而go mod默认使用https）
-    set GOINSECURE=git.ctyun.cn
-    #下载此域名下的包，默认不进行gosumdb校验（验证包的有效性）
-    set GONOSUMDB=git.ctyun.cn
-    
-    ##########################################################################################
-    
-    set GOMODCACHE=C:\Users\Lenovo\go\pkg\mod
-    #目标机器的运行环境（需要交叉编译的平台）
-    set GOOS=windows
-    #项目依赖的第三方包存放目录，包含：src、pkg、bin三个文件夹
-    set GOPATH=C:\Users\Lenovo\go
-    #本机Go安装的位置
-    set GOROOT=C:\Program Files\Go
-    #下载第三方包的代理
-    set GOPROXY=direct
-    #验证包的有效性：国内通用的检验路径
-    set GOSUMDB=sum.golang.org
-    set GOTMPDIR=
-    set GOTOOLDIR=C:\Program Files\Go\pkg\tool\windows_amd64
-    set GCCGO=gccgo
-    set AR=ar
-    set CC=gcc
-    set CXX=g++
-    set CGO_ENABLED=1
-    #go.mod文件存放路径
-    set GOMOD=C:\Code\gostack\go.mod
-    set CGO_CFLAGS=-g -O2
-    set CGO_CPPFLAGS=
-    set CGO_CXXFLAGS=-g -O2
-    set CGO_FFLAGS=-g -O2
-    set CGO_LDFLAGS=-g -O2
-    set PKG_CONFIG=pkg-config
-    set GOGCCFLAGS=-m64 -mthreads -fno-caret-diagnostics -Qunused-arguments -fmessage-length=0 -fdebug-prefix-map=C:\Users\Lenovo\AppData\Local\Temp\go-build247197874=/tmp/go-build -gno-re
-    cord-gcc-switches
-    ```
+- 使用go env查看当前的go env配置
 
-    
+  ```shell
+  #是否开启go module，取值：on、off、auto（自动判断项目中是否存在go.mod，以决定是否开启module模式）
+  set GO111MODULE=on
+  #目标机器的处理器架构
+  set GOARCH=amd64
+  #编译器、链接器安装位置
+  set GOBIN=
+  set GOCACHE=C:\Users\Lenovo\AppData\Local\go-build
+  #本机修改后的go env配置的存储位置
+  set GOENV=C:\Users\Lenovo\AppData\Roaming\go\env
+  #是否产生exe文件
+  set GOEXE=.exe
+  set GOFLAGS= -mod=
+  #本机处理器架构
+  set GOHOSTARCH=amd64
+  #本机运行环境
+  set GOHOSTOS=windows
+  
+  ###############################  私有使用仓库包的配置  #######################################
+  
+  #配置私有库域名，比如常用的Gitlab或Gitee。若需设置多个，使用','隔开。（私有仓库一般都需要进行登录，Linux系统配置账号密码的文件路径为~/.netrc）
+  set GOPRIVATE=git.ctyun.cn
+  #下载此域名下的包，不走代理下载
+  set GONOPROXY=git.ctyun.cn
+  #下载此域名下的包，默认采用http协议传输（而go mod默认使用https）
+  set GOINSECURE=git.ctyun.cn
+  #下载此域名下的包，默认不进行gosumdb校验（验证包的有效性）
+  set GONOSUMDB=git.ctyun.cn
+  
+  ##########################################################################################
+  
+  set GOMODCACHE=C:\Users\Lenovo\go\pkg\mod
+  #目标机器的运行环境（需要交叉编译的平台）
+  set GOOS=windows
+  #项目依赖的第三方包存放目录，包含：src、pkg、bin三个文件夹
+  set GOPATH=C:\Users\Lenovo\go
+  #本机Go安装的位置
+  set GOROOT=C:\Program Files\Go
+  #下载第三方包的代理
+  set GOPROXY=direct
+  #验证包的有效性：国内通用的检验路径
+  set GOSUMDB=sum.golang.org
+  set GOTMPDIR=
+  set GOTOOLDIR=C:\Program Files\Go\pkg\tool\windows_amd64
+  set GCCGO=gccgo
+  set AR=ar
+  set CC=gcc
+  set CXX=g++
+  set CGO_ENABLED=1
+  #go.mod文件存放路径
+  set GOMOD=C:\Code\gostack\go.mod
+  set CGO_CFLAGS=-g -O2
+  set CGO_CPPFLAGS=
+  set CGO_CXXFLAGS=-g -O2
+  set CGO_FFLAGS=-g -O2
+  set CGO_LDFLAGS=-g -O2
+  set PKG_CONFIG=pkg-config
+  set GOGCCFLAGS=-m64 -mthreads -fno-caret-diagnostics -Qunused-arguments -fmessage-length=0 -fdebug-prefix-map=C:\Users\Lenovo\AppData\Local\Temp\go-build247197874=/tmp/go-build -gno-re
+  cord-gcc-switches
+  ```
 
-  - 使用go env -w xxx=xxx写入配置至go/env文件中
+  
 
-    eg：go env -w GO111MODULE=on
+- 使用**go env -w** xxx=xxx写入配置至go/env文件中
 
-    
+  eg：go env -w GO111MODULE=on
 
-  - **<font color='red'>启动go module之后，所有依赖的包存放在$GOPATH/pkg。所有的项目可共享此目录中的module</font>**
+  -  **问题：**
 
-    eg：C:\Users\Lenovo\go\pkg\mod
+    Treminal中执行go env -w GOPROXY=https://goproxy.io,direct发生错误：warning: go env -w GOPROXY=... does not override conflicting OS environment
 
-    <img src="Golang_学习笔记.assets/image-20210622140152320.png" alt="image-20210622140152320" style="zoom:80%;" />
+    **原因：**
+
+    go env中的GOPROXY在Goland编译器中已经设置，存在重复部分，因此需要删除Goland中的GOPROXY配置。
+
+    **解决方式：**
+
+    （1）将Goland编译器中的Go Modules的proxy配置删除，然后保存、重启Goland		
+
+    <img src="Golang_学习笔记.assets/image-20210701151206616.png" alt="image-20210701151206616" style="zoom:67%;" />
+
+  ​		（2）在Goland中设置：https://goproxy.io,direct
+
+  <img src="Golang_学习笔记.assets/image-20210701151450285.png" alt="image-20210701151450285" style="zoom:67%;" />
+
+  ​		（3）在Treminal中执行go env -w GOPROXY=https://goproxy.io,direct
+
+  ​		（4）go env，可查看设置成功
+
+  
+
+- **<font color='red'>启动go module之后，所有依赖的包存放在$GOPATH/pkg。所有的项目可共享此目录中的module</font>**
+
+  eg：C:\Users\Lenovo\go\pkg\mod
+
+  <img src="Golang_学习笔记.assets/image-20210622140152320.png" alt="image-20210622140152320" style="zoom:80%;" />
+
+## 6.2、go mod
 
 - go mod命令
 
@@ -4170,60 +4207,61 @@ func main() {
 
   用于记录go.mod中依赖包的关系。
 
-  
 
-- **<font color='red'>发布自己的go module至Github</font>**
 
-  - **module工程**
 
-    （必须确保：工程名、go.mod文件中的module模块名、github仓库名，此三者名字一致）
+## 6.3、**<font color='red'>发布自己的go module至Github</font>**
 
-    - Goland创建工程module：并编写代码
+- **module工程**
 
-    - 创建go.mod文件
+  （必须确保：工程名、go.mod文件中的module模块名、github仓库名，此三者名字一致）
 
-      go mod init github.com/chriszhangmq/module       **（go mod init Git仓库路径）** 
+  - Goland创建工程module：并编写代码
 
-    - 发布至Github中
+  - 创建go.mod文件
 
-      - git init ：初始化本地仓库
+    go mod init github.com/chriszhangmq/module       **（go mod init Git仓库路径）** 
 
-      - git add ** ：添加工程文件至暂存区
+  - 发布至Github中
 
-      - git commit -m "内容"   ：提交至本地仓库
+    - git init ：初始化本地仓库
 
-      - git remote add origin git@github.com:chriszhangmq/module.git   ：和远程仓库建立连接
+    - git add ** ：添加工程文件至暂存区
 
-      - git push --set-upstream origin master ：推送至远程
+    - git commit -m "内容"   ：提交至本地仓库
 
-      - git tag v1.0.0  ： **<font color='red'>添加版本标签（用于管理不同版本的module），版本v必须是小写</font>**
+    - git remote add origin git@github.com:chriszhangmq/module.git   ：和远程仓库建立连接
 
-        git push --tags
+    - git push --set-upstream origin master ：推送至远程
 
-  - **使用module的工程**
+    - git tag v1.0.0  ： **<font color='red'>添加版本标签（用于管理不同版本的module），版本v必须是小写</font>**
 
-    - Goland创建工程use_module
+      git push --tags
 
-    - 配置Goland代理
+- **使用module的工程**
 
-      ![image-20210622150334611](Golang_学习笔记.assets/image-20210622150334611.png)
+  - Goland创建工程use_module
 
-    - 创建go.mod文件   
+  - 配置Goland代理
 
-      go mod init github.com/chriszhangmq/use_module
+    ![image-20210622150334611](Golang_学习笔记.assets/image-20210622150334611.png)
 
-      ```shell
-      module github.com/chriszhangmq/use_module
-      
-      go 1.15
-      
-      require (
-      	#添加引用的模块
-          github.com/chriszhangmq/module v1.0.0
-      )
-      ```
+  - 创建go.mod文件   
 
-      （若不使用go.mod文件，则在程序中使用  import "github.com/chriszhangmq/module"）
+    go mod init github.com/chriszhangmq/use_module
+
+    ```shell
+    module github.com/chriszhangmq/use_module
+    
+    go 1.15
+    
+    require (
+    	#添加引用的模块
+        github.com/chriszhangmq/module v1.0.0
+    )
+    ```
+
+    （若不使用go.mod文件，则在程序中使用  import "github.com/chriszhangmq/module"）
 
 
 
@@ -4301,6 +4339,7 @@ func main() {
 - go get
 
   - 用于动态下载远程的包
+  - eg：go get go.etcd.io/etcd/client/v3
 
 - go doc
 
