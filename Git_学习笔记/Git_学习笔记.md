@@ -258,8 +258,10 @@ git rm –r –cache **（再次add、commit即可完成数据提交）
   - **解决方式：**
 
     - 使用命令：git pull --rebase origin master
-      - 解释： pull = fetch + merge，更新、合并远程分支中的内容rebase为取消本地已经commit的内容
+      - 解释： pull = fetch + merge，更新、合并远程分支中的内容
 
+        ​			rebase为取消本地已经commit的内容
+      
     - 使用命令：git push即可推送至远程master
 
 
