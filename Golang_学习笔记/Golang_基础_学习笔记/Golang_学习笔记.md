@@ -4164,7 +4164,9 @@ Go1.11之后才出现go mod，先前必须将所有依赖包全部放入src目�
 
 - 使用**go env -w** xxx=xxx写入配置至go/env文件中
 
-  eg：go env -w GO111MODULE=on
+  eg：go env -w GO111MODULE="on"
+
+  **注意：**<font color='red'>无论是使用Terminal或者Goland进行配置，配置完成后一定要重启Goland，否则Goland中的配置无法生效</font>
 
   -  **问题：**
 
