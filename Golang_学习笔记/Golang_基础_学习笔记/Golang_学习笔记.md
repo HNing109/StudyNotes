@@ -65,6 +65,16 @@ Go官方教程：https://tour.golang.org/welcome/1
 
 
 
+- 全局搜索
+
+  ctrl + shift + F
+
+- 全局查找替换
+
+  ctrl + shift + R
+
+
+
 # 2、基本语法
 
 Go中只有二元运算，不存在三元运算，例如Java中的：return  num = 3 ?  true ：false
@@ -2431,6 +2441,8 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
 ## 2.9、单元测试
 
+### 2.9.1、单元测试的基础知识
+
 - **测试文件**：
 
   Go中的文件**以  _test.go  结尾**，不会被编译器编译，这些文件是被用于测试的（即使这些文件被放到生产环境中，也不会被部署）
@@ -2461,132 +2473,170 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 - **运行测试程序**：
 
   - 使用命令go test，执行所有**Testxx的函数** 
+    
     - -v 或 --chatty：打印测试函数、测试状态
   - go test -v 文件名：用于测试指定文件
-    - eg：go test -v chris_test.go 
-
-
-
-- **测试函数**
-
-  - 文件名：xxx_test.go
-  - 函数名：**以TestXxx开头** （Test + 首字母大写），需要接收testing.T类型的参数
-
-  eg：func TestAbcde(t *testing.T)
-
-  ```go
-  /******************************* 被测试函数：文件名cal.go **********************************/
-  package cal
-  
-  //一个被测试函数
-  func addUpper(n int)  int {
-  	res := 0
-  	for i := 1; i <= n - 1; i++ {
-  		res += i
-  	}
-  	return res
-  }
-  
-  //求两个数的查
-  func getSub(n1 int, n2 int) int {
-  	return n1 - n2
-  }
-  
-  /******************************* 测试函数：文件名cal_test.go **********************************/
-  package cal
-  import (
-  	"fmt"
-  	"testing" //引入go 的testing框架包
-  )
-  
-  //编写要给测试用例，去测试addUpper是否正确
-  func TestAddUpper(t *testing.T) {
-  
-  	//调用
-  	res := addUpper(10)
-  	if res != 55 {
-  		//fmt.Printf("AddUpper(10) 执行错误，期望值=%v 实际值=%v\n", 55, res)
-  		t.Fatalf("AddUpper(10) 执行错误，期望值=%v 实际值=%v\n", 55, res)
-  	}
-  
-  	//如果正确，输出日志
-  	t.Logf("AddUpper(10) 执行正确...")
-  
-  }
-  
-  //编写要给测试用例，去测试addUpper是否正确
-  func TestGetSub(t *testing.T) {
-  
-  	//调用
-  	res := getSub(10, 3)
-  	if res != 7 {
-  		//fmt.Printf("AddUpper(10) 执行错误，期望值=%v 实际值=%v\n", 55, res)
-  		t.Fatalf("getSub(10, 3) 执行错误，期望值=%v 实际值=%v\n", 7, res)
-  	}
-  
-  	//如果正确，输出日志
-  	t.Logf("getSub(10, 3) 执行正确!!!!...")
-  
-  }
-  ```
-
-  
-
-- **基准测试（压力测试）** 
-
-  - 文件名：xxx_test.go
-
-  - 函数名：基准测试的函数需要**以BenchmarkXxx开头**（Benchmark+ 首字母大写），需要接收testing.B类型的参数
-
-  - 基准测试的函数可以执行N次，并可以获得函数执行的平均时间（单位：ns）
-
-  - 运行基准测试函数的命令：
-
-    go test命令默认不会执行Benchmark开头的函数，需要添加-test.bench命令
     
-    - go test -test.bench=.*    ：执行所有Benchmark开头的函数
-    - go test -test.bench=文件名  ：执行指定的文件
+    - eg：go test -v chris_test.go 
+    
+      
 
-  ```go
-  package goTest
-  
-  import (
-  	"fmt"
-  	"testing"
-  )
-  
-  //可以不用写main函数
-  func main() {
-  	fmt.Println(" sync", testing.Benchmark(BenchmarkChannelSync).String())
-  	fmt.Println("buffered", testing.Benchmark(BenchmarkChannelBuffered).String())
-  }
-  
-  func BenchmarkChannelSync(b *testing.B) {
-  	ch := make(chan int)
-  	go func() {
-  		for i := 0; i < b.N; i++ {
-  			ch <- i
-  		}
-  		close(ch)
-  	}()
-  	for range ch {
-  	}
-  }
-  
-  func BenchmarkChannelBuffered(b *testing.B) {
-  	ch := make(chan int, 128)
-  	go func() {
-  		for i := 0; i < b.N; i++ {
-  			ch <- i
-  		}
-  		close(ch)
-  	}()
-  	for range ch {
-  	}
-  }
-  ```
+### 2.9.1、测试函数
 
+- 文件名：xxx_test.go
+
+- 函数名：**以TestXxx开头** （Test + 首字母大写），需要接收**testing.T**类型的参数
+
+- 测试函数：
+
+  - TestMain(m *testing.M){}：
+
+    该函数可用于在执行其他测试函数之前，执行特定功能。
+
+    ```go
+    func TestMain(m *testing.M){
+        fmt.Println("开始测试")
+        //执行其他的TestXxx测试函数（若不调用此方法，其他的测试函数无法被执行）
+        m.Run()
+    }
+    ```
+
+    
+
+  - testing.T.Run(说明, 测试函数)：
+
+    用于执行**testXxx子测试函数**，因为Go中只能执行TestXxx测试函数
+
+    ```go
+    func TestWrite(t *testing.T){
+        fmt.Println("testing TestWrite function")
+        //执行testXxx子测试函数
+        t.run("run testRead: ", testRead)
+    }
+    
+    //子测试函数
+    func testRead(t *testing.T){
+        fmt.Println("testing testRead function")
+    }
+    ```
+
+    
+
+eg：func TestAbcde(t *testing.T)
+
+```go
+/******************************* 被测试函数：文件名cal.go **********************************/
+package cal
+
+//一个被测试函数
+func addUpper(n int)  int {
+	res := 0
+	for i := 1; i <= n - 1; i++ {
+		res += i
+	}
+	return res
+}
+
+//求两个数的查
+func getSub(n1 int, n2 int) int {
+	return n1 - n2
+}
+
+/******************************* 测试函数：文件名cal_test.go **********************************/
+package cal
+import (
+	"fmt"
+	"testing" //引入go 的testing框架包
+)
+
+//编写要给测试用例，去测试addUpper是否正确
+func TestAddUpper(t *testing.T) {
+
+	//调用
+	res := addUpper(10)
+	if res != 55 {
+		//fmt.Printf("AddUpper(10) 执行错误，期望值=%v 实际值=%v\n", 55, res)
+		t.Fatalf("AddUpper(10) 执行错误，期望值=%v 实际值=%v\n", 55, res)
+	}
+
+	//如果正确，输出日志
+	t.Logf("AddUpper(10) 执行正确...")
+
+}
+
+//编写要给测试用例，去测试addUpper是否正确
+func TestGetSub(t *testing.T) {
+
+	//调用
+	res := getSub(10, 3)
+	if res != 7 {
+		//fmt.Printf("AddUpper(10) 执行错误，期望值=%v 实际值=%v\n", 55, res)
+		t.Fatalf("getSub(10, 3) 执行错误，期望值=%v 实际值=%v\n", 7, res)
+	}
+
+	//如果正确，输出日志
+	t.Logf("getSub(10, 3) 执行正确!!!!...")
+
+}
+```
+
+
+
+### 2.9.2、基准测试（压力测试）
+
+- 文件名：xxx_test.go
+
+- 函数名：基准测试的函数需要**以BenchmarkXxx开头**（Benchmark+ 首字母大写），需要接收**testing.B**类型的参数
+
+- 基准测试的函数可以执行N次，并可以获得函数执行的平均时间（单位：ns）
+
+- 运行基准测试函数的命令：
+
+  go test命令默认不会执行Benchmark开头的函数，需要添加-test.bench命令
   
+  - go test -test.bench=.*    ：执行所有Benchmark开头的函数
+  - go test -test.bench=文件名  ：执行指定的文件
+
+```go
+package goTest
+
+import (
+	"fmt"
+	"testing"
+)
+
+//可以不用写main函数
+func main() {
+	fmt.Println(" sync", testing.Benchmark(BenchmarkChannelSync).String())
+	fmt.Println("buffered", testing.Benchmark(BenchmarkChannelBuffered).String())
+}
+
+func BenchmarkChannelSync(b *testing.B) {
+	ch := make(chan int)
+	go func() {
+		for i := 0; i < b.N; i++ {
+			ch <- i
+		}
+		close(ch)
+	}()
+	for range ch {
+	}
+}
+
+func BenchmarkChannelBuffered(b *testing.B) {
+	ch := make(chan int, 128)
+	go func() {
+		for i := 0; i < b.N; i++ {
+			ch <- i
+		}
+		close(ch)
+	}()
+	for range ch {
+	}
+}
+```
+
+
 
 - **表驱动测试**
 
@@ -4345,6 +4395,8 @@ Go1.11之后才出现go mod，先前必须将所有依赖包全部放入src目�
     DIR(.exe) ：由 go build 产生
     DIR.test(.exe) ：由 go test -c 产生
     MAINFILE(.exe) ：由 go build MAINFILE.go产生
+    
+    
 
 - go test
 
