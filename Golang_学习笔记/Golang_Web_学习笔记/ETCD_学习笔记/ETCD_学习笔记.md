@@ -78,37 +78,9 @@
 
 # 3、ETCD入门
 
-## 3.1、安装ETCD
+## 3.1、ETCD部署要求
 
-### 3.1.1、使用二进制文件安装
-
-- release文件下载：https://github.com/etcd-io/etcd/releases/
-- 解压之后，将etcd二进制文件存入/usr/local/bin中
-- 测试是否安装完成：etcd --version
-
-
-
-### 3.1.2、使用源码安装
-
-- 前提：Go1.16以上的版本
-
-- 安装命令：
-
-  - 下载：git clone -b v3.5.0 https://github.com/etcd-io/etcd.git
-
-  - 进入目录etcd，执行构建脚本：./build.sh
-
-  - 构建后生成的二进制文件位于`bin`目录下，将`bin`目录的完整路径添加到系统环境变量中：
-
-    export PATH="$PATH:pwd/bin"
-
-  - 测试是否安装成功：etcd --version
-
-
-
-## 3.2、ETCD部署要求
-
-### 3.2.1、系统要求
+### 3.1.1、系统要求
 
 - 系统
 
@@ -128,7 +100,7 @@
 
 
 
-### 3.2.2、部署原则
+### 3.1.2、部署原则
 
 - ETCD集群的数量必须为奇数
 
@@ -151,7 +123,328 @@
 
 
 
+
+
+## 3.2、安装ETCD
+
+### 3.2.1、使用二进制文件安装
+
+- release文件下载：https://github.com/etcd-io/etcd/releases/
+- 解压之后，将etcd二进制文件存入/usr/local/bin中
+- 测试是否安装完成（在任意路径下）：etcd --version
+
+
+
+### 3.2.2、使用源码安装
+
+- 前提：Go1.16以上的版本
+
+- 安装命令：
+
+  - 下载：git clone -b v3.5.0 https://github.com/etcd-io/etcd.git
+
+  - 进入目录etcd，执行构建脚本：./build.sh
+
+  - 构建后生成的二进制文件位于`bin`目录下，将`bin`目录的完整路径添加到系统环境变量中：
+
+    export PATH="$PATH:pwd/bin"
+
+  - 测试是否安装成功：etcd --version
+
+
+
+## 3.3、启动ETCD
+
+### 3.3.1、启动单个ETCD
+
+- 启动： 
+
+  - 命令：etcd， 或者./etcd
+
+- 查看启动的详情：
+
+  - 命令：etcdctl member list
+
+  - 结果：默认情况下：client address  =  http://127.0.0.1:2379
+
+  | ID               | STATUS  | NAME   | PEER ADDRS             | CLIENT ADDRS          | IS LEARNER |
+  | ---------------- | ------- | ------ | ---------------------- | --------------------- | ---------- |
+  | 8211f1d0f64f3269 | started | infra1 | http://127.0.0.1:12380 | http://127.0.0.1:2379 | false      |
+
+
+
+### 3.3.2、启动ETCD集群
+
+- **准备：**
+
+  - 安装goreman
+
+    - 命令：go get github.com/mattn/goreman 
+
+    - goreman 程序来控制基于 Procfile 的配置文件的ETCD程序。通过goreman + Procfile配置文件，可以快速启动ETCD集群。
+
+  - Procfile配置文件：
+
+    - 先准备Procfile配置文件，在该文件中写入需要启动节点的信息。
+
+    - 参考官方配置文件：https://github.com/etcd-io/etcd/blob/main/Procfile
+      - 启动节点为：localhost:2379 , localhost:22379 , 和 localhost:32379
+
+      ```go
+      # Use goreman to run `go get github.com/mattn/goreman`
+      # Change the path of bin/etcd if etcd is located elsewhere
+      
+      #ETCD节点1
+      etcd1: etcd --name infra1 --listen-client-urls http://127.0.0.1:2379 --advertise-client-urls http://127.0.0.1:2379 --listen-peer-urls http://127.0.0.1:12380 --initial-advertise-peer-urls http://127.0.0.1:12380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
+      
+      #ETCD节点2
+      etcd2: etcd --name infra2 --listen-client-urls http://127.0.0.1:22379 --advertise-client-urls http://127.0.0.1:22379 --listen-peer-urls http://127.0.0.1:22380 --initial-advertise-peer-urls http://127.0.0.1:22380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
+      
+      #ETCD节点3
+      etcd3: etcd --name infra3 --listen-client-urls http://127.0.0.1:32379 --advertise-client-urls http://127.0.0.1:32379 --listen-peer-urls http://127.0.0.1:32380 --initial-advertise-peer-urls http://127.0.0.1:32380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
+      
+      #proxy: etcd grpc-proxy start --endpoints=127.0.0.1:2379,127.0.0.1:22379,127.0.0.1:32379 --listen-addr=127.0.0.1:23790 --advertise-client-url=127.0.0.1:23790 --enable-pprof
+      
+      # A learner node can be started using Procfile.learner
+      ```
+
+  
+
+- **启动集群：**
+
+  - 命令：goreman -f **Procfile** start 
+
+  - Procfile为之前路径中编写的配置文件（因此，**该命令必须在Procfile文件所在路径中使用**）
+
+    
+
+- **使用etcdctl客户端工具**
+
+  - 配置使用命令的版本
+
+    - 命令：export ETCDCTL_API=3 
+    - 默认使用 v2 API 来和 etcd 数据库通信，这是为了向后兼容 etcdctl。若需要使用v3 的etcdctl API，就必须配置环境变量：ETCDCTL_API 设置为版本3。
+
+    
+
+  - 查看集群中的信息
+
+    etcdctl --write-out=table --endpoints=localhost:12379 member list
+
+    | ID               | STATUS  | NAME   | PEER ADDRS             | CLIENT ADDRS           | IS LEARNER |
+    | ---------------- | ------- | ------ | ---------------------- | ---------------------- | ---------- |
+    | 8211f1d0f64f3269 | started | infra1 | http://127.0.0.1:12380 | http://127.0.0.1:2379  | false      |
+    | 91bc3c398fb3c146 | started | infra2 | http://127.0.0.1:12380 | http://127.0.0.1:22379 | false      |
+    | fd422379fda50e48 | started | infra3 | http://127.0.0.1:12380 | http://127.0.0.1:32379 | false      |
+
+    
+
+## 3.4、ETCD工具
+
+### 3.4.1、etcdctl
+
+这是命令行客户端工具，可直接对etcd数据库进行操作。
+
+#### 3.4.1.1、<font color='red'>基本命令的附加选项</font>
+
+- 指定节点启动的地址、端口
+
+  --endpoints=localhost:2379  
+
+- 指定范围
+
+  key1 keyn
+
+  eg：etcdctl get foo1 foo4    ：注意，获取区间间 **[key1, key4)**，第4个键值无法被获取到
+
+- 指定前缀（可实现模糊匹配）
+
+  --prefix=xxx
+
+- 限制数量
+
+  --limit=n
+
+- 大于等于某个key对应的value
+
+  --from-key key1
+
+  eg：etcdctl get --from-key foo
+
+- 查询历史版本
+
+  --rev=n  ：查找版本为n的键值对
+
+- 数据显式格式
+
+  - -w=json
+
+    以json的格式显示数据（无论数据是否存在，均可以显示）
+
+    eg：etcdctl get foo -w=json 。
+
+
+
+#### 3.4.1.2、节点相关命令
+
+- **查看节点信息**
+
+  - 方式1：
+
+    etcdctl member list
+
+    查看成员信息（精简版）
+
+  - 方式2：
+
+    etcdctl --write-out=table --endpoints=localhost:12379 member list 
+
+    查看节点localhost:12379中的成员信息
+
+
+
+- **停止节点**
+
+  goreman run stop **节点名**
+
+  - **eg：**goreman run stop etcd2 
+
+  - **注意**：这个命令无法停止etcd，最后还是用ps命令找出pid，然后kill 
+
+    - ps -ef | grep etcd | grep endpoints的地址 
+
+    - kill PID号
+
+      
+
+- **重启节点**
+
+  goreman run restart **节点名**
+
+  **eg：**goreman run restart etcd2
+
+
+
+#### 3.4.1.3、数据相关命令
+
+- **存数据**
+
+  - 命令：
+
+    - 方式1：etcdctl  put **键 值**
+
+    - 方式2：etcdctl --endpoints=localhost:2379 put **键 值**
+
+      
+
+- **取数据**
+
+  - 方式1：etcdctl  get **键 值**
+  - 方式2：etcdctl --endpoints=localhost:2379 get **键**
+
+  
+
+- **删除键值对**
+
+  etcdctl del 键
+
+  
+
+- **<font color='red'>监控数据</font>**
+
+  etcdctl watch key
+
+  实时监控key所对应值的变化
+
+  - **范围监控**
+
+    etcdctl watch key1 keyn
+
+  - **监控指定的多个key-val**
+
+    etcdctl watch -i
+
+    watch key1
+
+    watch key3
+
+  
+
+- **压缩数据**
+
+  etcdctl compact 版本号
+
+   压缩之后，版本号之前的数据均无法访问，即：不可以获通过etcdctl get --rev=版本号-1 ，获取历史版本为（版本号-1）的数据
+
+  
+
+- **<font color='red'>存活时间（租约）</font>**
+
+  - **设置存活时间**
+
+    - 新建一个存活时间（单位：秒）
+
+      etcdctl lease grant 时间
+
+      - eg：etcdctl lease grant 10
+
+      - 结果：lease 32695410dcc0ca06 granted with TTL(10s)    
+
+        **存活时间配置id：**32695410dcc0ca06 ，需要使用该id取设置key的存活时间
+
+        
+
+    - 给指定key设置存活时间
+
+      etcdctl put --lease=存活时间配置id key value
+
+      
+
+  - **撤销存活时间**
+
+    etcdctl lease revoke 存活时间配置id
+
+    注意：当存活时间撤销之后，配置了该存活时间的key-val将被删除。
+
+    
+
+  - **维持存活时间**
+
+    - 新建一个存活时间配置
+
+      etcdctl lease grant 时间
+
+    - 维持旧的存活时间
+
+      etcdctl lease keep-alive 新建的存活时间配置id
+
+    
+
+  - **查看存活时间的信息**
+
+    - 查看存活时间配置
+
+      etcdctl lease timetolive 存活时间配置id
+
+    - 查看使用了存活时间配置的key-value
+
+      etcdctl lease timetolive --keys 存活时间配置id
+
 - 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
