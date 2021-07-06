@@ -179,32 +179,102 @@
 
 - **准备：**
 
-  - 安装goreman
+  - **安装goreman**
 
     - 命令：go get github.com/mattn/goreman 
 
     - goreman 程序来控制基于 Procfile 的配置文件的ETCD程序。通过goreman + Procfile配置文件，可以快速启动ETCD集群。
 
-  - Procfile配置文件：
+      
+
+  - **Procfile配置文件**
 
     - 先准备Procfile配置文件，在该文件中写入需要启动节点的信息。
 
-    - 参考官方配置文件：https://github.com/etcd-io/etcd/blob/main/Procfile
-      - 启动节点为：localhost:2379 , localhost:22379 , 和 localhost:32379
+      
 
-      ```go
+    - **启动参数说明：**
+
+      1. --name：
+
+         etcd 集群中的节点名，不可重复
+
+      2. --data-dir：
+
+         存放数据目录，节点ID，集群ID，Snapshot文件，集群初始化配置，WAL 文件
+
+      3. --listen-peer-urls：
+
+         监听的用于节点之间通信的url，可监听多个，集群内部将通过这些url进行数据交互(如选举，数据同步等)
+
+      4. **--initial-advertise-peer-urls** ：
+
+         建议用于节点之间通信的url，节点间将以该值进行通信。
+
+      5. **<font color='red'>--listen-client-urls</font>** ：
+
+         监听外部客户端的请求（即：**etcd节点对外提供服务的地址**，**可添加多个，使用,分隔**）。
+
+         - **注意事项：**
+
+           <font color='red'>--listen-client-urls，必须配置一个url = **http://本机网卡的IP+端口**，远程客户端才能访问本机的ETCD数据库。</font>
+
+           否则会出现错误：
+
+           ```shell
+           grpc: Conn.resetTransport failed to create client transport: connection error: desc = "transport: dial tcp 192.168.83.130:2379: connectex: No connection could be made because the target machine actively refused it.";
+           ```
+
+           
+
+         **eg：**etcdctl工具、curl请求、go编写的访问etcd服务代码
+
+         ```shell
+         #启动etcd节点时，建议的配置：
+         #保证本地etcdctl工具、远程客户端均可请求访问etcd服务端
+         --listen-client-urls http://127.0.0.1:2379,http://本地网卡IP:2379 --advertise-client-urls http://127.0.0.1:2379
+         ```
+
+         
+
+      6. **<font color='red'>--advertise-client-urls</font>** ：
+
+         该节点的客户端（广播客户端），用于此url与其他etcd节点通信（**可添加多个，使用,分隔**）（**注意：此url不是用于远程客户端访问该节点的**）。
+
+         **此处，不能配置为  空、localhost。**
+
+      7. --initial-cluster-token：
+
+         集群的token值，设置该值后集群将生成唯一id,并为每个节点也生成唯一id,当使用相同配置文件再启动一个集群时，只要该token值不一样，ETCD集群就不会相互影响
+
+      8. **--initial-cluster** ：
+
+         是集群中所有--initial-advertise-peer-urls 的合集，即：**此处配置的url必须和--initial-advertise-peer-urls配置的一致** 
+
+      9. --initial-cluster-state new：
+
+         新建集群的标志
+
+         
+
+    - **参考官方配置文件：**https://github.com/etcd-io/etcd/blob/main/Procfile
+      
+      - 客户端通信地址为：
+        - 各个节点访问其他节点的客户端地址：http://127.0.0.1:2379 , http://127.0.0.1:22379 ,  http://127.0.0.1:32379
+        - **远程客户端访问ETCD节点的地址**：http://192.168.83.130:2379，http://192.168.83.130:22379，http://192.168.83.130:32379
+      
+      ```shell
       # Use goreman to run `go get github.com/mattn/goreman`
       # Change the path of bin/etcd if etcd is located elsewhere
       
-      #ETCD节点1
-      etcd1: etcd --name infra1 --listen-client-urls http://127.0.0.1:2379 --advertise-client-urls http://127.0.0.1:2379 --listen-peer-urls http://127.0.0.1:12380 --initial-advertise-peer-urls http://127.0.0.1:12380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
+      # ETCD1
+      etcd1: etcd --name infra1 --listen-client-urls http://127.0.0.1:2379,http://192.168.83.130:2379 --advertise-client-urls http://127.0.0.1:2379 --listen-peer-urls http://127.0.0.1:12380 --initial-advertise-peer-urls http://127.0.0.1:12380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
       
-      #ETCD节点2
-      etcd2: etcd --name infra2 --listen-client-urls http://127.0.0.1:22379 --advertise-client-urls http://127.0.0.1:22379 --listen-peer-urls http://127.0.0.1:22380 --initial-advertise-peer-urls http://127.0.0.1:22380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
+      # ETCD2
+      etcd2: etcd --name infra2 --listen-client-urls http://127.0.0.1:22379,http://192.168.83.130:22379 --advertise-client-urls http://127.0.0.1:22379 --listen-peer-urls http://127.0.0.1:22380 --initial-advertise-peer-urls http://127.0.0.1:22380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
       
-      #ETCD节点3
-      etcd3: etcd --name infra3 --listen-client-urls http://127.0.0.1:32379 --advertise-client-urls http://127.0.0.1:32379 --listen-peer-urls http://127.0.0.1:32380 --initial-advertise-peer-urls http://127.0.0.1:32380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
-      
+      # ETCD3
+      etcd3: etcd --name infra3 --listen-client-urls http://127.0.0.1:32379,http://192.168.83.130:32379 --advertise-client-urls http://127.0.0.1:32379 --listen-peer-urls http://127.0.0.1:32380 --initial-advertise-peer-urls http://127.0.0.1:32380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
       #proxy: etcd grpc-proxy start --endpoints=127.0.0.1:2379,127.0.0.1:22379,127.0.0.1:32379 --listen-addr=127.0.0.1:23790 --advertise-client-url=127.0.0.1:23790 --enable-pprof
       
       # A learner node can be started using Procfile.learner
@@ -222,7 +292,7 @@
 
 - **使用etcdctl客户端工具**
 
-  - 配置使用命令的版本
+  - 配置所使用的etcdctl工具命令版本
 
     - 命令：export ETCDCTL_API=3 
     - 默认使用 v2 API 来和 etcd 数据库通信，这是为了向后兼容 etcdctl。若需要使用v3 的etcdctl API，就必须配置环境变量：ETCDCTL_API 设置为版本3。
@@ -231,7 +301,7 @@
 
   - 查看集群中的信息
 
-    etcdctl --write-out=table --endpoints=localhost:12379 member list
+    etcdctl --write-out=table --endpoints=localhost:2379 member list
 
     | ID               | STATUS  | NAME   | PEER ADDRS             | CLIENT ADDRS           | IS LEARNER |
     | ---------------- | ------- | ------ | ---------------------- | ---------------------- | ---------- |
@@ -299,9 +369,9 @@
 
   - 方式2：
 
-    etcdctl --write-out=table --endpoints=localhost:12379 member list 
+    etcdctl --write-out=table --endpoints=localhost:2379 member list 
 
-    查看节点localhost:12379中的成员信息
+    查看节点localhost:2379中的成员信息
 
 
 
@@ -438,7 +508,7 @@
 
 ### 3.4.2、grpc-gateway
 
-网关接受 etcd 的 protocol buffer 消息定义的 JSON mapping 。key 和 value 字段被定义为 byte 数组，因此必须在 JSON 中以 base64 编码。任何HTTP/JSON 客户端都可使用 curl访问ETCD数据库。
+网关接收 ETCD的 protocol buffer 消息定义的 JSON mapping 。key 和 value 字段被定义为 byte 数组，因此必须在 JSON 中以 base64 编码。任何HTTP/JSON 客户端都可使用 curl访问ETCD数据库。
 
 **需要使用到v3alpha/kv/中的组件。**
 
@@ -518,11 +588,89 @@
 
 
 
+## 3.5、go代码远程访问ETCD
+
+- **启动ETCD集群**
+  - 前提：注意启动节点时，所配置的<font color='red'>--listen-client-urls</font>，此处必须有ETCD所在机器的IP（网卡地址），否则无法远程访问ETCD
+  - 命令：goreman -f Procfile start     （Procfile为配置文件：包含各个节点的配置详情）
+  - 如果还是出现refuse it的错误：
+    - 方式1：ETCD的启动配置中，增加--listen-client-urls的监听地址 
+    - 方式2：
+      - 查看已经开放的端口：netstat -tlnp
+      - 开放远程访问端口：ufw allow 端口号
 
 
 
+- **代码**
 
+  ```go
+  package main
+  
+  /**
+   * Created by Chris on 2021/7/6.
+   */
+  
+  import (
+  	"context"
+  	"fmt"
+  	"github.com/coreos/etcd/clientv3"
+  	"time"
+  )
+  
+  func main() {
+  
+  	//连接
+  	cli, err := clientv3.New(clientv3.Config{
+  		//此处IP为：--listen-client-urls监听地址（各个ETCD节点监听地址）
+  		Endpoints:   []string{
+  			"192.168.83.130:2379",
+  			"192.168.83.130:22379",
+  			"192.168.83.130:32379"},
+  		DialTimeout: 5 * time.Second,
+  	})
+  	if err != nil {
+  		fmt.Println("connect failed, err:", err)
+  		return
+  	}
+  	fmt.Println("connect success")
+  	defer cli.Close()
+  
+  
+  	ctx, _ := context.WithCancel(context.TODO())
+  
+  	//存数据
+  	startTime :=time.Now()
+  	_, err = cli.Put(ctx, "name", "chris")
+  	//操作完毕，取消连接
+  	// cancel()
+  	endTime :=time.Now()
+  	fmt.Println("put耗时", endTime.Sub(startTime))
+  	if err != nil {
+  		fmt.Println("put failed, err:", err)
+  		return
+  	}
+  
+  	//设置超时为5秒
+  	ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
+  
+  	//取数据
+  	startTime = time.Now()
+  	resp, err := cli.Get(ctx, "name")
+  	fmt.Println("get 耗时:",time.Now().Sub(startTime))
+  	// 	cancel()
+  	if err != nil {
+  		fmt.Println("get failed, err:", err)
+  		return
+  	}
+  
+  	//打印数据
+  	for _, ev := range resp.Kvs {
+  		fmt.Printf("%s : %s\n", ev.Key, ev.Value)
+  	}
+  }
+  ```
 
+  
 
 
 
