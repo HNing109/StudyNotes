@@ -97,6 +97,8 @@
 - RAM
 
   最大8GB，最小2GB。因为ETCD需要强制设置一个默认的RAM大小（2GB）
+  
+  - 设置占用RAM的大小：--quota-backend-bytes
 
 
 
@@ -431,6 +433,98 @@
       etcdctl lease timetolive --keys 存活时间配置id
 
 - 
+
+
+
+### 3.4.2、grpc-gateway
+
+网关接受 etcd 的 protocol buffer 消息定义的 JSON mapping 。key 和 value 字段被定义为 byte 数组，因此必须在 JSON 中以 base64 编码。任何HTTP/JSON 客户端都可使用 curl访问ETCD数据库。
+
+**需要使用到v3alpha/kv/中的组件。**
+
+- 存key-value
+
+  curl -L http://localhost:2379/v3alpha/kv/put \ 
+
+  -X POST -d '{"key": "Zm9v", "value": "YmFy"}' 
+
+  
+
+- 读取key-value
+
+  curl -L http://localhost:2379/v3alpha/kv/range \ 
+
+  -X POST -d '{"key": "Zm9v"}' 
+
+  
+
+- 监控数据
+
+  curl http://localhost:2379/v3alpha/watch \ 
+
+  -X POST -d '{"create_request": {"key":"Zm9v"} }' & 
+
+  
+
+- 事务
+
+  curl -L http://localhost:2379/v3alpha/kv/txn \ 
+
+  -X POST \ 
+
+  -d '{"compare":[{"target":"CREATE","key":"Zm9v","createRevision":"2"}],"success":[ 
+
+  {"requestPut":{"key":"Zm9v","value":"YmFy"}}]}' 
+
+  
+
+- 搭建认证服务
+
+  - 创建 root 用户 
+
+    curl -L http://localhost:2379/v3alpha/auth/user/add \ 
+
+    -X POST -d '{"name": "root", "password": "pass"}' 
+
+  - 创建 root 角色 
+
+    curl -L http://localhost:2379/v3alpha/auth/role/add \ 
+
+    -X POST -d '{"name": "root"}' 
+
+  - 授予 root 角色 
+
+    curl -L http://localhost:2379/v3alpha/auth/user/grant \ 
+
+    -X POST -d '{"user": "root", "role": "root"}' 
+
+  - 开启认证 
+
+    curl -L http://localhost:2379/v3alpha/auth/enable -X POST -d '{}' 
+
+  - root 用户 获取认证 token 
+
+    curl -L http://localhost:2379/v3alpha/auth/authenticate \ 
+
+    -X POST -d '{"name": "root", "password": "pass"}' 
+
+  - 为认证 token 设置 Authorization header，以便在获取键时使用认证证书
+
+    curl -L http://localhost:2379/v3alpha/kv/put \ 
+
+    -H 'Authorization : sssvIpwfnLAcWAQH.9' \ 
+
+    -X POST -d '{"key": "Zm9v", "value": "YmFy"}' 
+
+
+
+
+
+
+
+
+
+
 
 
 

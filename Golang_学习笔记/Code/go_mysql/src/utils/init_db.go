@@ -1,10 +1,10 @@
 package utils
 
 import (
-//go官方的sql包：用于执行SQL语句
-"database/sql"
-//第三方SQL数据库驱动
-_ "github.com/go-sql-driver/mysql"
+	//go官方的sql包：用于执行SQL语句
+	"database/sql"
+	//第三方SQL数据库驱动
+	_ "github.com/go-sql-driver/mysql"
 )
 
 /**
