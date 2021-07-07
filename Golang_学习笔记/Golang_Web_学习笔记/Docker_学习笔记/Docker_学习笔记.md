@@ -16,13 +16,152 @@
 
 
 
-## 1.2、基本使用
+## 1.2、Ubuntu安装Docker
 
-### 1.2.1、常用命令
+官网教程：https://docs.docker.com/engine/install/ubuntu/
+
+- 更新安装软件列表
+
+  ```shell
+  sudo apt-get
+  ```
+
+- 安装必要的组件
+
+  ```shell
+  sudo apt-get install \
+      apt-transport-https \
+      ca-certificates \
+      curl \
+      gnupg \
+      lsb-release
+  ```
+
+- 卸载旧版本的Docker
+
+  ```shell
+  sudo apt-get remove docker \
+      docker-client \
+      docker-client-latest \
+      docker-common \
+      docker-latest \
+      docker-latest-logrotate \
+      docker-logrotate \
+      docker-engine
+  ```
+
+- （可选）修改ubuntu的镜像仓库
+
+  ```shell
+  #地址：/etc/apt/sources.list ， 将原有的镜像替换为163镜像
+  deb http://mirrors.163.com/ubuntu/ bionic-backports main restricted universe multiverse
+  deb http://mirrors.163.com/ubuntu/ bionic-security main restricted universe multiverse
+  deb http://mirrors.163.com/ubuntu/ bionic-backports main restricted universe multiverse
+  deb http://mirrors.163.com/ubuntu/ bionic-security main restricted universe multiverse
+  
+  ```
+
+- 安装Docker（推荐使用最新版Docker）
+
+  ```shell
+  #方式1
+  sudo apt-get update
+  sudo apt-get install docker-ce docker-ce-cli containerd.io
+  
+  #方式2
+  #列出Docker版本列表
+  sudo apt-cache madison docker-ce
+  #指定使用的Dokcer版本
+  sudo apt-get install docker-ce=<VERSION_STRING> docker-ce-cli=<VERSION_STRING> containerd.io
+  ```
+
+- 测试Docker是否安装成功
+
+  ```shell
+  #需要等待一会儿，因为本地仓库中没有hello-world镜像，需要临时下载
+  sudo docker run hello-world
+  ```
+
+- **修改Docker的软件下载镜像仓库**
+
+  使用阿里云官网提供的：https://cr.console.aliyun.com/cn-hangzhou/instances/mirrors
+
+  通过修改daemon配置文件/etc/docker/daemon.json来使用加速器
+
+  ```shell
+  sudo mkdir -p /etc/docker
+  sudo tee /etc/docker/daemon.json <<-'EOF'
+  {
+    "registry-mirrors": ["https://w0vftfrg.mirror.aliyuncs.com"]
+  }
+  EOF
+  sudo systemctl daemon-reload
+  sudo systemctl restart docker
+  ```
+
+  
+
+
+
+## 1.3基本使用
+
+### 1.3.1、常用命令
+
+#### 1.3.1.1、镜像命令
 
 - docker images：
 
   查看当前系统已经pull安装的镜像；
+
+  ```shell
+  REPOSITORY    TAG       IMAGE ID       CREATED        SIZE
+  hello-world   latest    d1165f221234   4 months ago   13.3kB
+  ```
+
+  
+
+- docker search 镜像名字
+
+  搜索镜像
+
+- docker pull 镜像名字：  （等同于docker image pull）
+
+  从docker仓库**下载镜像**；默认下载latest最新版
+
+  **下载指定版本**：docker pull mysql:5.7
+
+  ```shell
+  root@chris:~# docker pull mysql:5.7
+  5.7: Pulling from library/mysql		#如果不写tag，默认就是latest
+  b4d181a07f80: Pull complete 		#分层下载： docker image 的核心 联合文件系统
+  a462b60610f5: Pull complete 
+  578fafb77ab8: Pull complete 
+  524046006037: Pull complete 
+  d0cbe54c8855: Pull complete 
+  aa18e05cc46d: Pull complete 
+  32ca814c833f: Pull complete 
+  52645b4af634: Pull complete 
+  bca6a5b14385: Pull complete 
+  309f36297c75: Pull complete 
+  7d75cacde0f8: Pull complete 
+  Digest: sha256:1a2f9cd257e75cc80e9118b303d1648366bc2049101449bf2c8d82b022ea86b7	# 签名 防伪
+  Status: Downloaded newer image for mysql:5.7
+  docker.io/library/mysql:5.7	#真实地址
+  ```
+
+  
+
+- docker rmi 镜像名字：   （等同于docker image rm）
+
+  删除某个**下载的镜像**；（即：删除docker pull下载的镜像文件）
+
+  
+
+  
+
+#### 1.3.1.2、容器命令
+
+
 
 - docker run 镜像名：
 
@@ -36,9 +175,7 @@
 
   删除**正在运行**的某个镜像；（即：停止docker ps -a，查找出正在运行的镜像）
 
-- docker rmi 镜像名字：
-
-  删除某个**下载的镜像**；（即：删除docker pull下载的镜像文件）
+- 
 
 - docker ps –a：
 
@@ -48,9 +185,7 @@
 
   显示**有端口映射**、且正在运行的镜像；（使用-p启动）
 
-- docker pull 镜像名字：
-
-  从docker仓库**下载镜像**；
+- 
 
 - docker restart 容器id：
 
@@ -60,7 +195,7 @@
 
 
 
-### 1.2.2、Docker使用MySQL
+### 1.3.2、Docker使用MySQL
 
 - **安装**
 
@@ -89,7 +224,7 @@
 
 
 
-### 1.2.3、Docker安装Redis
+### 1.3.3、Docker安装Redis
 
 安装、启动Redis的方式，参见安装MySQL步骤.
 
@@ -103,7 +238,7 @@ Redis默认端口：6379
 
 
 
-### 1.2.4、Docker安装RabbitMQ
+### 1.3.4、Docker安装RabbitMQ
 
 - **安装**
 
