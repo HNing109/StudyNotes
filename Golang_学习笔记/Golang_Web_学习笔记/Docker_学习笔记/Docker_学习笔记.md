@@ -34,17 +34,23 @@ Docker-Hub：https://www.docker.com/products/docker-hub
 
 ## 1.2、基本概念
 
-- **主机：**用于运行docker环境的系统（实体主机、虚拟机都可以）；
-
-- **客户端：**使用命令来操作主机中的docker环境；
-
-- **镜像：**指的是一个个软件，用户可以自己打包自己开发环境的某个软件，生成对应的镜像——例如：tomcat、mysql；
-
-- **容器：**镜像在dokcer中运行后就变成容器，容器具有启动、删除、停止等操作；
-
-- **仓库：（eg：dokcer hub）**所有的镜像都可以保存在远程仓库，等需要使用的时候直接下载即可，不再需要对系统进行软件安装。
+- **Docker的设计框架**
 
   ![image-20210701234524627](Docker_学习笔记.assets/image-20210701234524627.png)
+
+  - **主机：**用于运行docker环境的系统（实体主机、虚拟机都可以）；
+
+  - **客户端：**使用命令来操作主机中的docker环境；
+
+  - **镜像：**指的是一个个软件，用户可以自己打包自己开发环境的某个软件，生成对应的镜像——例如：tomcat、mysql；
+
+    <font color='red'>Docker 镜像都是只读的，当容器启动时，一个新的可写层加载到镜像的顶部。这一层就是通常说的容器层，容器之下的都叫镜像层。用户所有的操作都是基于容器层进行的。</font>
+
+    ![image-20210708211220137](Docker_学习笔记.assets/image-20210708211220137.png)
+
+  - **容器：**镜像在dokcer中运行后就变成容器，容器具有启动、删除、停止等操作；
+
+  - **仓库：（eg：dokcer hub）**所有的镜像都可以保存在远程仓库，等需要使用的时候直接下载即可，不再需要对系统进行软件安装。
 
 
 
@@ -98,14 +104,6 @@ Docker-Hub：https://www.docker.com/products/docker-hub
   deb-src http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
   deb-src http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
   deb-src http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse
-  
-  
-  
-  #将原有的镜像替换为163镜像
-  deb http://mirrors.163.com/ubuntu/ bionic-backports main restricted universe multiverse
-  deb http://mirrors.163.com/ubuntu/ bionic-security main restricted universe multiverse
-  deb http://mirrors.163.com/ubuntu/ bionic-backports main restricted universe multiverse
-  deb http://mirrors.163.com/ubuntu/ bionic-security main restricted universe multiverse
   
   ```
   
@@ -212,7 +210,11 @@ Docker-Hub：https://www.docker.com/products/docker-hub
   docker.io/library/mysql:5.7	#真实地址
   ```
 
-  
+  - **问题：为什么Docker镜像要采用这种分层的结构呢？**
+
+    有利于资源共享。比如有多个镜像都从相同的Base镜像构建而来，那么宿主机只需在磁盘上保留一份base镜像，同时内存中也只需要加载一份base镜像，这样就可以为所有的容器服务，而且镜像的每一层都可以被共享。减小镜像所占用的资源。
+
+    
 
 - docker rmi 镜像名字：   （等同于docker image rm）
 
@@ -252,6 +254,10 @@ Docker-Hub：https://www.docker.com/products/docker-hub
     - 启动、进入容器中的centos
 
       docker run **-it** centos /bin/bash
+
+      **说明：**/bin/bash，表示使用命令行的方式进入centos容器中
+
+      
 
     - 测试tomcat是否能启动
 
@@ -354,11 +360,13 @@ Docker-Hub：https://www.docker.com/products/docker-hub
 
 - **<font color='red'>挂载宿主机文件夹至容器中</font>**
 
-  docker run -it -v 宿主机绝对路径**:**容器绝对路径 容器名 bashshell
+  **命令：**
 
-  若容器中不存在文件夹，会自动新建该文件夹。注意，**必须在启动新容器时，才能进行-v挂载操作**。
+  ```shell
+  docker run -it -v 宿主机绝对路径:容器绝对路径 容器名 bashshell
+  ```
 
-  eg：
+  **eg：**
 
   ```shell
   docker run -it -v /home/chris/test:/soft centos /bin/bash
@@ -366,7 +374,23 @@ Docker-Hub：https://www.docker.com/products/docker-hub
 
   
 
-- 查看docker的日志
+  若容器中不存在文件夹，会自动新建该文件夹。注意，**必须在启动新容器时，才能进行-v挂载操作**。
+
+  所有docker容器内的卷，若没有指定宿主机的目录，默认都是挂载至宿主机的`/var/lib/docker/volumes/xxxx/_data`下。**若指定了目录，docker volume ls 是查看不到的。**
+
+  
+
+- 查看挂载的卷数据
+
+  该命令**不能查看**宿主机已挂载至容器的文件夹。
+
+  ```shell
+  docker volume ls
+  ```
+
+  
+
+- docker的日志
 
   ```shell
   docker logs -t --tail n 容器id #查看指定容器的n行日志
@@ -383,7 +407,7 @@ Docker-Hub：https://www.docker.com/products/docker-hub
 
 - docker inspect 容器id
 
-  查看镜像的元数据
+  查看镜像的元数据，包括：容器id、镜像分层信息、挂载目录等等。
 
   
 
@@ -410,7 +434,12 @@ Docker-Hub：https://www.docker.com/products/docker-hub
 
   - Rancher（CI/CD）
 
-    
+
+
+
+#### 1.4.1.3、Docker命令框架图
+
+![image-20210708210412322](Docker_学习笔记.assets/image-20210708210412322.png)
 
 
 
@@ -445,6 +474,8 @@ Docker-Hub：https://www.docker.com/products/docker-hub
 
 ### 1.4.3、Docker安装Redis
 
+#### 1.4.3.1、搭建Redis单机
+
 安装、启动Redis的方式，参见安装MySQL步骤.
 
 Redis默认端口：6379
@@ -453,7 +484,12 @@ Redis默认端口：6379
 
   - 命令：docker run --name redis01 -d -p 4000:6379 redis
 
-    
+
+
+
+#### 1.4.3.2、搭建Redis集群
+
+
 
 
 
@@ -502,35 +538,495 @@ Redis默认端口：6379
 
 ## 2.1、容器数据卷
 
+**实现容器和宿主机数据共享**，将容器中的数据同步至宿主机保存。以防止容器被删除后，数据丢失。本质上就是：将宿主机的文件夹挂挂载到容器中。
 
+- **实现方式：**
 
+  - **-v命令**
 
+    docker run -it -v 宿主机绝对路径**:**容器绝对路径 容器名 bashshell
+
+    若容器中不存在文件夹，会自动新建该文件夹。注意，**必须在启动新容器时，才能进行-v挂载操作**。
+
+    eg：
+
+    - 挂载MySQL的配置文件、数据存放文件
+
+      ```shell
+      docker run \
+      -d \
+      -p 3306:3306 \
+      -v /home/chris/mysql/conf:/etc/mysql/conf.d \
+      -v /home/chris/mysql/data:/var/lib/mysql \
+      -e MYSQL_ROOT_PASSWORD=123456 \
+      --name mysql01 mysql:5.7
+      ```
+
+    - 使用docker inspect 容器id查看结果
+
+      ![image-20210708214943925](Docker_学习笔记.assets/image-20210708214943925.png)
+
+- **挂载类型**
+
+  - **匿名挂载**
+
+    不指定容器所挂载文件的别名
+
+    - 命令
+
+      ```shell
+      docker run -d -P --name nginx01 -v /etc/nginx nginx
+      ```
+
+      
+
+    - 查看容器的卷
+
+      - 方式一：
+
+      ```shell
+      docker volume ls
+      ```
+
+      ![image-20210708220345981](Docker_学习笔记.assets/image-20210708220345981.png)
+
+      - 方式二：
+
+      ```shell
+      docker inspect 容器id 
+      ```
+
+      ![image-20210708221006390](Docker_学习笔记.assets/image-20210708221006390.png)
+
+      
+
+    - 查看宿主机的挂载位置
+
+      若未指定挂载宿主机的位置，默认挂载在宿主机的/var/lib/docker/volumes
+
+      ![image-20210708220416520](Docker_学习笔记.assets/image-20210708220416520.png)
+
+      
+
+  - **具名挂载**
+
+    指定容器所挂载的文件别名
+
+    - 命令：
+
+      取别名为juming-nginx
+
+      ```shell
+      docker run -d -P --name nginx02 -v juming-nginx:/etc/nginx nginx
+      ```
+
+    
+
+  - **指定路径挂载**（常用）
+
+    此时，使用docker volume ls无法查看卷。只能使用  **docker inspect 容器id**  查看。
+
+    ```shell
+    docker run \
+    -d \
+    -p 3306:3306 \
+    -v /home/chris/mysql/conf:/etc/mysql/conf.d \
+    -v /home/chris/mysql/data:/var/lib/mysql \
+    -e MYSQL_ROOT_PASSWORD=123456 \
+    --name mysql01 mysql:5.7
+    ```
+
+    
 
 ## 2.2、数据卷容器
 
+和容器数据卷功能类似，都是实现文件挂载。但，**数据卷容器是用于共享多个容器的数据卷**。
 
+通过命令   **--volumes-from 容器名**  ，共享其他容器的数据卷。并且该数据卷是通过复制的方式来实现数据共享的（**<font color='red'>通过将容器的数据写入宿主机的数据卷（共享文件）中，实现数据持久化、各个容器间的数据共享</font>**），因此其中一个容器若出现宕机，不会影响数据卷中的数据，其他容器依旧可以访问该数据卷中的数据。当宕机的容器恢复后，可自动获取数据卷的最新数据。
+
+<img src="Docker_学习笔记.assets/image-20210708231153805.png" alt="image-20210708231153805" style="zoom:67%;" />
+
+- **示例：**
+
+  -  多个mysql实现数据共享
+
+    ```shell
+    #mysql01
+    docker run -d -p 3306:3306 -v /home/mysql/conf:/etc/mysql/conf.d -v /home/mysql/data:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=123456 --name mysql01 mysql:5.7
+    
+    #mysql02
+    docker run -d -p 3307:3306 -e MYSQL_ROOT_PASSWORD=123456 --name mysql02 --volumes-from mysql01  mysql:5.7
+    
+    ```
+
+    
+
+  - 共享两个ubuntu的文件夹：sharefile
+
+    ```shell
+    #开启image01容器，挂载sharefile文件至宿主机中
+    docker run -it --name image01 -v /sharefile ubuntu /bin/bash
+    
+    #开启image02容器，并挂载image01容器的共享文件夹
+    docker run -it --name image02 --volumes-from image01  ubuntu /bin/bash
+    
+    #查看共享的文件夹
+    ls    #可显示sharefile文件
+    ```
+
+    
 
 ## 2.3、DockerFile
 
+Docker File用来构建docker镜像的构建文件，本质就是shell脚本。
+
+Docker官方**默认的Docker File文件名为：Dockerfile**，在使用时，可以不用通过-f指定文件路径，即可自动加载当前目录中的Dockerfile文件。
 
 
 
+- **Dockerfile文件的命令：**
 
-## 2.4、制作自己的镜像
+  Dockerfile所有名的指令都需要大写。**每一条指令都是镜像的一层**。
 
-### 2.4.1、制作流程
+  - FROM
+
+    基础镜像，从此处开始构建
+
+  - MAINTAINER			
+
+    镜像的作者
+
+  - RUN					
+
+    镜像构建的时候需要运行的命令。可为镜像安装某些软件
+
+  - ADD					
+
+    用于添加文件至镜像中。
+
+    格式：添加内容 添加至镜像中的某个目录
+
+  - WORKDIR				
+
+    镜像的工作目录
+
+  - VOLUME				
+
+    挂载目录，指定需要将容器中的哪些文件夹挂载至宿主机（若，未填写宿主机挂载路径，则默认挂载至宿主机的/var/lib/docker/volumes）
+
+  - EXPOSE				
+
+    配置镜像对外暴露的端口
+
+  - CMD					
+
+    指定这个容器启动的时候要运行的命令，只有最后一个会生效，可被替代。
+
+  - ENTRYPOINT	（和CMD类似）	
+
+    指定这个容器启动的时候要运行的命令，可以追加命令
+
+  - ONBUILD				
+
+    当构建一个被继承 DockerFile 这个时候就会运行ONBUILD的指令，触发指令。
+
+  - COPY				
+
+    将文件拷贝到镜像中（类似于ADD）
+
+  - ENV					
+
+    构建的时候设置环境变量
+
+  
+
+## 2.4、制作、发布自己的镜像
+
+在centos镜像上，制作一个Tomcat镜像
+
+**前提：**准备的资料都放在同一个目录中
+
+- README文件
+- jdk-8u231-linux-x64.tar.gz
+- apache-tomcat-9.0.35.tar.gz
 
 
 
-### 2.4.2、发布镜像至DockerHub
+1. 编写一个Dockerfile文件
 
+   ```shell
+   #基础镜像
+   FROM centos	
+   
+   #作者
+   MAINTAINER chrisZhang<1294550676@qq.com>
+   
+   #复制文件：从宿主机的当前目录， 复制README文件至容器中/usr/local/README
+   COPY README /usr/local/README 
+   #复制解压：从宿主机的当前目录， 解压后，复制至容器中/usr/local/ 
+   ADD jdk-8u231-linux-x64.tar.gz /usr/local/ 
+   #复制解压：从宿主机的当前目录， 解压后，复制至容器中/usr/local/
+   ADD apache-tomcat-9.0.35.tar.gz /usr/local/ 
+   
+   #镜像中安装vim工具
+   RUN yum -y install vim
+   
+   #设置环境变量
+   ENV MYPATH /usr/local
+   ENV JAVA_HOME /usr/local/jdk1.8.0_231 
+   ENV CATALINA_HOME /usr/local/apache-tomcat-9.0.35 
+   ENV PATH $PATH:$JAVA_HOME/bin:$CATALINA_HOME/lib 
+   #设置工作目录：-it 进入容器后，默认的当前路径
+   WORKDIR $MYPATH
+   
+   #设置镜像对外暴露的端口
+   EXPOSE 8080 
+   
+   #设置默认命令：  &&：与，用于拼接多个命令
+   CMD /usr/local/apache-tomcat-9.0.35/bin/startup.sh && tail -F /usr/local/apache-tomcat-9.0.35/logs/catalina.out 
+   ```
 
+   
+
+2. docker build ：构建一个镜像
+
+   **注意：下面的命令最后都有 `.`**    若不没有添加该部分，就会导致build失败。
+
+   - 若编写的Docker File文件名，不为：Dockerfile
+
+     ```shell
+     # -f, 指定使用的DockerFile文件
+     # -t, 指定构建的镜像名：版本号
+     docker build -f DockerFile文件的路径 -t mytomcat:0.1 .
+     ```
+
+     
+
+   - 若使用默认文件名：Dockerfile
+
+     ```shell
+     docker build -t mytomcat:0.1 .
+     ```
+
+     
+
+3. docker run：运行自己构建的镜像
+
+   ```shell
+   docker run \
+   -d \
+   -p 8080:8080 \
+   --name tomcat01 \
+   -v /home/chris/build/tomcat/test:/usr/local/apache-tomcat-9.0.35/webapps/test \
+   -v /home/chris/build/tomcat/tomcatlogs/:/usr/local/apache-tomcat-9.0.35/logs \
+   mytomcat:0.1
+   ```
+
+   
+
+4. docker push发布镜像（DockerHub 、阿里云仓库)
+
+   - **发布至DockerHub**
+
+     Docker-Hub： https://hub.docker.com/
+
+     - 宿主机命令行登陆Docker
+
+       ```shell
+       docker login -u DockerHub的ID
+       # 之后会提示输入密码
+       ```
+
+       
+
+     - 若，发布的镜像没有添加自己的DockerHub ID，需要使用 tag 添加
+
+       ```shell
+       docker tag 镜像ID DockerHub的ID/镜像名:版本
+       # 若，版本不填写，则默认查找latest最新版，但是一般都找不到的
+       ```
+
+       
+
+     - 推送至DockerHub
+
+       ```shell
+       docker push DockerHub的ID/镜像名:版本
+       ```
+
+       
+
+   - **发布至阿里云仓库**
+
+     阿里云仓库：https://cr.console.aliyun.com/repository/
+
+     ```shell
+     ######################    参考示例    ######################
+     
+     docker login --username=阿里云ID registry.cn-shenzhen.aliyuncs.com
+     docker tag [ImageId] registry.cn-shenzhen.aliyuncs.com/dsadxzc/cheng:[镜像版本号]
+     # 修改id 和 版本
+     docker tag a5ef1f32aaae registry.cn-shenzhen.aliyuncs.com/dsadxzc/cheng:1.0
+     # 修改版本
+     docker push registry.cn-shenzhen.aliyuncs.com/dsadxzc/cheng:[镜像版本号]
+     ```
+
+      
 
 # 3、Docker高级
 
 ## 3.1、Docker网络
 
+### 3.1.1、Docker中容器的网卡
 
+每启动一个docker容器，docker就会给docker容器分配一个网卡ip，就会有一个docker0桥接模式，使用的技术是veth-pair技术。**也会在宿主机上创建 veth27fa178@ifxx 网卡ip，这个序号和docker容器中的<font color='red'>网卡ip是成对出现</font>。用于docker容器和宿主机之间的通信。**
+
+
+
+**eg：**
+
+- 启动tomcat，命令：docker run -it --name tomcat01 tomcat /bin/bash
+
+- 查看容器网卡：ip addr
+
+- 查看宿主机网卡：
+
+- **结论：**（看宿主机）
+
+  47：对应Docker中tomcat容器的虚拟网卡
+
+  veth27fa178@if46：为Docker给宿主机分配的虚拟网卡
+
+![image-20210709005135950](Docker_学习笔记.assets/image-20210709005135950.png)
+
+
+
+### 3.1.2、Docker网络结构
+
+所有的容器不指定网络的情况下，都是docker0路由的，docker会给的容器分配一个默认的可用ip。
+
+**eg：**
+
+开启两个tomcat，测试两者是否能够相互ping同
+
+- **命令：**
+
+  准备两个终端
+
+  ```shell
+  #终端1
+  #启动tomcat01
+  docker run -it --name tomcat01 tomcat /bin/bash
+  #获取ip
+  ip addr
+  #ping
+  ping tomcat02网卡地址
+  
+  
+  #终端2
+  #启动tomcat02
+  docker run -it --name tomcat02 tomcat /bin/bash
+  #获取ip
+  ip addr
+  #ping
+  ping tomcat01网卡地址
+  ```
+
+- **结论：**
+
+  tomcat01和tomcat02公用一个路由器，docker0。
+
+<img src="Docker_学习笔记.assets/image-20210709010533502.png" alt="image-20210709010533502" style="zoom:80%;" />
+
+### 3.1.3、Docker网络常用命令
+
+- -link
+
+  本质就是在hosts配置中添加映射，现在使用Docker已经**不建议使用**–link了。
+
+  **应用：**当容器访问某个域名时，可转至某个ip（即：不需要使用ip取访问应用，因为ip可能会变，但是域名一般不变化）
+
+  ```shell
+  #测试用例
+  docker exec -it tomcat02 ping tomca01   # ping不通
+  ping: tomca01: Name or service not known
+  
+  # 运行一个tomcat03 --link tomcat02 
+  docker run -d -P --name tomcat03 --link tomcat02 tomcat
+  
+  # 用tomcat03 ping tomcat02 可以ping通
+  docker exec -it tomcat03 ping tomcat02
+  ```
+
+  
+
+- docker network ls
+
+  查看所有的docker网络
+
+  - **网络模式**
+
+    - bridge ：桥接 docker（默认，自己创建也是用bridge模式）
+
+    - none ：不配置网络，一般不用
+
+    - host ：和所主机共享网络
+
+      
+
+  - 使用 docker network ls的结果：
+
+  | NETWORK ID   | NAME   | DRIVER | SCOPE |
+  | ------------ | ------ | ------ | ----- |
+  | 440c39627077 | bridge | bridge | local |
+  | b0b648b77700 | host   | host   | local |
+  | e1f49181e053 | none   | null   | local |
+
+
+
+- **<font color='red'>创建自定义网络（网卡）</font>**
+
+  即：不使用默认的Docker0路由网段（172.17.0.0开头）
+
+  使用命令：docker network create创建
+
+  ```shell
+  # --driver网络模式 |  --subnet子网掩码  |  --gateway网关  |  mynet自定义的网络名（网卡名）
+  docker network create --driver bridge --subnet 192.168.0.0/16 --gateway 192.168.0.1 mynet
+  ```
+
+  
+
+### 3.1.4、Docker容器之间网络连通
+
+不使用-link指定修改容器的host文件，根据域名跳转指定的IP。
+
+**这里采用自定义网络路由的方式实现容器之间的相互访问（通过容器名相互访问，而不是直接通过容器的网卡IP来访问）**
+
+```shell
+#自定义网络（网卡）
+docker network create --driver bridge --subnet 192.168.0.0/16 --gateway 192.168.0.1 mynet
+
+#创建新的tomcat容器：并指定其网络（网卡）为：mynet
+docker run -d -P --name tomcat-net-01 --net mynet tomcat
+	#（可选）通过ip addr可查看该容器的网卡IP
+	docker exec -it tomcat-net-01 /bin/bash
+	ip addr
+	#结果：inet 192.168.0.3/16
+
+#容器新网卡：已经启动的tomcat01容器，新增网卡：mynet
+docker network connect tomcat01 mynet
+	#（可选）通过ip addr查看tomcat01的网卡
+	docker exec -it tomcat01 /bin/bash
+	ip addr
+	#结果：（有两个网卡）
+	#46: eth0@if47: inet 172.17.0.2/16
+	#53: eth1@if54: inet 192.168.0.2/16
+
+#尝试ping两个容器（通过容器名来ping，而不是容器的网卡IP）
+docker exec tomcat-net-01 ping tomcat01
+
+```
 
 
 
