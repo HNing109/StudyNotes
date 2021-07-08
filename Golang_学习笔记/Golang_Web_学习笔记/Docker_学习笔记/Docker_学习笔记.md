@@ -1,6 +1,38 @@
+Docker-Hub：https://www.docker.com/products/docker-hub
+
 # 1、Docker入门
 
-## 1.1、基本概念
+## 1.1、虚拟技术、容器技术
+
+- **虚拟技术**
+
+  例如Vmware，直接在操作系统中通过软件的方式**虚拟化一个完整的操作系统**，该系统和真实系统没有区别。需要加载内核、Lib相关库，然后其余的APP应用可在该系统中运行。
+
+  - **缺点**
+
+    1、 资源占用十分多：需要加载很多Lib组件
+
+    2、 冗余步骤多：
+
+    3、 启动很慢：加载的系统kernel内核庞大
+
+    4、当Lib组件崩溃时，容易导致系统无法运行。
+
+  ![image-20210708091223300](Docker_学习笔记.assets/image-20210708091223300.png)
+
+- **容器技术**
+
+  容器化并没有模拟一个完整的操作系统，只需要加载系统核心部分的内核。将Lib组件和APP都封装起来放进一个容器中，每个容器都是相互隔离的，不会相互影响。即使某个容器崩溃，其余容器可照常运行。
+
+  ![image-20210708091502212](Docker_学习笔记.assets/image-20210708091502212.png)
+
+  - **为什么Docker比VMware快**
+    1、docker有着比虚拟机更少的抽象层。由于docker不需要Hypervisor实现硬件资源虚拟化,运行在docker容器上的程序直接使用的都是实际物理机的硬件资源。因此在CPU、内存利用率上docker将会在效率上有明显优势。
+    2、docker利用的是宿主机的内核,而不需要Guest OS。
+  
+    
+
+## 1.2、基本概念
 
 - **主机：**用于运行docker环境的系统（实体主机、虚拟机都可以）；
 
@@ -16,14 +48,14 @@
 
 
 
-## 1.2、Ubuntu安装Docker
+## 1.3、Ubuntu安装Docker
 
 官网教程：https://docs.docker.com/engine/install/ubuntu/
 
 - 更新安装软件列表
 
   ```shell
-  sudo apt-get
+  sudo apt-get update
   ```
 
 - 安装必要的组件
@@ -53,19 +85,48 @@
 - （可选）修改ubuntu的镜像仓库
 
   ```shell
-  #地址：/etc/apt/sources.list ， 将原有的镜像替换为163镜像
+  #地址：/etc/apt/sources.list ， 
+  
+  #阿里源
+  deb http://mirrors.aliyun.com/ubuntu/ bionic main restricted universe multiverse
+  deb http://mirrors.aliyun.com/ubuntu/ bionic-security main restricted universe multiverse
+  deb http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
+  deb http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
+  deb http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse
+  deb-src http://mirrors.aliyun.com/ubuntu/ bionic main restricted universe multiverse
+  deb-src http://mirrors.aliyun.com/ubuntu/ bionic-security main restricted universe multiverse
+  deb-src http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
+  deb-src http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
+  deb-src http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse
+  
+  
+  
+  #将原有的镜像替换为163镜像
   deb http://mirrors.163.com/ubuntu/ bionic-backports main restricted universe multiverse
   deb http://mirrors.163.com/ubuntu/ bionic-security main restricted universe multiverse
   deb http://mirrors.163.com/ubuntu/ bionic-backports main restricted universe multiverse
   deb http://mirrors.163.com/ubuntu/ bionic-security main restricted universe multiverse
   
   ```
+  
+- 添加GPG key
 
+  ```shell
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+  
+  echo \
+    "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+    $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  ```
+  
+  
+  
 - 安装Docker（推荐使用最新版Docker）
 
   ```shell
   #方式1
   sudo apt-get update
+  sudo apt-get upgrade
   sudo apt-get install docker-ce docker-ce-cli containerd.io
   
   #方式2
@@ -103,11 +164,11 @@
 
 
 
-## 1.3基本使用
+## 1.4、基本使用
 
-### 1.3.1、常用命令
+### 1.4.1、常用命令
 
-#### 1.3.1.1、镜像命令
+#### 1.4.1.1、镜像命令
 
 - docker images：
 
@@ -124,6 +185,8 @@
 
   搜索镜像
 
+  
+
 - docker pull 镜像名字：  （等同于docker image pull）
 
   从docker仓库**下载镜像**；默认下载latest最新版
@@ -133,8 +196,8 @@
   ```shell
   root@chris:~# docker pull mysql:5.7
   5.7: Pulling from library/mysql		#如果不写tag，默认就是latest
-  b4d181a07f80: Pull complete 		#分层下载： docker image 的核心 联合文件系统
-  a462b60610f5: Pull complete 
+  b4d181a07f80: Already exists 		#分层下载： docker image 的核心，UFS联合文件系统（防止下载重复的镜像）
+  a462b60610f5: Pull complete 		#从第二层开始现在，上一层已经存在，故不重复下载
   578fafb77ab8: Pull complete 
   524046006037: Pull complete 
   d0cbe54c8855: Pull complete 
@@ -155,47 +218,203 @@
 
   删除某个**下载的镜像**；（即：删除docker pull下载的镜像文件）
 
+  ```shell
+  docker rmi -f 镜像id					 	#删除指定的镜像
+  docker rmi -f 镜像id 镜像id 镜像id 镜像id	#删除指定的镜像
+  docker rmi -f $(docker images -aq) 		 #删除全部的镜像
+  ```
+  
   
 
+#### 1.4.1.2、容器命令
+
+- **docker run 镜像名**
+
+  新建、启动容器；
+
+  ```shell
+  docker run 可选参数 image名 （或者，docker container run [可选参数] image名）
+  #可选参数说明
+  --name="Name"		容器名字 tomcat01 tomcat02 用来区分容器
+  -d					后台方式运行
+  -it 				使用交互方式运行，进入容器查看内容
+  -p					指定容器的端口 
+  		-p ip:主机端口:容器端口
+  		-p 主机端口:容器端口 (常用)，eg：-p 8080(宿主机):8080(容器)
+  		-p 容器端口 （默认只有容器端口）
+  		
+  --rm image名        一般是用来测试，用完就删除容器
+  -P(大写) 			  随机指定端口
+  ```
+
+  - **eg：**
+
+    - 启动、进入容器中的centos
+
+      docker run **-it** centos /bin/bash
+
+    - 测试tomcat是否能启动
+
+      docker run -it **--rm** tomcat:9.0
+
+    
+
+  - **常见问题：**
+
+    直接使用命令docker run **-d** centos启动，使用docker ps发现centos 停止了。**这是常见的坑**，docker容器使用后台运行，就必须要有要一个前台进程，docker发现没有应用，就会自动停止。
+
   
 
-#### 1.3.1.2、容器命令
+- **docker start 容器id**
 
+  启动指定id的容器（启动之前已经docker run运行的容器）
 
+  
 
-- docker run 镜像名：
-
-  启动镜像；
-
-- docker stop containerId：
-
-  停止运行某个镜像；
-
-- **docker rm containerId**：
-
-  删除**正在运行**的某个镜像；（即：停止docker ps -a，查找出正在运行的镜像）
-
-- 
-
-- docker ps –a：
-
-  显示所有运行的镜像；
-
-- docker ps：
-
-  显示**有端口映射**、且正在运行的镜像；（使用-p启动）
-
-- 
-
-- docker restart 容器id：
+- **docker restart 容器id**
 
   重启之前运行的镜像。
 
-  **eg：**当vmware重启之后，使用无法访问之前开启的mysql，使用docker ps无法看到mysql正在运行，使用docker ps –a可以看到，此时只需要使用该命令，就可以重启这个镜像，外部可以正常访问mysql数据库；
+  **eg：**当VMware重启之后，使用无法访问之前开启的mysql，使用docker ps无法看到mysql正在运行，使用docker ps –a可以看到，此时只需要使用该命令，就可以重启这个镜像，外部可以正常访问mysql数据库；
+
+  
+
+- **docker stop 容器id**
+
+  停止运行某个镜像；
+
+  
+
+- **docker kill 容器id**
+
+  强制停止当前容器
+
+  
+
+- **进入正在运行的容器中**
+
+  ```shell
+  docker 可选参数 -it 容器id 路径
+  #可选参数说明
+  	exec   # 进入当前容器后开启一个新的终端，可以在里面操作。（常用，必须是docker ps，显示的正在运行的容器）
+  	attach # 进入容器正在执行的终端
+  ```
+
+  
+
+- **退出当前进入的容器**
+
+   ```shell
+   #方式1（命令）
+   exit 		   				#直接退出、停止容器
+   #方式2（按键）
+   （ctrl +P） + （ctrl +Q）     #退出容器，但不停止容器
+   ```
+
+  
+
+- **docker rm 容器Id**：
+
+  删除**正在运行**的某个镜像；（即：停止docker ps -a，查找出正在运行的镜像）
+
+  ```shell
+  docker rm 容器id   				#删除指定的容器，不能删除正在运行的容器，如果要强制删除 rm -rf
+  docker rm -f $(docker ps -aq)    #删除指定的容器
+  docker ps -a -q|xargs docker rm  #删除所有的容器
+  ```
+
+  
+
+- **docker ps：**
+
+  显示所有运行的镜像；
+
+  ```shell
+  docker ps 可选参数
+  #（默认）docker ps：显示 有端口映射、且正在运行的镜像；（使用-p启动）
+  #可选参数说明
+    -a, --all             显示所有容器
+    -n, --last int        显示指定个数的容器
+    -q, --quiet           只显示容器di
+  ```
 
 
 
-### 1.3.2、Docker使用MySQL
+- **<font color='red'>从容器中拷贝数据至宿主机</font>**
+
+  docker cp 容器id:容器内路径  宿主机目的路径
+
+  
+
+- **<font color='red'>从宿主机拷贝数据至容器中</font>**
+
+  docker cp 宿主机目的路径 容器id:容器内路径 
+
+  
+
+- **<font color='red'>挂载宿主机文件夹至容器中</font>**
+
+  docker run -it -v 宿主机绝对路径**:**容器绝对路径 容器名 bashshell
+
+  若容器中不存在文件夹，会自动新建该文件夹。注意，**必须在启动新容器时，才能进行-v挂载操作**。
+
+  eg：
+
+  ```shell
+  docker run -it -v /home/chris/test:/soft centos /bin/bash
+  ```
+
+  
+
+- 查看docker的日志
+
+  ```shell
+  docker logs -t --tail n 容器id #查看指定容器的n行日志
+  docker logs -ft 容器id         #查看指定容器的所有日志
+  ```
+
+  
+
+- docker top 容器id
+
+  查看容器的任务管理器
+
+  
+
+- docker inspect 容器id
+
+  查看镜像的元数据
+
+  
+
+- docker stats 
+
+  查看docker容器使用的cpu、内存情况
+
+  
+
+- **Docker可视化工具**
+
+  - portainer（不常用）
+
+    安装命令：
+
+    ```shell
+    docker run -d -p 8080:9000 \
+    --restart=always -v /var/run/docker.sock:/var/run/docker.sock --privileged=true portainer/portainer
+    ```
+
+    浏览器访问：http://192.168.83.136:8080/ ，创建账号后可以访问。（这边的IP为Docker宿主机的网卡地址）
+
+    ![image-20210708135705937](Docker_学习笔记.assets/image-20210708135705937.png)
+
+  - Rancher（CI/CD）
+
+    
+
+
+
+### 1.4.2、Docker使用MySQL
 
 - **安装**
 
@@ -224,7 +443,7 @@
 
 
 
-### 1.3.3、Docker安装Redis
+### 1.4.3、Docker安装Redis
 
 安装、启动Redis的方式，参见安装MySQL步骤.
 
@@ -238,7 +457,7 @@ Redis默认端口：6379
 
 
 
-### 1.3.4、Docker安装RabbitMQ
+### 1.4.4、Docker安装RabbitMQ
 
 - **安装**
 
@@ -276,7 +495,58 @@ Redis默认端口：6379
 
     ![image-20210702000735222](Docker_学习笔记.assets/image-20210702000735222.png)
 
-  
+
+
+
+# 2、Docker进阶
+
+## 2.1、容器数据卷
+
+
+
+
+
+## 2.2、数据卷容器
+
+
+
+## 2.3、DockerFile
+
+
+
+
+
+## 2.4、制作自己的镜像
+
+### 2.4.1、制作流程
+
+
+
+### 2.4.2、发布镜像至DockerHub
+
+
+
+# 3、Docker高级
+
+## 3.1、Docker网络
+
+
+
+
+
+## 3.2、Docker Compose（yml）
+
+
+
+
+
+## 3.3、Docker Swarm（kubernetes）
+
+
+
+
+
+## 3.4、CI/CD之Jenkins
 
 
 
