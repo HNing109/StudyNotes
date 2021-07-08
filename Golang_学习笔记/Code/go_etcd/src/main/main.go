@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+//设置链接服务器的参数
+
+
 func main() {
 
 	//连接
@@ -22,6 +25,8 @@ func main() {
 			"192.168.83.130:32379"},
 		DialTimeout: 5 * time.Second,
 	})
+
+
 	if err != nil {
 		fmt.Println("connect failed, err:", err)
 		return
