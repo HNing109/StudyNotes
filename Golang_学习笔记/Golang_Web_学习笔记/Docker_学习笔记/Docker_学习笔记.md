@@ -787,7 +787,7 @@ Docker官方**默认的Docker File文件名为：Dockerfile**，在使用时，�
 
   - RUN					
 
-    镜像构建的时候需要运行的命令。可为镜像安装某些软件
+    **镜像构建时，需要运行的命令**。可为镜像安装某些软件
 
   - ADD					
 
@@ -809,7 +809,7 @@ Docker官方**默认的Docker File文件名为：Dockerfile**，在使用时，�
 
   - CMD					
 
-    指定这个容器启动的时要运行的命令，只有最后一个会生效，可被替代。
+    **容器启动的时要运行的命令**，只有最后一个会生效，可被替代。
 
     ```shell
     FROM centos
@@ -823,7 +823,7 @@ Docker官方**默认的Docker File文件名为：Dockerfile**，在使用时，�
 
   - ENTRYPOINT	（和CMD类似）	
 
-    指定这个容器启动的时要运行的命令，可以追加命令
+    **容器启动的时要运行的命令**，可以追加命令
 
   - ONBUILD				
 
@@ -1139,15 +1139,325 @@ docker exec tomcat-net-01 ping tomcat01
 
 ## 3.2、Docker Compose
 
+docker-compose官网手册：https://docs.docker.com/compose/
+
+### 3.2.1、基本概念
+
+- **什么是docker-compose**
+
+  Compose 是一个用于定义和运行多容器 Docker 应用程序的工具。借助 Compose，可以使用 YAML 文件来配置应用程序的服务。然后，使用 docker-compose up 命令，从配置中创建并启动所有服务（即：一键启动项目）。
+
+  
+
+- **使用docker-compose的条件：**
+
+  必须具备以下几个文件，且这些文件都存放在同一个路径中。
+
+  - **Dockerfile文件**
+
+    用于docker-compose.yml中的service，依据此文件构建镜像
+
+  - **docker-compose.yml**
+
+    用于打包代码、构建镜像、部署项目。需要使用命令：docker-compose up  启动。
+
+  - **程序包**
+
+    项目的代码
 
 
 
+- **docker-compose的特点**
+
+  - 使用docker-compose up启动项目后。
+
+    - 若未指定项目名，则 **默认项目名** = docker-compose.yml所在文件夹名 + _ + service中第一个服务名
+
+      ![image-20210710005909453](Docker_学习笔记.assets/image-20210710005909453.png)
+
+    - 启动后自动创建默认网络，**默认网络名** = docker-compose.yml所在文件夹名 +  _ + default
+
+      ![image-20210710005949890](Docker_学习笔记.assets/image-20210710005949890.png)
+
+
+
+### 3.2.2、安装Docker compose
+
+**系统：Ubuntu**
+
+- 下载docker-compose
+
+  ```shell
+  sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  ```
+
+  
+
+- 修改docker-compose文件的权限
+
+  ```shell
+  sudo chmod +x /usr/local/bin/docker-compose
+  ```
+
+  
+
+- 测试是否安装成功
+
+  ```shell
+  docker-compose --version
+  ```
+
+  
+
+- 卸载docker-compose
+
+  ```shell
+  sudo rm /usr/local/bin/docker-compose
+  ```
+
+  
+
+### 3.2.3、docker-compose.yml文件解析
+
+标准配置文件应该包含`version`、`services`、`networks`三部分，其中最关键的是`services`和`networks`两个部分.
+
+```yml
+#compose版本
+version: '2'
+
+#定义服务
+services:
+  #服务名：web
+  web:
+    #使用镜像创建容器，本地查找  或者  docker pull下载镜像
+    image: dockercloud/hello-world
+    #对外暴露的端口
+    ports:
+      - 8080
+    #网络
+    networks:
+      - front-tier
+      - back-tier
+    #挂载数据卷  
+    volumes:
+      - /home/chris/code:/home/tmp
+ 
+  redis:
+    image: redis
+    links:
+      - web
+    networks:
+      - back-tier
+ 
+  lb:
+    image: dockercloud/haproxy
+    ports:
+      - 80:80
+    links:
+      - web
+    networks:
+      - front-tier
+      - back-tier
+    #数据卷  
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock 
+      
+#网络：整个compose项目的网络 
+networks:
+  front-tier:
+    driver: bridge
+  back-tier:
+driver: bridge
+```
+
+
+
+### 3.2.4、常命令
+
+- 启动docker-compose项目
+
+  ```shell
+  #保持项目持续运行的启动命令（常用）
+  docker-compose up 可选参数
+  #可选参数
+  -d			后台运行
+  --build		重新构建（当代码被改动时使用）
+  -p    		指定项目的别名
+  ```
+
+  ```shell
+  #启动的项目只运行一次
+  docker-compose run 服务名
+  #服务名 ：指的是service中配置的服务
+  ```
+
+  
+
+- 停止docker-compose项目
+
+  ```shell
+  #方式1：停止服务，并移除资源：eg：删除容器、删除创建的网络
+  #在docker-compose.yml所在的文件路径下，执行命令：
+  docker-compose down
+  
+  #方式2
+  #若，启动项目时未使用-d（后台运行），则在执行docker-compose up 命令的终端中，使用按键：
+  ctrl + c
+  
+  #方式3：停止服务（不移除资源）
+  docker-compose stop
+  #与之对应的启动命令：docker-compose start
+  ```
+
+  
+
+- 查看docker-compose服务占用的资源
+
+  ```shell
+  docker-compose ps
+  ```
+
+  
+
+###　3.2.5、Docker compose实例
+
+- **准备材料目录：**
+
+  - app.py  ：程序
+  - requirements.txt ：用于指定Dockerfile中RUN命令安装的软件
+  - Dockerfile  ：构建镜像的文件（docker-compose命令需要使用该文件，构建镜像）
+  - docker-compose.yml  ：docker-compose的配置文件
+
+  
+
+  **上述所有文件都存放在同一个目录中，这样才可以直接在目录中使用docker-compose命令**
+
+  本次实例，存放在composetest文件夹中
+
+  ```shell
+  mkdir composetest
+  cd composetest
+  ```
+
+  
+
+- **需要编写的文件**
+
+  - app.py
+
+    ```python
+    import time
+    
+    import redis
+    from flask import Flask
+    
+    app = Flask(__name__)
+    cache = redis.Redis(host='redis', port=6379)
+    
+    def get_hit_count():
+        retries = 5
+        while True:
+            try:
+                return cache.incr('hits')
+            except redis.exceptions.ConnectionError as exc:
+                if retries == 0:
+                    raise exc
+                retries -= 1
+                time.sleep(0.5)
+    
+    @app.route('/')
+    def hello():
+        count = get_hit_count()
+        return 'Hello World! I have been seen {} times.\n'.format(count)
+    ```
+
+    
+
+  - requirements.txt
+
+    ```txt
+    flask
+    redis
+    ```
+
+    
+
+  - Dockerfile  
+
+    ```shell
+    # syntax=docker/dockerfile:1
+    FROM python:3.7-alpine
+    WORKDIR /code
+    ENV FLASK_APP=app.py
+    ENV FLASK_RUN_HOST=0.0.0.0
+    RUN apk add --no-cache gcc musl-dev linux-headers
+    COPY requirements.txt requirements.txt
+    # 根据requirements.txt中的内容，安装软件
+    RUN pip install -r requirements.txt
+    #堆外暴露端口5000
+    EXPOSE 5000
+    COPY . .
+    #容器启动时，运行flask run命令
+    CMD ["flask", "run"]
+    ```
+
+    
+
+  - docker-compose.yml
+
+    ```yml
+    #docker-compose版本
+    version: "3.9"
+    #服务
+    services:
+      #服务：web
+      web:
+        #构建镜像：根据宿主机当前目录中的Dockerfile文件构建
+        build: .
+        #端口映射：宿主机5000 ： 容器5000
+        ports:
+          - "5000:5000"
+        #挂载数据卷：宿主机当前目录，挂载至容器中的/code下。可在宿主机中修改代码  
+        volumes:
+          - .:/code
+        #设置FLASK_ENV环境变量，即：flask run在开发模式下运行，并重新加载更改代码。（该模式只限于开发中使用） 
+        environment:
+          FLASK_ENV: development
+          
+      #服务：redis
+      redis:
+        #docker pull仓库中的redis镜像
+        image: "redis:alpine"
+    ```
+
+  
+
+- **运行项目**
+
+  在当前composetest路径中，使用命令：docker-compose up
+
+  ![image-20210710003728671](Docker_学习笔记.assets/image-20210710003728671.png)
+
+
+
+- **测试是否运行成功**
+
+  - **VMware中宿主机**的浏览器访问地址：http://172.19.0.2:5000/
+
+  - **Windows本机**的访问地址：http://VMware宿主机的网卡IP:5000/
+
+  
+
+- **停止项目**
+
+  - **方式1：**直接在运行docker-compose up的终端，使用： ctrl + c
+  - **方式2：**cd至 docker-compose.yml 文件存放的目录，使用：docker-compose down
 
 
 
 ## 3.3、Docker Swarm
 
-
+类似于kubernetes，用于部署、管理拥有多个容器的服务。但是kubernetes适用于部署超过10个容器的服务。
 
 
 
