@@ -16,7 +16,7 @@ Docker-Hub：https://www.docker.com/products/docker-hub
 
     3、 启动很慢：加载的系统kernel内核庞大
 
-    4、当Lib组件崩溃时，容易导致系统无法运行。
+    4、当某个Lib组件损坏、崩溃时，容易导致整个系统无法运行。
 
   ![image-20210708091223300](Docker_学习笔记.assets/image-20210708091223300.png)
 
@@ -27,8 +27,8 @@ Docker-Hub：https://www.docker.com/products/docker-hub
   ![image-20210708091502212](Docker_学习笔记.assets/image-20210708091502212.png)
 
   - **为什么Docker比VMware快**
-    1、docker有着比虚拟机更少的抽象层。由于docker不需要Hypervisor实现硬件资源虚拟化,运行在docker容器上的程序直接使用的都是实际物理机的硬件资源。因此在CPU、内存利用率上docker将会在效率上有明显优势。
-    2、docker利用的是宿主机的内核,而不需要Guest OS。
+    1、docker有着比虚拟机更少的抽象层。由于docker不需要Hypervisor实现硬件资源虚拟化,运行在docker容器上的程序直接使用的都是实际物理机的硬件资源。因此在CPU、内存利用率上docker在效率上有明显优势。
+    2、docker利用的是宿主机的内核，而不需要Guest OS。
   
     
 
@@ -44,7 +44,7 @@ Docker-Hub：https://www.docker.com/products/docker-hub
 
   - **镜像：**指的是一个个软件，用户可以自己打包自己开发环境的某个软件，生成对应的镜像——例如：tomcat、mysql；
 
-    <font color='red'>Docker 镜像都是只读的，当容器启动时，一个新的可写层加载到镜像的顶部。这一层就是通常说的容器层，容器之下的都叫镜像层。用户所有的操作都是基于容器层进行的。</font>
+    <font color='red'>Docker 镜像都是只读的，当容器启动时，一个新的可写层加载到镜像的顶部。这一层就是通常说的容器层，容器之下的都叫镜像层。**用户所有的操作都是基于容器层进行的**。</font>
 
     ![image-20210708211220137](Docker_学习笔记.assets/image-20210708211220137.png)
 
@@ -240,37 +240,36 @@ Docker-Hub：https://www.docker.com/products/docker-hub
   --name="Name"		容器名字 tomcat01 tomcat02 用来区分容器
   -d					后台方式运行
   -it 				使用交互方式运行，进入容器查看内容
-  -p					指定容器的端口 
+  -p(小写)			   指定容器的端口 
   		-p ip:主机端口:容器端口
   		-p 主机端口:容器端口 (常用)，eg：-p 8080(宿主机):8080(容器)
   		-p 容器端口 （默认只有容器端口）
-  		
-  --rm image名        一般是用来测试，用完就删除容器
   -P(大写) 			  随机指定端口
+  --rm image名        一般是用来测试，用完就删除容器
   ```
-
-  - **eg：**
-
-    - 启动、进入容器中的centos
-
-      docker run **-it** centos /bin/bash
-
-      **说明：**/bin/bash，表示使用命令行的方式进入centos容器中
-
-      
-
-    - 测试tomcat是否能启动
-
-      docker run -it **--rm** tomcat:9.0
-
+  
+- **eg：**
+  
+  - 启动、进入容器中的centos
+  
+    docker run **-it** centos /bin/bash
+  
+    **说明：**/bin/bash，表示使用命令行的方式进入centos容器中
+  
     
-
-  - **常见问题：**
-
-    直接使用命令docker run **-d** centos启动，使用docker ps发现centos 停止了。**这是常见的坑**，docker容器使用后台运行，就必须要有要一个前台进程，docker发现没有应用，就会自动停止。
-
+  
+  - 测试tomcat是否能启动
+  
+    docker run -it **--rm** tomcat:9.0
+  
+  
+  
+- **常见问题：**
+  
+  直接使用命令docker run **-d** centos启动，使用docker ps发现centos 停止了。**这是常见的坑**，docker容器使用后台运行，就必须要有要一个前台进程，docker发现没有应用，就会自动停止。
   
 
+  
 - **docker start 容器id**
 
   启动指定id的容器（启动之前已经docker run运行的容器）
@@ -432,6 +431,8 @@ Docker-Hub：https://www.docker.com/products/docker-hub
 
     ![image-20210708135705937](Docker_学习笔记.assets/image-20210708135705937.png)
 
+    
+  
   - Rancher（CI/CD）
 
 
@@ -493,7 +494,7 @@ Redis默认端口：6379
 
   通过shell脚本的方式启动集群，并且采用自定义网络来连接redis各个节点。
 
-  eg：脚本名：create-redis-clusters.sh
+  **eg：**脚本名：create-redis-clusters.sh
 
   ```shell
   #!/bin/bash
@@ -512,6 +513,7 @@ Redis默认端口：6379
   cluster-enabled yes
   cluster-config-file nodes.conf
   cluster-node-timeout 5000
+  #redis节点的IP
   cluster-announce-ip 172.38.0.1${port}
   cluster-announce-port 6379
   cluster-announce-bus-port 16379
@@ -548,7 +550,7 @@ Redis默认端口：6379
   cluster info
   cluster nodes
   
-  # 清理当前连接的节点下的所有slot  
+  # （可选）清理当前连接的节点下的所有slot  
   cluster flushslots
   ```
 
@@ -689,12 +691,16 @@ Redis默认端口：6379
 
       
 
-    - 查看宿主机的挂载位置
+    - 查看容器数据卷在宿主机的挂载位置
+
+      ```shell
+  docker inspect 容器id 
+      ```
 
       若未指定挂载宿主机的位置，默认挂载在宿主机的/var/lib/docker/volumes
-
+    
       ![image-20210708220416520](Docker_学习笔记.assets/image-20210708220416520.png)
-
+    
       
 
   - **具名挂载**
@@ -702,29 +708,29 @@ Redis默认端口：6379
     指定容器所挂载的文件别名
 
     - 命令：
-
+  
       取别名为juming-nginx
 
       ```shell
-      docker run -d -P --name nginx02 -v juming-nginx:/etc/nginx nginx
+    docker run -d -P --name nginx02 -v juming-nginx:/etc/nginx nginx
       ```
 
     
 
   - **指定路径挂载**（常用）
-
+  
     此时，使用docker volume ls无法查看卷。只能使用  **docker inspect 容器id**  查看。
-
+  
     ```shell
     docker run \
     -d \
     -p 3306:3306 \
     -v /home/chris/mysql/conf:/etc/mysql/conf.d \
-    -v /home/chris/mysql/data:/var/lib/mysql \
+  -v /home/chris/mysql/data:/var/lib/mysql \
     -e MYSQL_ROOT_PASSWORD=123456 \
     --name mysql01 mysql:5.7
     ```
-
+  
     
 
 ## 2.2、数据卷容器
@@ -851,7 +857,7 @@ Docker官方**默认的Docker File文件名为：Dockerfile**，在使用时，�
 
 
 
-1. 编写一个Dockerfile文件
+1. 编写一个Dockerfile文件（建议采用默认文件名：Dockerfile）
 
    ```shell
    #基础镜像
@@ -887,9 +893,9 @@ Docker官方**默认的Docker File文件名为：Dockerfile**，在使用时，�
 
    
 
-2. docker build ：构建一个镜像
+2. docker build ：根据Docker File文件，构建一个镜像
 
-   **注意：下面的命令最后都有 `.`**    若不没有添加该部分，就会导致build失败。
+   **注意：下面的命令最后都有 `.`**    若不没有添加该符号，就会导致build失败。
 
    - 若编写的Docker File文件名，不为：Dockerfile
 
@@ -986,12 +992,9 @@ Docker官方**默认的Docker File文件名为：Dockerfile**，在使用时，�
 
 **eg：**
 
-- 启动tomcat，命令：docker run -it --name tomcat01 tomcat /bin/bash
-
+- 启动tomcat命令：docker run -it --name tomcat01 tomcat /bin/bash
 - 查看容器的虚拟设备接口：ip addr
-
 - 查看宿主机的虚拟设备接口：ip addr （ifconfig也可以）
-
 - **结论：**（看宿主机）
 
   - **47**：对应Docker中tomcat容器的虚拟设备接口
@@ -1098,7 +1101,7 @@ Docker官方**默认的Docker File文件名为：Dockerfile**，在使用时，�
 
   
 
-### 3.1.4、Docker容器间的网络连通
+### 3.1.4、实例：Docker容器间的网络连通
 
 不使用-link指定修改容器的host文件，根据域名跳转指定的IP。
 
@@ -1137,7 +1140,7 @@ docker exec tomcat-net-01 ping tomcat01
 
 
 
-## 3.2、Docker Compose
+## 3.2、Docker Compose（重点）
 
 docker-compose官网手册：https://docs.docker.com/compose/
 
@@ -1145,7 +1148,7 @@ docker-compose官网手册：https://docs.docker.com/compose/
 
 - **什么是docker-compose**
 
-  Compose 是一个用于定义和运行多容器 Docker 应用程序的工具。借助 Compose，可以使用 YAML 文件来配置应用程序的服务。然后，使用 docker-compose up 命令，从配置中创建并启动所有服务（即：一键启动项目）。
+  Compose 是一个用于定义和运行多容器的 Docker 应用程序工具。借助 Compose，可以使用 YAML 文件来配置应用程序的服务。然后，使用 docker-compose up 命令，根据docker-compose.yml配置文件来创建、启动所有服务（即：一键启动项目）。
 
   
 
@@ -1155,7 +1158,7 @@ docker-compose官网手册：https://docs.docker.com/compose/
 
   - **Dockerfile文件**
 
-    用于docker-compose.yml中的service，依据此文件构建镜像
+    在docker-compose.yml中的service部分使用，依据此文件构建、启动镜像
 
   - **docker-compose.yml**
 
@@ -1234,6 +1237,9 @@ services:
     #对外暴露的端口
     ports:
       - 8080
+    #（服务启动编排）web服务依赖redis：因此会先启动redis服务，再启动web  
+    depends_on:
+       - redis
     #网络
     networks:
       - front-tier
@@ -1242,12 +1248,27 @@ services:
     volumes:
       - /home/chris/code:/home/tmp
  
+  #服务名：redis
   redis:
     image: redis
     links:
       - web
     networks:
       - back-tier
+    #部署相关  
+    deploy:
+      #指定集群中启动redis容器的数量
+      replicas: 2
+      #滚动更新配置
+      update_config:
+        #一次性更新的容器数量
+        parallelism: 2
+        #更新一组容器之间的间隔时间
+        delay: 10s
+      #容器重启策略  
+      restart_policy:
+        #只有当容器内部应用程序出现问题才会重启
+        condition: on-failure  
  
   lb:
     image: dockercloud/haproxy
@@ -1272,7 +1293,7 @@ driver: bridge
 
 
 
-### 3.2.4、常命令
+### 3.2.4、常见命令
 
 - 启动docker-compose项目
 
@@ -1319,9 +1340,9 @@ driver: bridge
 
   
 
-###　3.2.5、Docker compose实例
+###　3.2.5、实例：Docker compose部署flask项目
 
-- **准备材料目录：**
+- **准备材料：**
 
   - app.py  ：程序
   - requirements.txt ：用于指定Dockerfile中RUN命令安装的软件
@@ -1385,7 +1406,6 @@ driver: bridge
   - Dockerfile  
 
     ```shell
-    # syntax=docker/dockerfile:1
     FROM python:3.7-alpine
     WORKDIR /code
     ENV FLASK_APP=app.py
@@ -1394,18 +1414,18 @@ driver: bridge
     COPY requirements.txt requirements.txt
     # 根据requirements.txt中的内容，安装软件
     RUN pip install -r requirements.txt
-    #堆外暴露端口5000
+    #对外暴露端口5000
     EXPOSE 5000
     COPY . .
     #容器启动时，运行flask run命令
     CMD ["flask", "run"]
     ```
-
     
 
-  - docker-compose.yml
-
-    ```yml
+    
+- docker-compose.yml
+  
+  ```yml
     #docker-compose版本
     version: "3.9"
     #服务
@@ -1429,9 +1449,9 @@ driver: bridge
         #docker pull仓库中的redis镜像
         image: "redis:alpine"
     ```
-
   
 
+  
 - **运行项目**
 
   在当前composetest路径中，使用命令：docker-compose up
@@ -1450,14 +1470,465 @@ driver: bridge
 
 - **停止项目**
 
-  - **方式1：**直接在运行docker-compose up的终端，使用： ctrl + c
+  - **方式1：**直接在运行docker-compose up的终端（且未使用-d，后台运行），使用： ctrl + c
   - **方式2：**cd至 docker-compose.yml 文件存放的目录，使用：docker-compose down
 
 
 
 ## 3.3、Docker Swarm
 
-类似于kubernetes，用于部署、管理拥有多个容器的服务。但是kubernetes适用于部署超过10个容器的服务。
+### 3.3.1、基本概念
+
+- Docker Swarm 是 Docker 的集群管理工具。它将 Docker 主机池转变为单个虚拟 Docker 主机。 Docker Swarm 提供了标准的 Docker API，所有任何已经与 Docker 守护程序通信的工具都可以使用 Swarm 轻松地扩展到多个主机。
+
+- **支持的工具：**
+
+  - Dokku
+  - Docker Compose
+  - Docker Machine
+  - Jenkins
+
+- **与k8s的异同：**
+
+  类似于kubernetes，用于部署、管理拥有多个容器的服务。但是kubernetes适用于部署超过10个容器的服务。
+
+- **原理：**
+
+  - swarm 集群由管理节点（manager）和工作节点（work node）构成
+    - **swarm mananger**：负责整个集群的管理工作包括集群配置、服务管理等所有跟集群有关的工作。
+    - **work node**：即图中的 available node，主要负责运行相应的服务来执行任务（task）
+
+  <img src="Docker_学习笔记.assets/image-20210711180908236.png" alt="image-20210711180908236" style="zoom: 80%;" />
+
+
+
+### 3.3.2、常见命令
+
+#### 3.3.2.1、集群命令
+
+- 创建集群：
+
+  ```shell
+  #命令：docker swarm init --advertise-addr swarm集群的IP    （默认端口未2377）
+  docker swarm init --advertise-addr 192.168.99.107
+  ```
+
+  
+
+- 查看集群信息
+
+  只能通过manager节点查看
+
+  ```shell
+  docker info
+  ```
+
+  
+
+- 重启swarm集群
+
+  ```shell
+  docker swarm init --force-new-cluster
+  ```
+
+  当遇到下列问题时，可以使用该命令。这是由于集群中的manager节点出现异常，重启所有manger节点，待重新选举出leader后即可恢复正常
+
+  ```shell
+  Error response from daemon: rpc error: code = 2 desc = The swarm does not have a leader. It's possible that too few managers are online. Make sure more than half of the managers are online.
+  ```
+
+
+
+- 删除swarm集群
+
+  - （在manager节点中操作）需要停止集群中的所有节点，除了manager节点
+
+    ```shell
+    docker node update --availability drain worker节点名（或者worker节点ID）
+    ```
+
+    
+
+  - （在worker节点中操作）离开swarm节点
+
+    ```shell
+    docker swarm leave
+    ```
+
+    
+
+  - （在manager节点中操作）删除swarm集群中的节点
+
+    ```shell
+    docker node rm worker节点名（或者worker节点ID）
+    ```
+
+    
+
+  - （在manager节点中操作）解散swarm集群
+
+    ```shell
+    docker swarm leave --force
+    ```
+
+
+
+​		至此，swarm集群已经被删除，该集群所创建的veth虚拟设备接口均被自动删除（可使用ifconfig查看）。但是集群所创建的docker网络未被删除（可使用docker network ls查看）
+
+
+
+
+
+#### 3.3.2.2、节点命令
+
+-  创建manager节点
+
+  执行docker swarm init，已经可以得到一个manager节点，使用下面的命令可以给swarm集群增加新的manager节点。
+
+  ```shell
+  #在manager节点中执行
+  docker swarm join-token manager
+  
+  #结果：
+  To add a manager to this swarm, run the following command:
+  
+      docker swarm join --token SWMTKN-1-14zetgr9a56bgvyo2skjo70c7l06fuup9t1l75ehkymd40pe5h-5019l0p5vt1vt5lc4ywq76niu 192.168.222.107:2377
+  ```
+
+  
+
+- 创建worker节点
+
+  ```shell
+  #命令：（执行docker swarm init可以得到该命令）
+  #说明：docker swarm join --token token值 swarm集群的IP:端口
+  docker swarm join --token SWMTKN-1-14zetgr9a56bgvyo2skjo70c7l06fuup9t1l75ehkymd40pe5h-eitaf0y13xulcwm5jffkknwh0 192.168.222.107:2377
+  ```
+
+  
+
+- 删除swarm集群中的worker节点
+
+  只能在manager节点中执行该命令
+
+  ```shell
+  docker node rm 节点名（或者节点ID）
+  ```
+
+  
+
+- worker节点脱离swarm集群
+
+  只能在worker节点中运行
+
+  ```shell
+  #命令：
+  docker swarm leave
+  #附加参数
+  --force   强制离开当前swarm集群（用于manager节点离开集群）
+  
+  
+  #结果：状态变迁：Ready -》 Down
+  ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+  gkj0vbw9yb1pt2nale3sxtnp3     chris03    Down      Active                          20.10.7
+  ```
+
+   
+
+- 停止worker节点
+
+  在manager节点中执行命令，用于停止某个worker节点，但该worker节点不会从swarm集群中移除
+
+  ```shell
+  #命令：docker node update --availability drain worker节点名
+  docker node update --availability drain chris03
+  
+  #结果：docker node ls
+  ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+  xvekkock8lez0p9bg2dnb0mhk *   chris      Ready     Active         Leader           20.10.7
+  gkj0vbw9yb1pt2nale3sxtnp3     chris03    Ready     Drain                           20.10.7
+  ```
+
+  
+
+- 启动worker节点
+
+  在manager节点中执行命令，用于启动某个worker节点
+
+  ```shell
+  #命令：docker node update --availability active worker节点名
+  docker node update --availability active chris03
+  
+  #结果：docker node ls
+  ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+  xvekkock8lez0p9bg2dnb0mhk *   chris      Ready     Active         Leader           20.10.7
+  gkj0vbw9yb1pt2nale3sxtnp3     chris03    Ready     Active                           20.10.7
+  ```
+
+  
+
+- 
+
+
+
+#### 3.3.2.3、服务命令
+
+- 部署服务
+
+  只能在manager节点中执行命令。
+
+  ```shell
+  #命令：docker service create --replicas 服务数量 --name 服务名 镜像来源
+  docker service create --replicas 1 --name helloworld alpine ping docker.com
+  
+  #参数说明：
+  --replicas：指定启动几个服务实例；即：需要在几个节点中启动该服务
+  --name：指定启动服务的服务名；
+  alpine ping docker.com：指定使用alpine镜像创建服务，实例启动时运行ping docker.com命令。
+  
+  #查看启动服务的列表：
+  docker service ls
+  
+  #查看具体服务部署在哪个节点中
+  docker service 服务名（或者服务ID）
+  ```
+
+  
+
+- 升级服务
+
+  在manager节点中执行命令
+
+  ```shell
+  #命令：docker service update --image 镜像名：版本号 已运行的服务名
+  docker service update --image redis:3.0.7 redis
+  
+  
+  #测试：
+  #运行3.0.6版本的redis服务
+  docker service create --replicas 1 --name redis --update-delay 10s redis:3.0.6
+  #升级未3.0.7版本的redis服务
+  docker service update --image redis:3.0.7 redis
+  ```
+
+  
+
+- 删除服务
+
+  在manager节点中执行命令
+
+  ```shell
+  #命令：docker service rm 服务名（或服务ID）
+  docker service rm helloworld
+  ```
+
+  
+
+- 扩展服务在swarm集群中的数量
+
+  在manager节点中执行命令
+
+  ```shell
+  #命令：docker service scale 服务名=在swarm集群中的数量
+  docker service scale helloworld=2
+  ```
+
+  
+
+- 查看服务部署情况
+
+  在manager节点中执行命令
+
+  ```shell
+  #命令：docker service ps 服务名（或服务ID）
+  docker service ps helloworld
+  ```
+
+  
+
+
+
+### 3.3.3、实例：使用Swarm部署服务集群
+
+本次实验在VMware的4台Ubuntu18.04虚拟机上测试。
+
+- **准备工作**
+
+  - 4台主机：阿里云服务器，或者VMware上的虚拟机
+
+  - 安装XShell软件：方便同时操作多台主机
+
+  - 查看某台机器的网卡IP
+
+    ```shell
+    #命令
+    ifconfig
+    #结果
+    ens33: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+            inet 192.168.222.128
+    ```
+
+    
+
+- **具体步骤**
+
+  - **初始化swarm集群**
+
+    ```shell
+    #命令：--advertise-addr swarm集群的IP：其它swarm中的worker节点使用此ip地址与manager联系
+    docker swarm init --advertise-addr 192.168.222.107
+    
+    #结果：
+    To add a worker to this swarm, run the following command:
+    	#添加其他worker节点时使用的命令（在其他节点的终端执行该命令）
+        docker swarm join --token SWMTKN-1-14zetgr9a56bgvyo2skjo70c7l06fuup9t1l75ehkymd40pe5h-eitaf0y13xulcwm5jffkknwh0 192.168.222.107:2377
+        
+    #使用docker swarm join-token manager命令，产生添加manager节点的连接命令
+    To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+    
+    ```
+
+    
+
+  - **添加worker节点至swarm集群中**
+
+    需要在worker节点的终端中执行下面的命令：
+
+    ```shell
+    #命令：
+    docker swarm join --token SWMTKN-1-14zetgr9a56bgvyo2skjo70c7l06fuup9t1l75ehkymd40pe5h-eitaf0y13xulcwm5jffkknwh0 192.168.222.107:2377
+    
+    #若添加失败，则将IP替换为manager的网卡IP
+    docker swarm join --token SWMTKN-1-14zetgr9a56bgvyo2skjo70c7l06fuup9t1l75ehkymd40pe5h-eitaf0y13xulcwm5jffkknwh0 manager节点网卡的IP:2377
+    ```
+
+     
+
+  -  **（可选）查看swarm集群信息**
+
+    只能在manager节点中进行查看。
+
+    ```shell
+    #命令
+    docker node ls
+    
+    #结果
+    ID                            HOSTNAME   STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+    xvekkock8lez0p9bg2dnb0mhk *   chris      Ready     Active         Leader           20.10.7
+    m65fs93l8woj8bjlrd23vo48q     chris01    Ready     Active                          20.10.7
+    1mwab46xzwn18a26r51ht4fa8     chris02    Ready     Active                          20.10.7
+    ox4dvylh62hyhobb1iq7xcemh     chris03    Ready     Active                          20.10.7
+    
+    ```
+
+    
+
+  - **部署服务至集群中**
+
+    ```shell
+    #命令：
+    docker service create --replicas 1 --name helloworld alpine ping docker.com
+    
+    #参数说明：
+    --replicas：指定启动几个服务实例；即：需要在几个节点中启动该服务
+    --name：指定启动服务的服务名；
+    alpine ping docker.com：指定使用alpine镜像创建服务，实例启动时运行ping docker.com命令。
+    
+    #查看启动服务的列表：
+    docker service ls
+    
+    #查看具体服务部署在哪个节点中
+    docker service 服务名（或者服务ID）
+    ```
+
+     
+
+  - **扩展某个服务在集群中的部署数量**
+
+     ```shell
+    #命令：服务名=在集群中的数量
+    docker service scale helloworld=2
+    
+    ```
+
+    
+
+  - **删除服务**
+
+    ```shell
+    #命令：rm 服务名
+    docker service rm helloworld
+    ```
+
+    
+
+    
+
+- **<font color='red'>常见问题：</font>**
+
+  1. --advertise-addr指定的IP，可以和当前机器的网卡IP不在同一网段。
+
+     
+
+  2. **如果使用docker swarm join --token命令添加其他节点为work节点时，出现下面的错误：**
+
+     ```shell
+     Error response from daemon: Timeout was reached before node joined. The attempt to join the swarm will continue in the background. Use the "docker info" command to see the current swarm status of your node.
+     ```
+
+     
+
+     **解决方式：**（罗列几种可能的原因）
+
+     - **若worker节点无法ping（或 telnet）连通manager节点，则需要修改docker swarm join命令中的swarm 集群IP。**
+
+       因为：docker swarm init --advertise-addr 192.168.222.107，该命令所创建的网络无法被其他主机访问，其他主机只能通过：woker节点网卡 -》 manager节点网卡 -》 manager节点中的swarm集群
+
+       ```shell
+       #具体处理步骤：
+       
+       #（在worker节点中）首先，测试work节点是否能连接docker swarm join命令中的swarm 集群IP
+       telnet 192.168.222.107 2377
+       
+       #若无法连接，则修改docker swarm join命令中的swarm 集群IP ，修改为manager节点的网卡IP
+       #（在manager节点中）使用ifconfig，获取manager节点的网卡IP
+       ifconfig
+       
+       #（在worker节点中）
+       docker swarm join --token SWMTKN-1-14zetgr9a56bgvyo2skjo70c7l06fuup9t1l75ehkymd40pe5h-eitaf0y13xulcwm5jffkknwh0 manager节点网卡的IP:2377
+       ```
+
+       
+
+     - **work节点的主机名和manager主机名相同，则需要修改worker节点的主机名**
+
+       ```shell
+       #查看主机名
+       hostname
+       #修改主机名
+       hostnamectl set-hostname 新的主机名
+       ```
+
+       
+
+     - **防火墙阻拦请求：manager节点的端口未打开**
+
+       Docker Swarm集群开放了三个端口：
+
+       - 2377端口， 用于集群管理通信
+       - 7946端口， 用于集群节点之间的通信
+       - 4789端口， 用于overlay网络流量
+
+       需要使用ufw命令打开响应端口，允许远程访问
+
+       ```shell
+       #命令：
+       ufw allow 2377
+       ufw allow 7946
+       ufw allow 4789
+       ```
+
+
 
 
 
