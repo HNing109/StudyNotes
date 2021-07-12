@@ -189,98 +189,98 @@
 
       
 
-  - **Procfile配置文件**
+- **<font color='red'>Procfile配置文件参数说明</font>**
 
-    - 先准备Procfile配置文件，在该文件中写入需要启动节点的信息。
+  1. --name：
 
-      
+     etcd 集群中的节点名，不可重复
 
-    - **启动参数说明：**
+  2. --data-dir：
 
-      1. --name：
+     存放数据目录，节点ID，集群ID，Snapshot文件，集群初始化配置，WAL 文件
 
-         etcd 集群中的节点名，不可重复
+  3. **--listen-peer-urls：**
 
-      2. --data-dir：
+     本member使用，用于监听其他member发送信息的地址。ip为全0代表监听本member侧所有接口。(应用场景：如选举，数据同步等)
 
-         存放数据目录，节点ID，集群ID，Snapshot文件，集群初始化配置，WAL 文件
+  4. **--initial-advertise-peer-urls** ：
 
-      3. **--listen-peer-urls：**
+     其他member通过该地址与本member交互信息。该参数的value一定要同时配置到--initial-cluster参数中。
 
-         本member使用，用于监听其他member发送信息的地址。ip为全0代表监听本member侧所有接口。(应用场景：如选举，数据同步等)
+  5. **<font color='red'>--listen-client-urls</font>** ：
 
-      4. **--initial-advertise-peer-urls** ：
+     监听外部客户端的请求（即：**etcd节点对外提供服务的地址**，**可添加多个，使用,分隔**）。
 
-         其他member通过该地址与本member交互信息。该参数的value一定要同时配置到--initial-cluster参数中。
+     - **注意事项：**
 
-      5. **<font color='red'>--listen-client-urls</font>** ：
+       <font color='red'>--listen-client-urls，必须配置一个url = **http://本机网卡的IP+端口**，远程客户端才能访问本机的ETCD数据库。</font>
 
-         监听外部客户端的请求（即：**etcd节点对外提供服务的地址**，**可添加多个，使用,分隔**）。
+       否则会出现错误：
 
-         - **注意事项：**
+       ```shell
+       grpc: Conn.resetTransport failed to create client transport: connection error: desc = "transport: dial tcp 192.168.83.130:2379: connectex: No connection could be made because the target machine actively refused it.";
+       ```
 
-           <font color='red'>--listen-client-urls，必须配置一个url = **http://本机网卡的IP+端口**，远程客户端才能访问本机的ETCD数据库。</font>
+       
 
-           否则会出现错误：
+     **eg：**etcdctl工具、curl请求、go编写的访问etcd服务代码
 
-           ```shell
-           grpc: Conn.resetTransport failed to create client transport: connection error: desc = "transport: dial tcp 192.168.83.130:2379: connectex: No connection could be made because the target machine actively refused it.";
-           ```
+     ```shell
+     #启动etcd节点时，建议的配置：
+     #保证本地etcdctl工具、远程客户端均可请求访问etcd服务端
+     --listen-client-urls http://127.0.0.1:2379,http://本地网卡IP:2379 --advertise-client-urls http://127.0.0.1:2379
+     ```
 
-           
+     
 
-         **eg：**etcdctl工具、curl请求、go编写的访问etcd服务代码
+  6. **<font color='red'>--advertise-client-urls</font>** ：
 
-         ```shell
-         #启动etcd节点时，建议的配置：
-         #保证本地etcdctl工具、远程客户端均可请求访问etcd服务端
-         --listen-client-urls http://127.0.0.1:2379,http://本地网卡IP:2379 --advertise-client-urls http://127.0.0.1:2379
-         ```
+     该节点的客户端（广播客户端），用于此url与其他etcd节点通信（**可添加多个，使用,分隔**）（**注意：此url不是用于远程客户端访问该节点的**）。
 
-         
+     **此处，不能配置为  空、localhost。**
 
-      6. **<font color='red'>--advertise-client-urls</font>** ：
+  7. --initial-cluster-token：
 
-         该节点的客户端（广播客户端），用于此url与其他etcd节点通信（**可添加多个，使用,分隔**）（**注意：此url不是用于远程客户端访问该节点的**）。
+     集群的token值，设置该值后集群将生成唯一id,并为每个节点也生成唯一id,当使用相同配置文件再启动一个集群时，只要该token值不一样，ETCD集群就不会相互影响
 
-         **此处，不能配置为  空、localhost。**
+  8. **--initial-cluster** ：
 
-      7. --initial-cluster-token：
+     是集群中所有--initial-advertise-peer-urls 的合集，即：**此处配置的url必须和--initial-advertise-peer-urls配置的一致** 
 
-         集群的token值，设置该值后集群将生成唯一id,并为每个节点也生成唯一id,当使用相同配置文件再启动一个集群时，只要该token值不一样，ETCD集群就不会相互影响
+  9. --initial-cluster-state new：
 
-      8. **--initial-cluster** ：
+     新建集群的标志
 
-         是集群中所有--initial-advertise-peer-urls 的合集，即：**此处配置的url必须和--initial-advertise-peer-urls配置的一致** 
+     
 
-      9. --initial-cluster-state new：
+- **<font color='red'>Procfile配置文件</font>**
 
-         新建集群的标志
+  - 先准备Procfile配置文件，在该文件中写入需要启动节点的信息。
 
-         
+    
 
-    - **参考官方配置文件：**https://github.com/etcd-io/etcd/blob/main/Procfile
-      
-      - 客户端通信地址为：
-        - 各个节点访问其他节点的客户端地址：http://127.0.0.1:2379 , http://127.0.0.1:22379 ,  http://127.0.0.1:32379
-        - **远程客户端访问ETCD节点的地址**：http://192.168.83.130:2379，http://192.168.83.130:22379，http://192.168.83.130:32379
-      
-      ```shell
-      # Use goreman to run `go get github.com/mattn/goreman`
-      # Change the path of bin/etcd if etcd is located elsewhere
-      
-      # ETCD1
-      etcd1: etcd --name infra1 --listen-client-urls http://127.0.0.1:2379,http://192.168.83.130:2379 --advertise-client-urls http://127.0.0.1:2379 --listen-peer-urls http://127.0.0.1:12380 --initial-advertise-peer-urls http://127.0.0.1:12380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
-      
-      # ETCD2
-      etcd2: etcd --name infra2 --listen-client-urls http://127.0.0.1:22379,http://192.168.83.130:22379 --advertise-client-urls http://127.0.0.1:22379 --listen-peer-urls http://127.0.0.1:22380 --initial-advertise-peer-urls http://127.0.0.1:22380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
-      
-      # ETCD3
-      etcd3: etcd --name infra3 --listen-client-urls http://127.0.0.1:32379,http://192.168.83.130:32379 --advertise-client-urls http://127.0.0.1:32379 --listen-peer-urls http://127.0.0.1:32380 --initial-advertise-peer-urls http://127.0.0.1:32380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
-      #proxy: etcd grpc-proxy start --endpoints=127.0.0.1:2379,127.0.0.1:22379,127.0.0.1:32379 --listen-addr=127.0.0.1:23790 --advertise-client-url=127.0.0.1:23790 --enable-pprof
-      
-      # A learner node can be started using Procfile.learner
-      ```
+  - **参考官方配置文件：**https://github.com/etcd-io/etcd/blob/main/Procfile
+    
+    - 客户端通信地址为：
+      - 各个节点访问其他节点的客户端地址：http://127.0.0.1:2379 , http://127.0.0.1:22379 ,  http://127.0.0.1:32379
+      - **远程客户端访问ETCD节点的地址**：http://192.168.83.130:2379，http://192.168.83.130:22379，http://192.168.83.130:32379
+    
+    ```shell
+    # Use goreman to run `go get github.com/mattn/goreman`
+    # Change the path of bin/etcd if etcd is located elsewhere
+    
+    # ETCD1
+    etcd1: etcd --name infra1 --listen-client-urls http://127.0.0.1:2379,http://192.168.83.130:2379 --advertise-client-urls http://127.0.0.1:2379 --listen-peer-urls http://127.0.0.1:12380 --initial-advertise-peer-urls http://127.0.0.1:12380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
+    
+    # ETCD2
+    etcd2: etcd --name infra2 --listen-client-urls http://127.0.0.1:22379,http://192.168.83.130:22379 --advertise-client-urls http://127.0.0.1:22379 --listen-peer-urls http://127.0.0.1:22380 --initial-advertise-peer-urls http://127.0.0.1:22380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
+    
+    # ETCD3
+    etcd3: etcd --name infra3 --listen-client-urls http://127.0.0.1:32379,http://192.168.83.130:32379 --advertise-client-urls http://127.0.0.1:32379 --listen-peer-urls http://127.0.0.1:32380 --initial-advertise-peer-urls http://127.0.0.1:32380 --initial-cluster-token etcd-cluster-1 --initial-cluster 'infra1=http://127.0.0.1:12380,infra2=http://127.0.0.1:22380,infra3=http://127.0.0.1:32380' --initial-cluster-state new --enable-pprof --logger=zap --log-outputs=stderr
+    #proxy: etcd grpc-proxy start --endpoints=127.0.0.1:2379,127.0.0.1:22379,127.0.0.1:32379 --listen-addr=127.0.0.1:23790 --advertise-client-url=127.0.0.1:23790 --enable-pprof
+    
+    # A learner node can be started using Procfile.learner
+    ```
 
   
 
