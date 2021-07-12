@@ -248,27 +248,27 @@ Docker-Hub：https://www.docker.com/products/docker-hub
   --rm image名        一般是用来测试，用完就删除容器
   ```
   
-- **eg：**
-  
-  - 启动、进入容器中的centos
-  
-    docker run **-it** centos /bin/bash
-  
-    **说明：**/bin/bash，表示使用命令行的方式进入centos容器中
-  
+  - **eg：**
     
+    - 启动、进入容器中的centos
+    
+      docker run **-it** centos /bin/bash
+    
+      **说明：**/bin/bash，表示使用命令行的方式进入centos容器中
+    
+      
+    
+    - 测试tomcat是否能启动
+    
+      docker run -it **--rm** tomcat:9.0
   
-  - 测试tomcat是否能启动
-  
-    docker run -it **--rm** tomcat:9.0
   
   
+  - **常见问题：**
+    
+    直接使用命令docker run **-d** centos启动，使用docker ps发现centos 停止了。**这是常见的坑**，docker容器使用后台运行，就必须要有要一个前台进程，docker发现没有应用，就会自动停止。
   
-- **常见问题：**
   
-  直接使用命令docker run **-d** centos启动，使用docker ps发现centos 停止了。**这是常见的坑**，docker容器使用后台运行，就必须要有要一个前台进程，docker发现没有应用，就会自动停止。
-  
-
   
 - **docker start 容器id**
 
@@ -324,7 +324,7 @@ Docker-Hub：https://www.docker.com/products/docker-hub
 
   ```shell
   docker rm 容器id   				#删除指定的容器，不能删除正在运行的容器，如果要强制删除 rm -rf
-  docker rm -f $(docker ps -aq)    #删除指定的容器
+  docker rm -f $(docker ps -aq)    #删除所有的容器
   docker ps -a -q|xargs docker rm  #删除所有的容器
   ```
 
@@ -694,7 +694,7 @@ Redis默认端口：6379
     - 查看容器数据卷在宿主机的挂载位置
 
       ```shell
-  docker inspect 容器id 
+    docker inspect 容器id 
       ```
 
       若未指定挂载宿主机的位置，默认挂载在宿主机的/var/lib/docker/volumes
@@ -712,7 +712,7 @@ Redis默认端口：6379
       取别名为juming-nginx
 
       ```shell
-    docker run -d -P --name nginx02 -v juming-nginx:/etc/nginx nginx
+      docker run -d -P --name nginx02 -v juming-nginx:/etc/nginx nginx
       ```
 
     
@@ -726,7 +726,7 @@ Redis默认端口：6379
     -d \
     -p 3306:3306 \
     -v /home/chris/mysql/conf:/etc/mysql/conf.d \
-  -v /home/chris/mysql/data:/var/lib/mysql \
+    -v /home/chris/mysql/data:/var/lib/mysql \
     -e MYSQL_ROOT_PASSWORD=123456 \
     --name mysql01 mysql:5.7
     ```
@@ -900,9 +900,10 @@ Docker官方**默认的Docker File文件名为：Dockerfile**，在使用时，�
    - 若编写的Docker File文件名，不为：Dockerfile
 
      ```shell
+     #命令：docker build -f xxx -t Docker-Hub用户ID/镜像名:版本号
      # -f, 指定使用的DockerFile文件
      # -t, 指定构建的镜像名：版本号
-     docker build -f DockerFile文件的路径 -t mytomcat:0.1 .
+     docker build -f DockerFile文件的路径 -t z1294550676/mytomcat:0.1 .
      ```
 
      
@@ -910,9 +911,10 @@ Docker官方**默认的Docker File文件名为：Dockerfile**，在使用时，�
    - 若使用默认文件名：Dockerfile
 
      ```shell
-     docker build -t mytomcat:0.1 .
+     #命令：docker build -t Docker-Hub用户ID/镜像名:版本号
+     docker build -t z1294550676/mytomcat:0.1 .
      ```
-
+     
      
 
 3. docker run：运行自己构建的镜像
@@ -1420,9 +1422,7 @@ driver: bridge
     #容器启动时，运行flask run命令
     CMD ["flask", "run"]
     ```
-    
-
-    
+  
 - docker-compose.yml
   
   ```yml
@@ -1448,9 +1448,9 @@ driver: bridge
       redis:
         #docker pull仓库中的redis镜像
         image: "redis:alpine"
-    ```
+  ```
   
-
+  
   
 - **运行项目**
 
@@ -1878,7 +1878,7 @@ driver: bridge
 
      
 
-     **解决方式：**（罗列几种可能的原因）
+     **解决方式：**（罗列几种可能的原因：**配置完成后，需要重启系统**）
 
      - **若worker节点无法ping（或 telnet）连通manager节点，则需要修改docker swarm join命令中的swarm 集群IP。**
 

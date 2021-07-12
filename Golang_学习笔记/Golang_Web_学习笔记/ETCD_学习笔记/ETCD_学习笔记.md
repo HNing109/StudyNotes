@@ -205,13 +205,13 @@
 
          存放数据目录，节点ID，集群ID，Snapshot文件，集群初始化配置，WAL 文件
 
-      3. --listen-peer-urls：
+      3. **--listen-peer-urls：**
 
-         监听的用于节点之间通信的url，可监听多个，集群内部将通过这些url进行数据交互(如选举，数据同步等)
+         本member使用，用于监听其他member发送信息的地址。ip为全0代表监听本member侧所有接口。(应用场景：如选举，数据同步等)
 
       4. **--initial-advertise-peer-urls** ：
 
-         建议用于节点之间通信的url，节点间将以该值进行通信。
+         其他member通过该地址与本member交互信息。该参数的value一定要同时配置到--initial-cluster参数中。
 
       5. **<font color='red'>--listen-client-urls</font>** ：
 
@@ -326,7 +326,7 @@
 
 这是命令行客户端工具，可直接对etcd数据库进行操作。
 
-#### 3.4.1.1、<font color='red'>基本命令的附加选项</font>
+#### 3.4.1.1、<font color='red'>命令的附加选项</font>
 
 - 指定节点启动的地址、端口
 

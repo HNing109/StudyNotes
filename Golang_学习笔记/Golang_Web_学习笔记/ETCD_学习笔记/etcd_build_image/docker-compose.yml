@@ -1,0 +1,20 @@
+version: '2'
+
+services:
+  etcd:
+    image: z1294550676/etcd:2
+    command: ["/usr/bin/etcd","--name", "etcd1",
+               "--data-dir", "/etcd-data",
+               "--listen-client-urls","http://0.0.0.0:2379",
+               "--advertise-client-urls","http://0.0.0.0:2379",
+               "--listen-peer-urls","http://0.0.0.0:2380",
+               "--initial-advertise-peer-urls","http://0.0.0.0:2380",
+               "--initial-cluster","etcd1=http://0.0.0.0:2380,etcd2=http://192.168.83.137:2380,etcd3=http://192.168.83.138:2380",
+               "--initial-cluster-token","2021CTyun!",
+               "--initial-cluster-state","new",
+               "--auto-compaction-retention","10"]
+    volumes:
+      - /data/etcd:/etcd-data
+    ports:
+      - 2379:2379
+      - 2380:2380
