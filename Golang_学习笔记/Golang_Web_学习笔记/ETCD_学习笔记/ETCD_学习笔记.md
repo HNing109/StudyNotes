@@ -155,9 +155,9 @@
 
 
 
-## 3.3、启动ETCD
+## 3.3、部署ETCD
 
-### 3.3.1、启动单个ETCD
+### 3.3.1、部署单个ETCD
 
 - 启动： 
 
@@ -175,7 +175,7 @@
 
 
 
-### 3.3.2、启动ETCD集群
+### 3.3.2、部署ETCD集群
 
 #### 3.3.2.1、部署在Ubuntu系统
 
@@ -264,6 +264,7 @@
     - 客户端通信地址为：
       - 各个节点访问其他节点的客户端地址：http://127.0.0.1:2379 , http://127.0.0.1:22379 ,  http://127.0.0.1:32379
       - **远程客户端访问ETCD节点的地址**：http://192.168.83.130:2379，http://192.168.83.130:22379，http://192.168.83.130:32379
+    - 配置文件如下：文件名Procfile
     
     ```shell
     # Use goreman to run `go get github.com/mattn/goreman`
@@ -313,10 +314,7 @@
 
 
 
-
-#### 3.3.2.2、部署在Docker中
-
-##### 3.3.2.2.1、一台物理机运行3个docker容器
+#### 3.3.2.2、1台物理机运行3个ETCD容器
 
 docker-compose.yml文件如下
 
@@ -356,9 +354,17 @@ services:
 
 
 
-##### 3.3.2.2.2、3台物理机运行3个docker容器
+#### 3.3.2.3、3台物理机运行分别1个ETCD容器
 
-- 构建自己的ETCD镜像包
+（此方法有待进一步改进，还不可使用，因为无法建立集群，问题：3台机器的ID不匹配）
+
+- **构建自己的ETCD镜像包**
+
+  - 文件名：Dockerfile
+
+  - 构建命令：docker build -t DockerHub的ID/etcd:版本号
+
+    eg：docker build -t z1294550676/etcd:3.4.16
 
   ```shell
   FROM centos
@@ -376,7 +382,7 @@ services:
       wget ${DOWNLOAD}${ETCDVERSION}.tar.gz && tar -zxf ${ETCDVERSION}.tar.gz -C /export/servers/ && \
       /bin/rm -rf ${ETCDVERSION}.tar.gz ;\
       chown -R ${USER}.${USER} /export ;\
-      ln -s /export/servers/${ETCDVERSION}/etcd* /usr/bin/;\
+      ln -s /export/servers/${ETCDVERSION}/etcd* /usr/local/bin/;\
   	rm -rf /etcd-data/ ;
   
   EXPOSE 2379 2380
@@ -384,17 +390,41 @@ services:
 
   
 
-- 使用docker-compose运行
+- **使用docker-compose运行**
 
   - docker-compose.yml文件
 
+    每台机器上需要修改的地方：
+
+    - --name：修改为对应节点名称
+
+    - --initial-cluster：修改对应的etcd的IP，本机IP为0.0.0.0:2380，其他机器为相应网卡的IP:2380
+
+      **注意：0.0.0.0、127.0.0.1、localhost的区别**
+
+      - 0.0.0.0
+
+        - 在**服务器**中，表示本机上的所有IPV4地址，若主机有两个IP地址，192.168.1.1 和 10.1.2.1，并且该主机上的一个服务监听的地址是0.0.0.0,那么通过两个ip地址都能够访问该服务。
+        - 在**路由**中，0.0.0.0表示的是默认路由，即当路由表中没有找到完全匹配的路由的时，则使用该IP进行路由
+
+      - 127.0.0.1
+
+        127.0.0.1属于{127,}集合中的一个，而所有网络号为127的地址都被称之为回环地址，所以回环地址 ≠ 127.0.0.1,它们是包含关系，即回环地址包含127.0.0.1。
+
+      - localhost
+
+        localhost是个域名，而不是一个ip地址。一般情况下，认为localhost、127.0.0.1是等价的，因为大多数电脑上都在hosts文件中将localhost指向了127.0.0.1。
+
+  - 启动命令：docker-compose up
+
   ```shell
+  #docker-compose.yml
   version: '2'
   
   services:
     etcd:
       image: z1294550676/etcd:3.4.16
-      command: ["/usr/bin/etcd","--name", "etcd1",
+      command: ["/usr/local/bin/etcd","--name", "etcd1",
                  "--data-dir", "/etcd-data",
                  "--listen-client-urls","http://0.0.0.0:2379",
                  "--advertise-client-urls","http://0.0.0.0:2379",
@@ -411,7 +441,6 @@ services:
         - 2380:2380
   ```
 
-  - 启动命令：docker-compose up
 
 
 
