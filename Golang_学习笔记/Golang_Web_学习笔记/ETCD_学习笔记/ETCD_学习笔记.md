@@ -316,7 +316,102 @@
 
 #### 3.3.2.2、部署在Docker中
 
+##### 3.3.2.2.1、一台物理机运行3个docker容器
 
+docker-compose.yml文件如下
+
+```shell
+version: '3'
+networks:
+  byfn:
+services:
+
+  etcd1:
+    image: quay.io/coreos/etcd
+    container_name: etcd1
+    command: etcd -name etcd1 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379 -listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380" -initial-cluster-state new
+    ports:
+      - 12379:2379
+    networks:
+      - byfn
+      
+  etcd2:
+    image: quay.io/coreos/etcd
+    container_name: etcd2
+    command: etcd -name etcd2 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379 -listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380" -initial-cluster-state new
+    ports:
+      - 22379:2379
+    networks:
+      - byfn
+      
+  etcd3:
+    image: quay.io/coreos/etcd
+    container_name: etcd3
+    command: etcd -name etcd3 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379 -listen-peer-urls http://0.0.0.0:2380 -initial-cluster-token etcd-cluster -initial-cluster "etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380" -initial-cluster-state new
+    ports:
+      - 32379:2379
+    networks:
+      - byfn
+```
+
+
+
+##### 3.3.2.2.2、3台物理机运行3个docker容器
+
+- 构建自己的ETCD镜像包
+
+  ```shell
+  FROM centos
+  
+  MAINTAINER chris
+  
+  ENV TZ="Asia/Shanghai";\
+      DOWNLOAD=https://github.com/etcd-io/etcd/releases/download/v3.4.16/ \
+  	ETCDVERSION=etcd-v3.4.16-linux-amd64 \
+  	USER=admin
+  
+  RUN yum install curl wget tar -y ;\
+      useradd ${USER} ;\
+      mkdir -p /export/{servers,Logs,packages,Apps,Shell} ;\
+      wget ${DOWNLOAD}${ETCDVERSION}.tar.gz && tar -zxf ${ETCDVERSION}.tar.gz -C /export/servers/ && \
+      /bin/rm -rf ${ETCDVERSION}.tar.gz ;\
+      chown -R ${USER}.${USER} /export ;\
+      ln -s /export/servers/${ETCDVERSION}/etcd* /usr/bin/;\
+  	rm -rf /etcd-data/ ;
+  
+  EXPOSE 2379 2380
+  ```
+
+  
+
+- 使用docker-compose运行
+
+  - docker-compose.yml文件
+
+  ```shell
+  version: '2'
+  
+  services:
+    etcd:
+      image: z1294550676/etcd:3.4.16
+      command: ["/usr/bin/etcd","--name", "etcd1",
+                 "--data-dir", "/etcd-data",
+                 "--listen-client-urls","http://0.0.0.0:2379",
+                 "--advertise-client-urls","http://0.0.0.0:2379",
+                 "--listen-peer-urls","http://0.0.0.0:2380",
+                 "--initial-advertise-peer-urls","http://0.0.0.0:2380",
+                 "--initial-cluster","etcd1=http://0.0.0.0:2380,etcd2=http://192.168.83.137:2380,etcd3=http://192.168.83.138:2380",
+                 "--initial-cluster-token","2021CTyun!",
+                 "--initial-cluster-state","new",
+                 "--auto-compaction-retention","10"]
+      volumes:
+        - /data/etcd:/etcd-data
+      ports:
+        - 2379:2379
+        - 2380:2380
+  ```
+
+  - 启动命令：docker-compose up
 
 
 
