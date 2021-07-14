@@ -799,8 +799,26 @@ services:
 
 
 
-
 # 4、ETCD进阶
+
+- ETCD的基本概念：
+
+  - Raft：etcd所采用的保证分布式系统强一致性的算法。
+  - Node：一个Raft状态机实例。
+  - Member： 一个etcd实例。它管理着一个Node，并且可以为客户端请求提供服务。
+  - Cluster：由多个Member构成可以协同工作的etcd集群。
+  - Peer：对同一个etcd集群中另外一个Member的称呼。
+  - Client： 向etcd集群发送HTTP请求的客户端。
+  - WAL：预写式日志，etcd用于持久化存储的日志格式。
+  - snapshot：etcd防止WAL文件过多而设置的快照，存储etcd数据状态。
+  - Proxy：etcd的一种模式，为etcd集群提供反向代理服务。
+  - Leader：Raft算法中通过竞选而产生的处理所有数据提交的节点。
+  - Follower：竞选失败的节点作为Raft中的从属节点，为算法提供强一致性保证。
+  - Candidate：当Follower超过一定时间接收不到Leader的心跳时转变为Candidate开始竞选。
+  - Term：某个节点成为Leader到下一次竞选时间，称为一个Term。
+  - Index：数据项编号。Raft中通过Term和Index来定位数据。
+
+  
 
 ## 4.1、ETCD基本框架
 
@@ -817,11 +835,25 @@ services:
 
 - **逻辑层：**
 
-  - kvserver模块、
-  - lease模块、
+  - kvserver模块：
+
+    - 限速判断（保证集群稳定性，避免雪崩）
+    - 生成一个唯一的 ID，将此请求关联到一个对应的消息通知 channel，然后向 Raft 模块发起（Propose）一个提案（Proposal）
+    - 等待此 put 请求，等待写入结果通过消息通知 channel 返回或者超时。etcd 默认超时时间是 7 秒（5 秒磁盘 IO 延时 +2*1 秒竞选超时时间），如果一个请求超时未返回结果，则可能会出现 etcdserver: request timed out 错误
+
+  - lease租约模块、
+
   - auth鉴权模块、
+
   - treeIndex模块：用于建立数据索引树
-  - Quota模块：检查当前etcd db的大小加上请求的key-value大小是否超过配额，若超过配额则会产生告警，并通过raft日志同步给其他节点告知db无空间了，而且该告警会持久化存储到db中，当集群内其他节点想写入时会先检查是否存在告警，若存在无法写入，最终集群内所有节点都无法写入只能读。
+
+  - Quota配额模块：
+
+    检查当前etcd db的大小加上请求的key-value大小是否超过配额，若超过配额则会产生告警，并通过raft日志同步给其他节点告知db无空间了，而且该告警会持久化存储到db中，当集群内其他节点想写入时会先检查是否存在告警，若存在无法写入，最终集群内所有节点都无法写入只能读。
+
+  - Apply模块：
+
+    <img src="ETCD_学习笔记.assets/image-20210714234531019.png" alt="image-20210714234531019" style="zoom:80%;" />
 
 - **存储层：**
 
@@ -1021,7 +1053,7 @@ Raft一致性算法的目的是：保证集群中所有节点的数据、状态�
 
 ### 4.4.3、ETCD的状态机
 
-- **每个ETCD节点都维护了一个状态机**。当ETCD集群接收到读请求时，在任意节点都可以读，而写请求只能重定向到Leader节点，由Leader节点执行，通过Raft协议保证写操作对状态机的改动会可靠的同步到其他Follower节点。
+- **<font color='red'>每个ETCD节点都维护了一个状态机</font>**。当ETCD集群接收到读请求时，在任意节点都可以读，而写请求只能重定向到Leader节点，由Leader节点执行，通过Raft协议保证写操作对状态机的改动会可靠的同步到其他Follower节点。
 
 - **复制状态机系统的概念：**
 
@@ -1048,6 +1080,7 @@ Raft一致性算法的目的是：保证集群中所有节点的数据、状态�
     - 复制状态机只是保证所有的状态机都以相同的顺序执行命令。
 
 - **集群中数据同步的流程：<font color='red'>（复制状态机系统的执行流程）</font>**
+  
   1. ETCD集群启动，会初始化一个Leader节点，决定日志的顺序，负责发送日志到其他Follower节点。
   2. 当Leader节点的**一致性模块**（consensus module）接收到客户端的写请求时，先将命令写入自己的日志，然后同步给所有Follower节点，仅当50%以上Follower节点都接收到日志后，Leader节点才提交日志。日志提交后，由Leader节点按顺序应用于状态机。
   3. 仅当Leader日志提交成功后，其他Follower节点才会将来自步骤2：Leader节点中consensus module发送的日志数据，应用到该Follower节点的状态机中，然后进行数据写入操作。（从而保证所有Follower节点的数据一致性）
@@ -1080,7 +1113,14 @@ Raft一致性算法的目的是：保证集群中所有节点的数据、状态�
 
 - **Leader节点选举流程：**
 
-  <img src="ETCD_学习笔记.assets/image-20210714181351460.png" alt="image-20210714181351460" style="zoom:67%;" />
+  1. ETCD集群启动之后，会自动选举出一个Leader节点，这样才能使整个集群正常工作。若没有选举出Leader，则会不断地重新进行Leader选举，直至选举出Leader，集群才会进入正常工作状态。（这是因为，ETCD集群必须要有一个Leader节点负责数据写入操作，否则集群中就无法实现数据写入功能）
+  2. 当Follower节点没有接收到Leader节点的心跳时，会导致Follower节点心跳超时。然后集群开始进入Leader选举流程。
+  3. 若，存在多个Candidate，此时可能会出现所有Candidate得到的选票数量一致（这就是为什么ETCD集群的节点数量必须为奇数，若为偶数，则会增加选票瓜分情况出现的概率），需要重新开始投票以选取Leader节点。
+  4. 若，某个Candidate在选举过程中，循环等待Follower节点的选票，此时已经有一个Candidate得票超过50%，并当选为Leader节点。则剩余的Candidate自动变为Follower。
+  5. 当某个Candidate得票超过50%时，该Candidate成为Leader节点。
+  6. 若，某个Candidate A已经成为Leader节点，但该节点宕机，退出集群。此时，ETCD集群需要从剩余的节点中选出Leader节点B。现在，节点A（旧的Leader）的任期term < 节点B（新的Leader），因此节点A自动转为Follower。
+  
+  <img src="ETCD_学习笔记.assets/image-20210715002326728.png" alt="image-20210715002326728" style="zoom:80%;" />
 
 
 
