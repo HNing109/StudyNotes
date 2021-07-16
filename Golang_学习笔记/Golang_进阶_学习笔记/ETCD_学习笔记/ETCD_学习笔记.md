@@ -171,7 +171,7 @@
 
 ### 3.2.2、部署ETCD集群
 
-#### 3.2.2.1、部署在Ubuntu系统
+#### 3.2.2.1、部署：在Ubuntu系统
 
 - **准备：**
 
@@ -308,7 +308,7 @@
 
 
 
-#### 3.2.2.2、1台物理机运行3个ETCD容器
+#### 3.2.2.2、部署：1台物理机运行3个ETCD容器
 
 docker-compose.yml文件如下
 
@@ -348,7 +348,7 @@ services:
 
 
 
-#### 3.2.2.3、3台物理机运行分别1个ETCD容器
+#### 3.2.2.3、部署：3台物理机运行分别1个ETCD容器
 
 （此方法有待进一步改进，还不可使用，因为无法建立集群，问题：3台机器的ID不匹配）
 
@@ -801,28 +801,113 @@ services:
 
 # 4、ETCD进阶
 
-- ETCD的基本概念：
+## 4.0、ETCD的重要概念
 
-  - Raft：etcd所采用的保证分布式系统强一致性的算法。
-  - Node：一个Raft状态机实例。
-  - Member： 一个etcd实例。它管理着一个Node，并且可以为客户端请求提供服务。
-  - Cluster：由多个Member构成可以协同工作的etcd集群。
-  - Peer：对同一个etcd集群中另外一个Member的称呼。
-  - Client： 向etcd集群发送HTTP请求的客户端。
-  - WAL：预写式日志，etcd用于持久化存储的日志格式。
-  - snapshot：etcd防止WAL文件过多而设置的快照，存储etcd数据状态。
-  - Proxy：etcd的一种模式，为etcd集群提供反向代理服务。
-  - Leader：Raft算法中通过竞选而产生的处理所有数据提交的节点。
-  - Follower：竞选失败的节点作为Raft中的从属节点，为算法提供强一致性保证。
-  - Candidate：当Follower超过一定时间接收不到Leader的心跳时转变为Candidate开始竞选。
-  - Term：某个节点成为Leader到下一次竞选时间，称为一个Term。
-  - Index：数据项编号。Raft中通过Term和Index来定位数据。
+### 4.0.1、ETCD的专有名词
+
+- **<font color='red'>心跳机制：</font>**
+
+  - **ETCD集群的所有节点都是设定为随机的超时时间（相当于定时器，防止出现选票瓜分的情况）**。当集群已经产生了 Leader节点，则 Leader节点会在固定间隔内给所有节点发送心跳。其他节点收到心跳以后重置心跳等待时间，只要心跳等待不超时，Follower节点的状态就不会改变。当Follower节点未接收到心跳时（心跳超时），则重新选举Leader节点。
+  - **Leader节点发送的心跳包中，会携带Leader节点的任期term，用于发现哪些节点已经过期了。**
+
+- **Raft**：etcd所采用的保证分布式系统强一致性的算法。
+
+- Node：一个Raft状态机实例。
+
+- Member： 一个etcd实例。它管理着一个Node，并且可以为客户端请求提供服务。
+
+- Cluster：由多个Member构成可以协同工作的ETCD集群。
+
+- Peer：对同一个ETCD集群中另外一个Member的称呼。
+
+- Client： 向etcd集群发送HTTP请求的客户端。
+
+- **WAL**：（write ahead log）预写式日志，保存的是Raft Log中的操作指令。ETCD用于持久化存储的日志格式。
+
+- **Raft Log**：用于保存客户端发送的写数据操作指令。
+
+- **snapshot**：ETCD防止WAL文件过多而设置的快照，存储ETCD数据状态。
+
+- Proxy：ETCD的一种模式，为etcd集群提供反向代理服务。
 
   
 
+- **Follower：**
+
+  请求的被动更新者，从 leader 接收更新请求，写入本地文件。如果客户端的写数据操作请求发送给了 follower，会首先由 follower 重定向给 leader。
+
+- **Candidate：**
+
+  如果 follower 在一定时间内没有收到 leader 的心跳，则判断 leader 可能已经故障，此时启动 leader election 过程，本节点切换为 candidate参与leader选举， 直到选主流程结束。
+
+- **Leader：**
+
+  所有请求的处理者，接收客户端发起的操作请求，写入本地日志后同步至集群其它节点。
+
+  
+
+- **Term**：
+
+  - 每开始一次新的选举，称为一个**任期**（**term**），每个 term 都是**单调递增**的。
+
+  - **每当 candidate 触发 leader election 时都会增加 term值**，如果一个 candidate 赢得选举，他将在本 term 中担任 leader 的角色。但并不是每个 term 都一定对应一个 leader，有时候某个 term 内会由于选举超时导致选不出 leader，这时 candicate 会递增 term 号并开始新一轮选举。
+  - **<font color='red'>每一个节点都保存一个 current term，在通信时带上这个 term ，通过对比Leader节点的term，就可以发现哪些节点的状态已经过期，然后进行后续的raft log日志更新操作。</font>**
+
+  - **Leader节点和任期的关系图**：
+
+    <img src="ETCD_学习笔记.assets/image-20210716141303516.png" alt="image-20210716141303516" style="zoom:67%;" />
+
+- Index：数据项编号。Raft中通过Term和Index来定位数据。
+
+
+
+### 4.0.1、强一致性的概念
+
+- 强一致性（线性一致性）并不是指集群中所有节点在任一时刻的状态必须完全一致，而是指让一个分布式系统看起来只有一个数据副本，并且读写操作都是原子的，这样应用层就可以忽略系统底层存在多个数据副本的数据同步问题。
+
+- 将一个强一致性分布式系统当成一个整体，一旦某个客户端成功的执行了写操作，那么所有客户端都一定能读出刚刚写入的值。即使发生网络分区故障，或者少部分节点发生异常，整个集群依然能够像单机一样提供服务。
+
+- **<font color='red'>ETCD保证强一致性的核心：</font>**
+
+  使用Raft算法 = 复置状态机 + Leader选举
+
+
+
+### 4.0.2、Raft算法的基本概念（重要）
+
+- **<font color='red'>客户端的指令执行成功、保存的判断依据：</font>**
+
+  Raft 算法使用 **法定人数（Quorum） 机制**判断执行的命令是否成功，也就是客户端的每一个写数据请求，必须有**50%以上的节点**成功写入该指令后才能算指令执行成功。
+
+- Leader、Candidata、Follower、Term概念：参照4.0.1
+
+- Lease租约机制
+
+- Watch监控机制
+
+- **<font color='red'>Raft算法核心实现：</font>**
+
+  - **状态机：**
+
+    - **<font color='red'>每个ETCD节点都维护了一个状态机，用于写入已提交的raft log日志数据（保证leader的状态机数据是最新的，wal日志则是用于持久化数据操作）</font>**。当ETCD集群接收到读请求时，在任意节点都可以读，而写请求只能重定向到Leader节点，由Leader节点执行，通过Raft协议保证写操作对状态机的改动会可靠的同步到其他Follower节点。
+
+    - **raft log日志：**负责接收客户端发过来的操作请求，将操作包装为**日志**同步给其它节点，在保证**大部分**节点都同步了本次操作后，就可以安全地给客户端回应响应了。
+
+  - **Leader选举：**
+
+    - ETCD的Leader节点负责写日志（处理客户端的写数据指令，并将这些指令同步至Follower节点的日志中），Follower节点负责读日志。
+    - Leader节点的作用：保证整个集群仅有一份日志 =》保证所有节点执行数据写入操作的顺序一致 =》保证集群数据的一致性。
+
+  - **安全性：**
+
+    - 对Leader选举的规则限制
+    - ETCD服务端server对客户端client的数据操作指令提交的限制
+
+
+
 ## 4.1、ETCD基本框架
 
-### 4.1.1、ETCD层次结构
+### 4.1.1、ETCD层次结构（详细-重点）
 
 - **client层：**提供简单易用的API，用于访问etcd数据库
 
@@ -879,13 +964,16 @@ services:
 
   - **snapshot快照**：
 
-    - **作用：**存放wal快照数据（即：存储etcd数据状态），防止wal中的文件过大。定期生成snap文件仅保留 term、index、key value 数据。
+    - **作用：**存放**已经提交的wal**快照数据（即：存储etcd数据状态），防止wal中的文件过大。定期生成snap文件仅保留 term、index、key value 数据。
+  
     - **注意：**snapshot是根据apply数量的创建，超过一定阈值就会触发创建snapshot。`ep.appliedi-ep.snapi <= s.Cfg.SnapshotCount`,合并wal并写入磁盘，减少了wal文件占用的磁盘空间。
-
+  
     - **文件命名规则：**$term-$index.snap   （term：任期编号； index：实际数据的索引位置）
-
+  
+      <img src="ETCD_学习笔记.assets/image-20210716105923412.png" alt="image-20210716105923412" style="zoom:50%;" />
+  
     - **eg：**
-
+  
       - 当前ETCD有3个wal文件：
         - 0000000000000001-0000000000000000.wal
         - 0000000000000002-0000000000001000.wal
@@ -893,9 +981,9 @@ services:
       - 经过一次snapshot后：
         - wal文件变为1个：0000000000000001-0000000000002000.wal
         - snapshot文件为：0000000000000001-0000000000001fff.snap
-
+  
       
-
+  
   - **snap和wal文件的区别：**
     
     snapshot 和 wal，在写入的方式是不同的。对于这两种方式系统调优的方式是不同的。
@@ -917,7 +1005,7 @@ services:
 
 
 
-### 4.1.2、ETCD基本模块
+### 4.1.2、ETCD基本模块（精简）
 
 - **raft-http：** 用于不同etcd node之间进行通信，接收来自其他node的消息；
 
@@ -970,7 +1058,7 @@ services:
 
   2. **读取数据分两种方式：**
 
-     **假设现在另一个客户端进行数据更新操作，leader节点已经将数据hello，更新为world。**
+     **假设现在另一个客户端进行数据更新操作，Leader节点已经将数据hello，更新为world。**
 
      - **串行读**
 
@@ -1038,7 +1126,64 @@ services:
 
 
 
-## 4.4、状态机
+## 4.4、状态机（重点）
+
+### 4.4.0、状态机的基本概念
+
+- **状态机、raft log、wal文件的含义：**
+
+  - **状态机：**
+
+    状态机中的数据表示：Leader节点已提交的raft log数据 = 那些已经被安全复制至Follower节点的raftlog数据。
+
+    **<font color='red'>每个ETCD节点都维护了一个状态机（每个节点都拥有Leader节点所有的状态机数据），用于写入已提交的raft log日志数据</font>**。当ETCD集群接收到读请求时，在任意节点都可以读，而写请求只能重定向到Leader节点，由Leader节点执行，通过Raft协议保证写操作对状态机的改动会可靠的同步到其他Follower节点。
+
+  - **raft log：**
+
+    Leader节点的raft log，用于存放客户端发送的写数据指令（包含已提交至状态机的日志数据）
+
+  - **wal文件：**
+
+    用于持久化数据操作，将状态机的数据写入本地磁盘。
+
+- **复制状态机系统的概念：**
+
+  - **复制单元：**
+
+    复制单元是一个状态机，其数据存储在日志中，复制单元严格按照顺序逐条执行日志上的指令。
+
+  - **复制状态机系统：**
+
+    - **结构：**
+
+      由多个复制单元组成。
+
+    - **应用：**
+
+      用于解决一份数据存在多个副本的问题。
+
+    - **实现方式：**
+
+      通过Leader节点分发数据至Follower节点（复制单元、状态机），因此每个状态机都是确定的，所以每个外部命令都将产生相同的操作顺序（日志）。又因为每一个日志都是按照相同的顺序存放相同的指令，所以每个状态机都将执行相同的指令序列，并且最终保证所有状态机具有相同的状态。
+
+  - **注意：**
+
+    - 状态机执行指令的顺序并不一定等同于指令的发出顺序。
+    - 复制状态机只是保证所有的状态机都以相同的顺序执行命令。
+
+-  **<font color='red'>Leader将roft log日志提交至状态机的准则：（重点）</font>**
+
+  - **判断是否安全复制日志：**
+
+    客户端提交写数据请求给Leader时，Leader节点将命令写入日志中，并发送至所有的Follower节点，仅当**超过50%的Follower节点**都已经复制日志后该后，leader 会将该日志提交到它本地的状态机中，然后把操作成功的结果返回给客户端。
+
+  - **发送日志的数据结构：**
+
+    Leader节点发送至Follower节点的日志数据中，都包含Leader节点的任期term、日志数据的索引index
+
+    具体为：**当前日志的（index、term） +  上一条日志的（index、term）**
+
+  
 
 ### 4.4.1、向分布式系统写入数据时可能存在的问题
 
@@ -1062,76 +1207,108 @@ Raft一致性算法的目的是：保证集群中所有节点的数据、状态�
 
 
 
-### 4.4.3、ETCD的状态机
+### 4.4.3、ETCD的状态机执行流程（重点）
 
-- **<font color='red'>每个ETCD节点都维护了一个状态机</font>**。当ETCD集群接收到读请求时，在任意节点都可以读，而写请求只能重定向到Leader节点，由Leader节点执行，通过Raft协议保证写操作对状态机的改动会可靠的同步到其他Follower节点。
-
-- **复制状态机系统的概念：**
-
-  - **复制单元：**
-
-    复制单元是一个状态机，其数据存储在日志中，复制单元严格按照顺序逐条执行日志上的指令。
-
-  - **复制状态机系统：**
-
-    - 结构：
-
-      由多个复制单元组成。
-
-    - 应用：
-
-      用于解决一份数据存在多个副本的问题。
-
-    - 实现方式：
-
-      通过Leader节点分发数据至Follower节点（复制单元、状态机），因此每个状态机都是确定的，所以每个外部命令都将产生相同的操作顺序（日志）。又因为每一个日志都是按照相同的顺序存放相同的指令，所以每个状态机都将执行相同的指令序列，并且最终保证所有状态机具有相同的状态。
-
-  - **注意：**
-    - 状态机执行指令的顺序并不一定等同于指令的发出顺序。
-    - 复制状态机只是保证所有的状态机都以相同的顺序执行命令。
-
-- **集群中数据同步的流程：<font color='red'>（复制状态机系统的执行流程）</font>**
+- **集群中raft log日志数据同步的流程：<font color='red'>（复制状态机系统的执行流程）</font>**
   
   1. ETCD集群启动，会初始化一个Leader节点，决定日志的顺序，负责发送日志到其他Follower节点。
+  
   2. 当Leader节点的**一致性模块**（consensus module）接收到客户端的写请求时，先将命令写入自己的日志，然后同步给所有Follower节点，仅当50%以上Follower节点都接收到日志后，Leader节点才提交日志。日志提交后，由Leader节点按顺序应用于状态机。
+  
+     Leader节点发送至Follower节点的**日志数据同步流程**如下：
+  
+     <img src="ETCD_学习笔记.assets/image-20210716165133304.png" alt="image-20210716165133304" style="zoom: 67%;" />
+  
   3. 仅当Leader日志提交成功后，其他Follower节点才会将来自步骤2：Leader节点中consensus module发送的日志数据，应用到该Follower节点的状态机中，然后进行数据写入操作。（从而保证所有Follower节点的数据一致性）
+  
   4. 最后，Leader节点将数据写入命令的执行状态，返回给客户端client。
 
 <img src="ETCD_学习笔记.assets/image-20210714154505559.png" alt="image-20210714154505559" style="zoom: 67%;" />
 
+- raft log日志数据同步过程中，步骤②执行失败时，如何保证数据一致。
 
-
-## 4.5、Leader节点选举过程
-
-- **Leader节点重新选举的原因：**
-
-  当Leader节点崩溃后，集群无法进行数据写入操作，其他Follower节点通过心跳可以感知到，并从剩余的节点中选举出新的Leader节点，以维持集群的正常运转。
-
-- **ETCD节点的3个状态：**
-
-  - Follower
-  - Candidate
-  - Leader
-
-- **节点投票的原则**
-
-  - Candidate节点只会投票给自己，仅当某个Candidate节点的票数超过50%时，才能成为Leader节点。
-  - Follower节点只会投票给任期比自己大、最后一条日志比自己新的Candidate节点。
-
-- **心跳机制：**
-
-  当集群已经产生了 Leader节点，则 Leader节点会在固定间隔内给所有节点发送心跳。其他节点收到心跳以后重置心跳等待时间，只要心跳等待不超时，Follower节点的状态就不会改变。当Follower节点未接收到心跳时（心跳超时），则重新选举Leader节点。
-
-- **Leader节点选举流程：**
-
-  1. ETCD集群启动之后，会自动选举出一个Leader节点，这样才能使整个集群正常工作。若没有选举出Leader，则会不断地重新进行Leader选举，直至选举出Leader，集群才会进入正常工作状态。（这是因为，ETCD集群必须要有一个Leader节点负责数据写入操作，否则集群中就无法实现数据写入功能）
-  2. 当Follower节点没有接收到Leader节点的心跳时，会导致Follower节点心跳超时。然后集群开始进入Leader选举流程。
-  3. 若，存在多个Candidate，此时可能会出现所有Candidate得到的选票数量一致（这就是为什么ETCD集群的节点数量必须为奇数，若为偶数，则会增加选票瓜分情况出现的概率），需要重新开始投票以选取Leader节点。
-  4. 若，某个Candidate在选举过程中，循环等待Follower节点的选票，此时已经有一个Candidate得票超过50%，并当选为Leader节点。则剩余的Candidate自动变为Follower。
-  5. 当某个Candidate得票超过50%时，该Candidate成为Leader节点。
-  6. 若，某个Candidate A已经成为Leader节点，但该节点宕机，退出集群。此时，ETCD集群需要从剩余的节点中选出Leader节点B。现在，节点A（旧的Leader）的任期term < 节点B（新的Leader），因此节点A自动转为Follower。
   
-  <img src="ETCD_学习笔记.assets/image-20210715002326728.png" alt="image-20210715002326728" style="zoom:80%;" />
+
+## 4.5、Leader节点选举（重点）
+
+### 4.5.1、Leader节点重新选举的原因：
+
+当Leader节点崩溃后，集群无法进行数据写入操作，其他Follower节点通过心跳可以感知到，并从剩余的节点中选举出新的Leader节点，以维持集群的正常运转。
+
+### 4.5.2、<font color='red'>节点投票的原则</font>
+
+- Candidate节点只会投票给自己，仅当某个Candidate节点的票数超过50%时，才能成为Leader节点。
+- Follower节点只会投票给任期比自己大、最后一条日志比自己新的Candidate节点。
+
+### 4.5.3、<font color='red'>Leader选举流程（精简）</font>
+
+大致叙述Leader节点的选举流程。
+
+1. **ETCD集群启动时**：会自动选举出一个Leader节点，这样才能使整个集群正常工作。若没有选举出Leader，则会不断地重新进行Leader选举，直至选举出Leader，集群才会进入正常工作状态。（这是因为，ETCD集群必须要有一个Leader节点负责数据写入操作，否则集群中就无法实现数据写入功能）
+2. **Leader节点宕机时：**当Follower节点没有接收到Leader节点的心跳时，会导致Follower节点心跳超时。然后集群开始进入Leader选举流程。
+3. **选票瓜分情况：**若，存在多个Candidate，此时可能会出现所有Candidate得到的选票数量一致（这就是为什么ETCD集群的节点数量必须为奇数，若为偶数，则会增加选票瓜分情况出现的概率），需要重新开始投票以选取Leader节点。
+4. **选举过程中已经选好新的Leader**：若，某个Candidate在选举过程中，循环等待Follower节点的选票，此时已经有一个Candidate得票超过50%，并当选为Leader节点。则剩余的Candidate自动变为Follower。
+5. **候选人当选为Leader的条件**：当某个Candidate得票超过50%时，该Candidate成为Leader节点。
+6. 若，某个Candidate A已经成为Leader节点，但该节点宕机，退出集群。此时，ETCD集群需要从剩余的节点中选出Leader节点B。现在，节点A（旧的Leader）的任期term < 节点B（新的Leader），因此节点A自动转为Follower。
+
+<img src="ETCD_学习笔记.assets/image-20210715002326728.png" alt="image-20210715002326728" style="zoom:80%;" />
+
+
+
+### 4.5.4、<font color='red'>Leader选举流程（详细）</font>
+
+- **第一阶段：ETCD集群启动时**
+
+  1. ETCD集群启动时，Raft算法给每个节点设置了随机的超时时间（控制在一定范围内的随机值）——这样可以降低同时出现多个节点心跳超时的概率，减小瓜分选票出现的概率。
+  2. 此时，集群中的节点都是Follower节点，不存在Leader节点。需要从Follower节点中选举出一个Leader节点。
+  3. 等待集群中有一个Follower节点出现心跳超时，该Follower节点 =》Candidate节点**（并给自己的任期 + 1）**，开始给其他节点发起投票请求，即：进入Leader选举。
+
+  <img src="ETCD_学习笔记.assets/image-20210716162022990.png" alt="image-20210716162022990" style="zoom:80%;" />
+
+  
+
+- **第二阶段：ETCD集群的Leader节点宕机**（开始选举新的Leader节点——**Candidate节点状态的转换**）
+
+   Candidate节点发起投票后，可能存在3种结果：（一般来说，ETCD集群刚启动时，进行第一次Leader选举都会成功）
+
+  1、选举成功； 2、选举失败； 3、选举超时
+
+  
+
+  - **选举成功**
+
+    该Candidate节点获取了50%以上的Follower节点选票，成功转变为Leader节点，并且发送自己的心跳报包至Follower节点，以维持整个集群的正常运行。
+
+    <img src="ETCD_学习笔记.assets/image-20210716151058687.png" alt="image-20210716151058687" style="zoom:80%;" />
+
+  - **选举失败**（ETCD集群的Leader节点宕机后，再次恢复后，加入集群时）
+
+    当Candidate节点进行Leader选举时，收到了某个Leader节点（该节点可能之前时Leader，但是宕机了，现在又恢复了）发送来的心跳包。此时需要判断该心跳包中的任期term和Candidate节点的term大小：
+
+    - 该心跳包中的任期term **≥** Candidate节点的term
+
+      说明集群中已经选举出新的Leader节点。Candidate节点切换为Follower节点，结束选举流程。
+
+      <img src="ETCD_学习笔记.assets/image-20210716152126197.png" alt="image-20210716152126197" style="zoom:80%;" />
+
+    - 该心跳包中的任期term **<** Candidate节点的term
+
+      该Candidate继续进行Leader选举流程，直至集群中选举出新的Leader节点。
+
+  - **选举超时**（选票瓜分情况）
+
+    集群中存在多个Candidate节点参与选举Leader节点。此时所有的Candidate节点的得票一致，无法选举出新的Leader节点。就需要进行下一轮Leader选举，直至集群中选举出新的Leader节点。
+
+    ![image-20210716153149992](ETCD_学习笔记.assets/image-20210716153149992.png)
+
+  
+
+- **第三阶段：ETCD集群的Leader节点宕机后，再次恢复后，加入集群时**
+
+  1. 当集群中的Leader节点宕机时，集群的Follower节点会进入Leader选举流程，Follower节点 =》 Candidate节点，Candidate节点的term + 1，并开始投票流程，成功选举某个Candidate节点为Leader节点。
+  2. 此时，宕机的Leader节点恢复，集群中会出现一个过期的Leader节点。当过期的Leader节点接收到新Leader节点发送的心跳包时，由于该过期的Leader节点的term **小于** Candidate的term， 该过期节点会变为Follower节点。
+
+  ![image-20210716160732726](ETCD_学习笔记.assets/image-20210716160732726.png)
 
 
 
