@@ -944,8 +944,8 @@ services:
 按照功能可分为：元数据页 (meta page)、B+ tree 索引节点页 (branch page)、B+ tree 叶子节点页 (leaf page)、空闲页管理页 (freelist page)、空闲页 (free page)。
 
 - **meta page：**存储固定的 db 元数据
-- **branch page：**编排所有数据的 key，存取数据时即可通过二分搜索查找需要的 key - value数据
-- **leaf page：**负责存储key-value 数据、bucket 数据
+- **branch page：**编排所有数据的 key，存取数据时即可通过二分搜索查找需要的 key数据
+- **leaf page：**负责存储key-value 数据、bucket 数据，从branch page页获取key之后，根据key来该页查找对应的key-value数据。
 - **freelist page：**存储空闲页free page的ID，用于记录db 中哪些页是空闲、可使用的。当boltdb 中删除大量数据的时候，其对应的 page 就会被释放。
 - **free page：**当写入数据的时候，就可直接从空闲页中申请页面使用。
 
