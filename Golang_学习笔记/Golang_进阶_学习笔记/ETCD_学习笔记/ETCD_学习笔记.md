@@ -825,15 +825,15 @@ services:
 
 - **Follower：**
 
-  请求的被动更新者，从 leader 接收更新请求，写入本地文件。如果客户端的写数据操作请求发送给了 follower，会首先由 follower 重定向给 leader。
+  负责处理客户端的读数据请求，同时需要从 Leader 同步数据，将Leader发送的raft log日志数据写入该节点的raft log文件，最后再写入状态机=》写入dolt db数据库。如果客户端的写数据操作请求发送给了 Follower，会由 Follower 重定向给 Leader 。
 
 - **Candidate：**
 
-  如果 follower 在一定时间内没有收到 leader 的心跳，则判断 leader 可能已经故障，此时启动 leader election 过程，本节点切换为 candidate参与leader选举， 直到选主流程结束。
+  如果 Follower在一定时间内没有收到 Leader 的心跳，则判断 Leader 可能已经故障，此时启动 Leader election 过程，本节点（心跳超时的Follower节点）切换为 Candidate，参与Leader 选举， 直到选主流程结束。
 
 - **Leader：**
 
-  所有请求的处理者，接收客户端发起的操作请求，写入本地日志后同步至集群其它节点。
+  用于接收客户端发起的写数据操作请求，写入本地raft log日志后同步至集群其它节点。
 
   
 
@@ -867,9 +867,11 @@ services:
 
 ### 4.0.2、Raft算法的基本概念（重要）
 
-- **<font color='red'>客户端的指令执行成功、保存的判断依据：</font>**
+- **法定人数机制：**
 
-  Raft 算法使用 **法定人数（Quorum） 机制**判断执行的命令是否成功，也就是客户端的每一个写数据请求，必须有**50%以上的节点**成功写入该指令后才能算指令执行成功。
+  **<font color='red'>客户端的指令执行成功、保存的判断依据：</font>**
+
+  Raft 算法使用 **法定人数（Quorum） 机制**判断执行的命令是否成功，即：客户端发送的写数据请求，必须有**50%以上的节点**成功写入该指令后，才能算指令执行成功，否则不对该指令进行数据写入操作。
 
 - Leader、Candidata、Follower、Term概念：参照4.0.1
 
@@ -877,26 +879,31 @@ services:
 
 - Watch监控机制
 
+
+
 - **<font color='red'>Raft算法核心实现：</font>**
 
   - **状态机：**
 
     - **<font color='red'>每个ETCD节点都维护了一个状态机，用于写入已提交的raft log日志数据（保证leader的状态机数据是最新的，wal日志则是用于持久化数据操作）</font>**。当ETCD集群接收到读请求时，在任意节点都可以读，而写请求只能重定向到Leader节点，由Leader节点执行，通过Raft协议保证写操作对状态机的改动会可靠的同步到其他Follower节点。
-- **raft log日志：**负责接收客户端发过来的操作请求，将操作包装为**日志**同步给其它节点，在保证**大部分**节点都同步了本次操作后，就可以安全地给客户端回应响应了。
-    
+
+    - **raft log日志：**负责存储客户端发过来的写数据指令，Leader节点需要将该日志中的数据同步给其它Follower节点，当超过50%的Follower节点都同步了客户端发送来的写数据指令后，就认为该集群已经安全复制了该指令，Leader节点将该指令提交至状态机中，最后返回该指令的执行状态给客户端。
 
   
+
 
   - **Leader选举：**
-  
-  - ETCD的Leader节点负责写日志（处理客户端的写数据指令，并将这些指令同步至Follower节点的日志中），Follower节点负责读日志。
+
+    - ETCD的Leader节点负责写日志（处理客户端的写数据指令，并将这些指令同步至Follower节点的日志中），Follower节点负责读日志。
+
     - Leader节点的作用：保证整个集群仅有一份日志 =》保证所有节点执行数据写入操作的顺序一致 =》保证集群数据的一致性。
 
   
-  
-  
+
+
   - **安全性：**
-  - 对Leader选举的规则限制
+
+    - 对Leader选举的规则限制
     - ETCD服务端server对客户端client的数据操作指令提交的限制
       1. Leader 节点从来不会覆盖或者删除自己的日志
       2. Leader 只允许 commit 包含当前 term 的日志
@@ -1148,7 +1155,7 @@ services:
 
   - **状态机：**
 
-    状态机中的数据表示：Leader节点已提交的raft log数据 = 那些已经被安全复制至Follower节点的raftlog数据。
+    状态机中数据的含义：Leader节点已提交的raft log数据 = 那些已经被安全复制至Follower节点的raftlog数据。
 
     **<font color='red'>每个ETCD节点都维护了一个状态机（每个节点都拥有Leader节点所有的状态机数据），用于写入已提交的raft log日志数据</font>**。当ETCD集群接收到读请求时，在任意节点都可以读，而写请求只能重定向到Leader节点，由Leader节点执行，通过Raft协议保证写操作对状态机的改动会可靠的同步到其他Follower节点。
 
@@ -1199,7 +1206,7 @@ services:
 
 
 - **Leader将roft log日志提交至状态机的准则**
-1. Leader 节点从来不会覆盖或者删除自己的日志
+  1. Leader 节点从来不会覆盖或者删除自己的日志
   2. Leader 只允许 commit 包含当前 term 的日志
 
 
@@ -1248,11 +1255,11 @@ Raft一致性算法的目的是：保证集群中所有节点的数据、状态�
 
        具体为：**当前日志的（index、term） +  上一条日志的（index、term）+ 下一条日志的（index，term）**
 
-    2. Leader节点会用n个参数（netx index），来记录应发送给每一个Follower节点的下一条日志索引位置。
+    2. Leader节点会用n个参数（next index），来记录应发送给每一个Follower节点的下一条日志索引位置。
 
-    3. Candidate节点 =》Leader节点之后，会将所有的next index重置为自己的最新的日志索引。
+       （如果此时Leader节点宕机，并完成了Leader选举流程，Candidate节点 =》新的Leader节点之后，这个新的Leader节点会将所有的next index重置为自己的最新的日志索引。）
 
-    4. 然后开始进行数据同步，发送自己的日志至Follower节点。当Follower节点接收到Leader节点发送的日志数据时，**需要判断日志数据的index_A 是否等于 Follower节点最新日志的index_B + 1？**
+    4. 然后开始进行数据同步，Leader节点发送自己的日志至Follower节点中。当Follower节点接收到Leader节点发送的日志数据时，**需要判断所接收到的日志数据的index_A   是否等于   Follower节点最新日志的index_B + 1？**
 
        **若相等**，则说明Leader节点需要从index_A开始同步日志数据值Follower
 
@@ -1291,7 +1298,7 @@ Raft一致性算法的目的是：保证集群中所有节点的数据、状态�
 大致叙述Leader节点的选举流程。
 
 1. **ETCD集群启动时**：会自动选举出一个Leader节点，这样才能使整个集群正常工作。若没有选举出Leader，则会不断地重新进行Leader选举，直至选举出Leader，集群才会进入正常工作状态。（这是因为，ETCD集群必须要有一个Leader节点负责数据写入操作，否则集群中就无法实现数据写入功能）
-2. **Leader节点宕机时：**当Follower节点没有接收到Leader节点的心跳时，会导致Follower节点心跳超时。然后集群开始进入Leader选举流程。
+2. **Leader节点宕机时：**当Follower节点没有接收到Leader节点的心跳时，会导致Follower节点心跳超时，超时的Follower节点转变为Candidate。然后集群开始进入Leader选举流程。
 3. **选票瓜分情况：**若，存在多个Candidate，此时可能会出现所有Candidate得到的选票数量一致（这就是为什么ETCD集群的节点数量必须为奇数，若为偶数，则会增加选票瓜分情况出现的概率），需要重新开始投票以选取Leader节点。
 4. **选举过程中已经选好新的Leader**：若，某个Candidate在选举过程中，循环等待Follower节点的选票，此时已经有一个Candidate得票超过50%，并当选为Leader节点。则剩余的Candidate自动变为Follower。
 5. **候选人当选为Leader的条件**：当某个Candidate得票超过50%时，该Candidate成为Leader节点。
@@ -1301,13 +1308,23 @@ Raft一致性算法的目的是：保证集群中所有节点的数据、状态�
 
 
 
+**总结：Leader选举的流程**（具体流程见下一小节）
+
+（1）第一阶段：ETCD集群启动时，选举Leader过程
+
+（2）第二阶段：集群的Leader节点宕机时，选举Leader过程
+
+（3）第三阶段：集群中Leader宕机并恢复后，加入集群时的状态转换过程
+
+
+
 ### 4.5.4、<font color='red'>Leader选举流程（详细）</font>
 
 - **第一阶段：ETCD集群启动时**
 
   1. ETCD集群启动时，Raft算法给每个节点设置了随机的超时时间（控制在一定范围内的随机值）——这样可以降低同时出现多个节点心跳超时的概率，减小瓜分选票出现的概率。
   2. 此时，集群中的节点都是Follower节点，不存在Leader节点。需要从Follower节点中选举出一个Leader节点。
-  3. 等待集群中有一个Follower节点出现心跳超时，该Follower节点 =》Candidate节点**（并给自己的任期 + 1）**，开始给其他节点发起投票请求，即：进入Leader选举。
+  3. 等待集群中有一个Follower节点出现心跳超时，该Follower节点 =》Candidate节点**（并给自己的任期 + 1）**，开始给其他节点发起投票请求，即：进入Leader选举。（一般来说，因为设置了随机超时时间，所以集群刚启动时，同时只有一个Follower节点 =》Candidate，这个阶段进行Leader选举，可以成功获取50%以上的选票，产生一个Leader节点）
 
   <img src="ETCD_学习笔记.assets/image-20210716162022990.png" alt="image-20210716162022990" style="zoom:80%;" />
 
