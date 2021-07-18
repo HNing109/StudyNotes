@@ -1,0 +1,3 @@
+1. 官网安装指南：https://docs.openstack.org/install-guide/
+2. 华为鲲鹏的帮助文档（供参考）：https://support.huaweicloud.com/dpmg-kunpengcpfs/kunpengcpfs_04_0002.html
+3. 在openEuler（类似centos）上安装openstack queens版本（供参考）：https://docs.openeuler.org/zh/docs/20.03_LTS_SP2/docs/thirdparty_migration/OpenStack-queens.html 
