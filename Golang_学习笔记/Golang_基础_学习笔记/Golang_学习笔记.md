@@ -4335,11 +4335,20 @@ Go1.11之后才出现go mod，先前必须将所有依赖包全部放入src目�
 
   （必须确保：工程名、go.mod文件中的module模块名、github仓库名，此三者名字一致）
 
-  - Goland创建工程module：并编写代码
+  - Goland创建工程module：并编写代码。代码应封装进某个包里面。
 
   - 创建go.mod文件
 
-    go mod init github.com/chriszhangmq/module       **（go mod init Git仓库路径）** 
+    ```shell
+    #命令格式：go mod init Git仓库路径　　　
+    go mod init github.com/chriszhangmq/module  
+    
+    
+    #创建的go.mod文件内容为：
+    module github.com/chriszhangmq/module 
+    
+    go 1.15
+    ```
 
   - 发布至Github中
 
