@@ -485,6 +485,37 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
   
 
+- 输入、分割、读取数组
+
+  ```go
+  func main(){
+      var nums []int
+  	var target int
+      //输入整数
+  	fmt.Println("请输目标值：")
+  	fmt.Scan(&target)
+  
+  	//输入的数据不能包含空格，否则后面的数据无法被输入（正确输入，eg：1,4,97,6）
+      fmt.Println("请输入数组：")
+  	fmt.Scanf("%s ", &str)
+      
+      //分割字符串：按照,分割
+  	strs := strings.Split(str,",")
+  	for index := 0; index < len(strs); index++{
+  		temp, _ := strconv.Atoi(strs[index])
+  		nums = append(nums, temp)
+  	}
+      
+      //遍历数组
+  	fmt.Println("输入的数据，转化为数组：")
+  	for _, ele := range nums{
+  		fmt.Print(ele, ", ")
+  	}
+  }
+  ```
+  
+  
+  
 - 遍历数组
 
   ```go
@@ -1010,7 +1041,7 @@ func wayTest(){
   	address string
   }
   
-  //等同于java中的构造函数
+  //等同于java中的构造函数new()
   func NewFactoryStruct(name string, age int, address string) *factoryStruct{
   	object := new(factoryStruct)
   	object.name = name
@@ -3188,7 +3219,7 @@ D:/Files/StudyNotes/Golang_学习笔记/Code/basicCode/src/main/factory_main.go:
 
   - fmt.Scanln()
 
-    遇见换行，终止数据输入
+    遇见换行，终止数据输入（**只会获取整个字符串中第一个空格之前的数据**）
 
   - Scan()
 
