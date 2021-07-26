@@ -277,12 +277,12 @@ OPTIONS="-l 127.0.0.1,::1,controller"
 #配置etcd：
 #ETCD_INITIAL_CLUSTER, ETCD_INITIAL_ADVERTISE_PEER_URLS, ETCD_ADVERTISE_CLIENT_URLS,ETCD_LISTEN_CLIENT_URLS设置为控制节点的IP（即：本机的网卡IP）
 [root@controller /]# vim /etc/etcd/etcd.conf
-#[Member]
+[Member]
 ETCD_DATA_DIR="/var/lib/etcd/default.etcd"
 ETCD_LISTEN_PEER_URLS="http://192.168.83.139:2380"
 ETCD_LISTEN_CLIENT_URLS="http://localhost:2379,http://192.168.83.139:2379"
 ETCD_NAME="controller"
-#[Clustering]
+[Clustering]
 ETCD_INITIAL_ADVERTISE_PEER_URLS="http://192.168.83.139:2380"
 ETCD_ADVERTISE_CLIENT_URLS="http://192.168.83.139:2379"
 ETCD_INITIAL_CLUSTER="controller=http://192.168.83.139:2380"

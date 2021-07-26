@@ -49,7 +49,31 @@
 
 
 
-## 1.2、OpenStack的硬件架构
+## 1.2、OpenStack的网络架构
+
+![image-20210724164626600](OpenStack_学习笔记.assets/image-20210724164626600.png)
+
+**OpenStack的网络分为两种：**
+
+- **provider networks（供应商网络）**
+
+  - 作用：主要用于OpenStack部署在**公网服务器**中，负责各个节点的通信
+  - 提供商网络选项以最简单的方式部署 OpenStack 网络服务，主要是第 2 层（桥接/交换）服务和网络的 VLAN 分段。从本质上讲，它将虚拟网络连接到物理网络，并依赖物理网络基础设施提供第 3 层（路由）服务。此外，DHCP服务还为实例提供 IP 地址信息。
+
+  ![image-20210724205842710](OpenStack_学习笔记.assets/image-20210724205842710.png)
+
+  
+
+- **Self-service networks（自助服务网络）**
+
+  - 作用：主要用于OpenStack部署在**局域网服务器**中，负责各个节点的通信。
+  - 自助服务网络选项通过第 3 层（路由）服务增强了提供商网络选项，这些服务支持 使用[VXLAN](https://docs.openstack.org/install-guide/common/glossary.html#term-Virtual-Extensible-LAN-VXLAN)等覆盖分段方法的[自助服务](https://docs.openstack.org/install-guide/common/glossary.html#term-self-service)网络。本质上，它使用[NAT 将](https://docs.openstack.org/install-guide/common/glossary.html#term-Network-Address-Translation-NAT)虚拟网络路由到物理网络。
+
+  ![image-20210724210100662](OpenStack_学习笔记.assets/image-20210724210100662.png)
+
+
+
+## 1.3、OpenStack的硬件架构
 
 - 控制节点（controller node）
 
@@ -78,34 +102,15 @@
 - 对象存储节点（object storage node）
 
   - 对象存储节点用来存储虚拟机中的数据，包含存储帐户、容器和对象的磁盘。
-
   - 此服务需要两个节点。每个节点至少需要一个网络接口。您可以部署两个以上的对象存储节点。
 
-![image-20210724204524097](OpenStack_学习笔记.assets/image-20210724204524097.png)
-
-
-
-## 1.3、OpenStack的网络架构
-
-![image-20210724164626600](OpenStack_学习笔记.assets/image-20210724164626600.png)
-
-**OpenStack的网络分为两种：**
-
-- **provider networks（供应商网络）**
-
-  - 作用：主要用于OpenStack部署在**公网服务器**中，负责各个节点的通信
-  - 提供商网络选项以最简单的方式部署 OpenStack 网络服务，主要是第 2 层（桥接/交换）服务和网络的 VLAN 分段。从本质上讲，它将虚拟网络连接到物理网络，并依赖物理网络基础设施提供第 3 层（路由）服务。此外，DHCP服务还为实例提供 IP 地址信息。
-
-  ![image-20210724205842710](OpenStack_学习笔记.assets/image-20210724205842710.png)
+  ![image-20210726164849970](OpenStack_学习笔记.assets/image-20210726164849970.png)
 
   
 
-- **Self-service networks（自助服务网络）**
+- **各个节点的硬件配置需求**
 
-  - 作用：主要用于OpenStack部署在**局域网服务器**中，负责各个节点的通信。
-  - 自助服务网络选项通过第 3 层（路由）服务增强了提供商网络选项，这些服务支持 使用[VXLAN](https://docs.openstack.org/install-guide/common/glossary.html#term-Virtual-Extensible-LAN-VXLAN)等覆盖分段方法的[自助服务](https://docs.openstack.org/install-guide/common/glossary.html#term-self-service)网络。本质上，它使用[NAT 将](https://docs.openstack.org/install-guide/common/glossary.html#term-Network-Address-Translation-NAT)虚拟网络路由到物理网络。
-
-  ![image-20210724210100662](OpenStack_学习笔记.assets/image-20210724210100662.png)
+![image-20210724204524097](OpenStack_学习笔记.assets/image-20210724204524097.png)
 
 
 
@@ -223,7 +228,7 @@
 
      项目名：Swift
 
-     功能：用来存储虚拟机中的数据，包含存储帐户、容器和对象的磁盘。需要两个节点。每个节点至少需要一个网络接口。REST风格的接口和扁平的数据组织结构。RESTFUL HTTP API来保存和访问任意非结构化数据，ring环的方式实现数据自动复制和高度可以扩展架构，保证数据的高度容错和可靠性。
+     功能：用来存OpenStack平台的数据，包含：帐户、容器、对象、**镜像数据**等。需要两个节点。每个节点至少需要一个网络接口。REST风格的接口和扁平的数据组织结构。RESTFUL HTTP API来保存和访问任意非结构化数据。
 
     
 
@@ -233,7 +238,7 @@
 
      项目名：Cinder
 
-     功能：提供持久化块存储，即为云主机提供附加云盘（相当于虚拟机的硬盘）。包含;块存储和共享文件系统服务的磁盘。可以部署多个块存储节点。每个节点至少需要一个网络接口。有多种可用的驱动程序：NAS/SAN、NFS、iSCSI、Ceph 等
+     功能：提供持久化块存储，即为云主机提供附加云盘（相当于**虚拟机的硬盘**，可以通过cinder给虚拟机挂载多个硬盘）。包含：块存储和共享文件系统服务的磁盘。可以部署多个块存储节点。每个节点至少需要一个网络接口。有多种可用的驱动程序：NAS/SAN、NFS、iSCSI、Ceph 等
 
   
 
@@ -281,7 +286,7 @@
 
 
 
-## 1.4、OpenStack新建云主机的流程
+## 1.5、OpenStack新建云主机的流程
 
 <img src="OpenStack_学习笔记.assets/image-20210719092341355.png" alt="image-20210719092341355" style="zoom:80%;" />
 
@@ -291,6 +296,10 @@
 
 # 2、OpenStack基本概念
 
+OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版本都是基于python2.7
+
+## 2.1、端点类型
+
 - 每个服务可以有一个或多个端点，每个端点分为三种类型：管理（admin）、内部（internal）、公共（public）。在生产环境中，出于安全原因，不同的端点类型可能位于向不同类型用户公开的不同网络上。
   - 公共 API 网络：可能从 Internet 上可见，因此客户可以管理他们的云。
   - 管理 API 网络：可能仅限于组织内管理云基础架构的操作员。
@@ -298,15 +307,76 @@
 
 
 
+# 3、底层通用组件
+
+## 3.1虚拟化软件（hypervisor）
+
+### 3.1.1、qemu
 
 
 
 
 
+### 3.1.2、KVM
 
 
 
 
+
+## 3.2、libvirt
+
+- 节点
+- 域
+
+
+
+## 3.3、Open vSwitch（OVS）
+
+
+
+
+
+## 3.4、Linux Bridge
+
+
+
+
+
+## 3.5、WSGI
+
+- 概念：
+
+  WSGI（web server gateway interface），是一个规范，用于定义web server和web application交互流程，以及web application如何处理请求。和Apache的概念不同。
+
+- 架构：
+
+  - server：接收web客户端请求，然后传递给middleware
+  - middleware：根据路由配置，将请求传递给application
+  - application：处理请求。
+
+<img src="OpenStack_学习笔记.assets/image-20210726163737398.png" alt="image-20210726163737398" style="zoom:80%;" />
+
+
+
+## 3.6、Paste Deployment
+
+- 概念：
+
+  是一个WSGI工具包。
+
+- 
+
+
+
+
+
+## 3.7、MariaDB
+
+
+
+
+
+## 3.8、RabbitMQ
 
 
 
