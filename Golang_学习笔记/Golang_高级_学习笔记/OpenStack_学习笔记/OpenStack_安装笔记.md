@@ -65,8 +65,8 @@ SELINUXTYPE=targeted
 作用：免去配置OpenStack各个节点时，需要不断手动开启端口的麻烦。但是在实际生产环境中绝对不允许这样做，这会引起安全问题。
 
 ```shell
-[root@controller ~]# systemctl stop NetworkManager 
-[root@controller ~]# systemctl disable NetworkManager
+[root@controller ~]# systemctl stop firewalld 
+[root@controller ~]# systemctl disable firewalld
 ```
 
 
@@ -2326,8 +2326,13 @@ password：ADMIN_PASS
 
 
 **6、VMWare挂载磁盘的注意事项** 
-**查看挂载：**fdisk -l，若新增的磁盘未挂载上.
-**处理方式：**
+**查看挂载：**
+
+```shell
+[root@controller /]# fdisk -l 
+```
+
+**若新增的磁盘未挂载上，处理方式：**
 
 ```shell
 #1、查看当前有的磁盘文件：
@@ -2349,7 +2354,7 @@ host0 host1 host2
 
 - **原因：**
 
-  因为使用export设置环境变量，因此该环境变量只限定于当前执行命令的终端使用。系统关机、开启新的终端均无法使用这个环境变量
+  因为使用export设置环境变量，因此该环境变量只限定于当前执行命令的终端使用。系统关机、开启新的终端均无法使用这个环境变量。
 
 - **解决方式：**
 
@@ -2379,7 +2384,7 @@ host0 host1 host2
 **8、执行openstack volume service list，cinder-volume运行失败**
 
 - **原因：**
-  若,存储节点在操作系统磁盘上使用LVM，则需要将关联的设备添加到过滤器中。
+  若，存储节点在操作系统磁盘上使用LVM，则需要将关联的设备添加到过滤器中。
 
 - **解决方式：**
   配置存储节点时，需要挂载相应的卷。
@@ -2394,9 +2399,28 @@ host0 host1 host2
   ```
 
   
+
+**9、Nova无法启动**
+
+- **原因：**
+
+  防火墙阻止访问5672端口
+
+- **解决方式：**
+
+  ```shell
+  #查看nova-comput日志：发现端口未启用
+  cat /var/log/nova/nova-compute.log
   
+  #关闭防火墙
+  systemctl stop firewalld
+  systemctl disable firewalld
+  
+  #重启nova服务
+  systemctl start libvirtd.service openstack-nova-compute.service
+  ```
 
-
+  
 
 
 
