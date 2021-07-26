@@ -311,34 +311,142 @@ OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版
 
 ## 3.1虚拟化软件（hypervisor）
 
+- **基本概念：**
+
+  hypervisor是一种软件，运行在基础服务器中，允许存在多个操作系统、应用去共享服务器中的硬件设施。也称之为VMM（virtual machine monitor）——虚拟机监视器。
+
+  <img src="OpenStack_学习笔记.assets/image-20210726224935404.png" alt="image-20210726224935404" style="zoom:80%;" />
+
+- **hypervisor分类：**
+
+  - **全虚拟化（eg：KVM）**
+
+    将虚拟机（VM）的指令集通过hypervisor转化为宿主机系统的指令集。通过hypervisor屏蔽了虚拟机系统和宿主机系统之间的差异。虚拟机具有Ring1（用户态）权限，宿主机具有Ring0（内核态权限）。
+
+    <img src="OpenStack_学习笔记.assets/image-20210726225759880.png" alt="image-20210726225759880" style="zoom: 50%;" />
+
+    全虚拟化采用Intel VT、AMD-V技术，但需要CPU支持该项技术：
+
+    ```shell
+    #查看Intel的CPU是否支持
+    grep "vmx" /proc/cpuinfo
+    
+    #查看AMD的CPU是否支持
+    grep "svm" /proc/cpuinfo
+    ```
+
+    
+
+  - **半虚拟化（eg：qemu）**
+
+    对虚拟机操作系统（VM）的内核进行修改，在全虚拟化的基础上，增加了一个专门的API，这个API可以将VM发出的指令进行优化，即：不需要Hypervisor进行翻译操作。因此，减小了Hypervisor的工作负担，提升了整体性能。对于某些不含该API的操作系统（eg：windows）来说，就不行能用这种方法。
+
+    <img src="OpenStack_学习笔记.assets/image-20210726225701097.png" alt="image-20210726225701097" style="zoom: 50%;" />
+
+    
+
 ### 3.1.1、qemu
 
+Qemu 是纯软件实现的虚拟化模拟器，可以模拟大多数硬件设备。虚拟机使用的硬件设备就是qemu模拟出来的。
 
+- **KVM**：是硬件辅助的虚拟化技术，主要负责 比较繁琐的 CPU 和内存虚拟化。
+
+- **qemu**：是负责 I/O 虚拟化。
 
 
 
 ### 3.1.2、KVM
 
-
+KVM（kernel-based virtual machine）基于内核的虚拟机。需要CPU为X86架构、支持虚拟化技术（eg：Intel VT、AMD-V技术）。可以使得多个虚拟机使用同一个镜像，并为每个虚拟机配置硬件设备（eg：网卡、硬盘等）
 
 
 
 ## 3.2、libvirt
 
-- 节点
-- 域
+- 概念
+
+  libvirt是一个开源的C函数库，提供API用于管理Linux中的虚拟化管理程序（eg：KVM）。Linux平台的虚拟化管理工具：图形化virt-manager、命令行模式virtsh，都是基于libvirt开发的。
+
+  ![image-20210726232221882](OpenStack_学习笔记.assets/image-20210726232221882.png)
+
+  
+
+- 节点（Node）
+
+  一个节点 = 一台物理机，一个节点可以运行多个虚拟机。Hypervisor、Domain都运行在节点上。
+
+  
+
+- 域（Domain）
+
+  域，可称之为：实例instance、虚拟机VM、客户端操作系统guest OS。是在Hypervisor上运行的。
 
 
 
 ## 3.3、Open vSwitch（OVS）
 
+- **概念**
 
+  OVS是一个开源的软件交换机，用于实现交换机功能，eg：二层交换、网络隔离、QoS、流量监控。包含的基本名词如下：
+
+  - Bridge：
+
+    表示一个一台网交换机（switch），一个主机中可以创建多个Bridge设备。
+
+  - Port：
+
+    端口，类似于物理交换机中的端口，每一个端口都属于一个Bridge。
+
+  - Interface：
+
+    连接到Port的网络接口设备。
+
+  - Controller：
+
+    OpenFlow控制器。
+
+  - Datapath：
+
+    负责执行数据交换，在Flow table中查找接收端口收到的数据包，并执行匹配到的指令。
+
+  - Flow table：
+
+    每一个Datapath都和一个Flow table关联，当Datapath接收到数据之后，OVS会在Flow table中查找相匹配的Flow，然后执行对应的操作。
+
+    
+
+- **特点**
+
+  - 支持openflow，openflow，定义了灵活的数据包处理规范。为用户提供L1-L4包处理能力。
+
+    （L1、L4指的是：OSI七层模型中的物理层、传输层）
+
+  - 支持多种Linux虚拟化技术，包括Xen、KVM以及VirtualBox
 
 
 
 ## 3.4、Linux Bridge
 
+- **Linxu Bridge：**
 
+  - 概念：
+
+    Linux Bridge是一个虚拟设备，用于Linux中实现二层协议交换，类似于物理交换机的作用。该虚拟设备可以绑定多个以太网接口设备，并将其桥接起来。
+
+  - 安装：
+
+    yum install bridge-utils -y  
+
+  - 配置命令：
+
+    brctl  
+
+    
+
+- **桥接的概念：**
+
+  - 依据OSI七层模型中的第二层（数据链路层）的地址，将数据包转发的过程
+  - 桥接的方式，可以把一台机器中的多个网络接口连接起来。
 
 
 
@@ -362,21 +470,27 @@ OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版
 
 - 概念：
 
-  是一个WSGI工具包。
+  Paste Deployment是一个WSGI工具包。
 
-- 
+- 使用
 
+  基于Paste Deployment的应用配置文件，该配置文件的内容被分为多端，通过前缀来识别。
 
+  eg：
+
+  - [app:main]：定义WSGI应用，main表示只有一个应用
+  - [DEFAULT]：定义默认变量的值
+  - [filter:]：定义过滤器。
 
 
 
 ## 3.7、MariaDB
 
+MariaDB是MySQL的一个分支版本，采用XtraDB存储引擎，替代了MySQL的InnoDB。所有操作方式和MySQL一致。OpenStack中的Keystone、Cinder、Neutron、Nova都使用了该数据库。
 
 
 
 
-## 3.8、RabbitMQ
 
 
 
