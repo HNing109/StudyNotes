@@ -298,16 +298,104 @@
 
 OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版本都是基于python2.7
 
-## 2.1、端点类型
+## 2.0、Metadata、User data区别
 
-- 每个服务可以有一个或多个端点，每个端点分为三种类型：管理（admin）、内部（internal）、公共（public）。在生产环境中，出于安全原因，不同的端点类型可能位于向不同类型用户公开的不同网络上。
+无论是私有云与公有云，在创建虚拟机时，用户都需要对虚拟机进行配置，eg：主机名（hostname）、密钥、服务等。在 OpenStack 中，将这些配置信息被分成两类：metadata 和 user data。
+
+### 2.0.1、Metadata
+
+- **概念**
+
+  metadata采用key-value的形式保存数据，主要包含虚拟机自身常用的属性，eg：hostname、、网络配置信息、SSH登陆密钥。
+
+  
+
+- **虚拟机获取metadat数据的方式（metadata机制）**
+
+   在OpenStack中，虚拟机获取 Metadata 信息的方式有两种：Config drive 和 metadata RESTful 服务。
+
+  - **metadata RESTful 服务**
+
+    OpenStack 提供了 RESTful 接口，虚拟机可以通过 REST API 来获取 metadata 信息。提供该服务的组件为：nova-api-metadata、neutron-metadata-agent、neutron-ns-metadata-proxy。
+
+    
+
+### 2.0.2、user data
+
+- **概念**
+
+  user data的数据通过文件形式传递（eg：shell脚本、cloud-init配置文件等），主要包括：常用命令、脚本文件等。
+
+  
+
+- **虚拟机获取user data数据的方式（user data机制）**
+
+  在创建虚拟机时，可通过定制脚本源输入脚本数据，或者设置SSH密钥。
+
+  <img src="OpenStack_学习笔记.assets/image-20210727232225924.png" alt="image-20210727232225924" style="zoom: 80%;" />
+
+
+
+## 2.1、Keytone中的基本概念
+
+### 2.1.1、端点的类型
+
+- **端点（endpoint）**是一个地址，该地址可以用来访问某个具体服务。每个服务可以有一个或多个端点，每个端点分为三种类型：管理（admin）、内部（internal）、公共（public）。在生产环境中，出于安全原因，不同的端点类型可能位于向不同类型用户公开的不同网络上。
   - 公共 API 网络：可能从 Internet 上可见，因此客户可以管理他们的云。
   - 管理 API 网络：可能仅限于组织内管理云基础架构的操作员。
   - 内部 API 网络：可能仅限于包含 OpenStack 服务的主机
 
 
 
-## 2.2、LVM
+### 2.1.2、Keystone中的对象关系
+
+- 角色（role）
+
+- 用户（user）：
+
+  通过keystone访问openstack服务的个人、系统、某个服务，keystone会通过认证信息验证用户请求的合法性，通过验证的用户将会分配到一个特定的令牌（token），该令牌可以用作后续资源访问的一个通行证，**不需要全局唯一，只需要在域内唯一即可**。
+
+- 组（group）：
+
+  用户组。一个组users的容器，可以向group中添加用户，并直接给group分配角色，那么在这个group中的所有用户都拥有了group所拥有的角色权限。
+
+- 服务实例（instance）：
+
+  依据镜像创建的服务对象。eg：创建的虚拟机
+
+- 服务（service）：
+
+  通过keystone连接、管理的：nova、cinder、swift等OpenStack中的服务组件。
+
+- 项目（project）：
+
+  项目是各个服务中的一些可以访问的资源集合。因此，在创建虚拟机时需要指定某个项目。用户默认被绑定到某些项目上，用户访问项目的资源前，必须具拥有对该项目的访问权限。
+
+- 域（domain）：
+
+  指的是一台虚拟机。其上可创建多个project、users、group和roles。用户可以对其上的多个project进行管理。
+
+- 区域（region）：
+
+  指的是物理机的集群（资源池、数据中心）
+
+- 端点（endpoint）：
+
+  端点是一个地址，该地址可以用来访问某个具体服务。
+
+- 凭证（credential）：
+
+  指用户的用户名和密码。
+
+![image-20210727221656602](OpenStack_学习笔记.assets/image-20210727221656602.png)
+
+
+
+## 2.2、Cinder中的基本概念
+
+### 2.2.1、LVM分类
+
+LCM（Logical Volume Manager）逻辑卷管理，Linux环境下对磁盘分区进行管理的一种机制。可分为4类：
 
 - PE（physical extend）物理扩展
 - PV（physical volume）物理卷
@@ -318,34 +406,112 @@ OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版
 
 
 
-## 2.3、虚拟机镜像
+### 2.2.2、Cinder核心组件
+
+- cinder-api：
+
+  负责接收、处理Rest请求，将请求放入MQ队列中
+
+- cinder-scheduler：
+
+  负责处理任务队列中的任务，根据预定策略选择合适的Volume service节点来执行任务。
+
+- cinder-volume：
+
+  该服务运行哎存储节点上，负责管理存储空间，每个存储节点都有一个Volume Service，多个存储节点联合起来可以组成一个资源池。
+
+- cinder provider
+
+  用来连接不同型号的存储设备。（由不同的存储设备生产厂商来提供）
+
+
+
+## 2.3、Swift中的基本概念
+
+### 2.3.1、Swift数据模型
+
+- Account：
+
+  Account是一个存储区域，不是表示认证系统里的帐号。每个Account都对应一个租户。
+
+- Container：
+
+  容器表示一组封装的对象，类似于文件夹的作用。
+
+- Object：
+
+  对象，由元数据 + 内容组成，即：一个对象就是一个文件。
+
+![image-20210727225433847](OpenStack_学习笔记.assets/image-20210727225433847.png)
+
+
+
+### 2.3.2、Swift核心组件
+
+- 代理服务（Proxy Server）
+
+  负责Swift中各个组件之间的通信
+
+- 账户服务
+
+  提供账户元数据和统计信息，维护容器列表，将每个账户的信息存入SQLite数据库中。
+
+- 容器服务
+
+  提供容器原数据和统计信息，维护对象列表，将每个容器的信息存入SQLite数据库中。
+
+- 对象服务
+
+  提供对象元数据和内容，每个对象的内容将被以文件形式存入文件系统中，元数据则作为文件属性来存储。
+
+![image-20210727225852116](OpenStack_学习笔记.assets/image-20210727225852116.png)
+
+
+
+## 2.4、Glance中的基本概念
+
+### 2.4.1、虚拟机镜像
 
 虚拟机镜像文件就是一个已经安装好操作系统的虚拟磁盘。
 
-- 虚机镜像格式
+- **虚机镜像格式**
 
   - RAW：裸格式，不支持快照。
   - qcow2：由qemu模拟器支持，可动态扩展、支持写时复制技术。
-  - vhd：
-  - vmdk
-  - vdi
-  - iso
+  - vhd：微软的Hyper-V虚拟机软件使用的VHD镜像格式
+  - vmdk：VMWare使用的镜像格式
+  - vdi：VirtualBox使用的镜像格式
+  - iso：光盘数据的归档格式。
 
-- 虚机镜像元数据
+- **虚机镜像容器格式**
 
-  
+  通过格式可判断该虚拟机镜像是否包含metadata数据。具体格式如下：
 
-- 虚机镜像容器格式
+  - bare：该镜像不包含容器、metadata数据
+  - ovf：OVF容器的格式
+  - docker：Docker容器的格式
 
 
 
-## 2.4、OSI七层模型
+### 2.4.2、Glance核心组件
+
+- glance-api
+- glance-registry
+- soter adapter
+
+<img src="OpenStack_学习笔记.assets/image-20210727232750046.png" alt="image-20210727232750046" style="zoom:80%;" />
+
+
+
+## 2.5、Neutrom中的基本概念
+
+### 2.5.1、OSI七层模型
 
 ![image-20210727100954586](OpenStack_学习笔记.assets/image-20210727100954586.png)
 
 
 
-## 2.5、网络命名空间（netns）
+### 2.5.2、网络命名空间（netns）
 
 - 概念：每个网络空间都有独立的网卡、路由表、防火墙规则等。
 - 作用：用于在同一台物理机上，隔离出不同的网络空间。
@@ -353,7 +519,7 @@ OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版
 
 
 
-## 2.6、网络分类
+### 2.5.3、网络分类
 
 - **按照数据中心分类**
 
@@ -380,24 +546,130 @@ OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版
   - project network（租户网络）
 
     普通用户创建的虚拟网络，创建的类型分为：Local、Flat、Vlan、GRE、Vxlan
+  
+  ![image-20210727233045463](OpenStack_学习笔记.assets/image-20210727233045463.png)
 
 
 
-## 2.7、虚拟网络的类型
+### 2.5.4、网络类型
 
-- Local
+- 管理网络
+
+  用于OpenStack各个组件之间的内部通信
+
+- 数据网络
+
+  用于云主机中虚拟数据之间的通信
+
+- 外部网络
+
+  就是公共网络，可以通过WAN网络访问
+
+- API网络
+
+  用于外部调用OpenStack所有API的网络
+
+
+
+### 2.5.5、虚拟网络的类型
+
+- **Local**
+
+  只允许在本地服务器内通信，不支持跨服务器通信（一般用于单节点测试）
+
+- **Flat**
+
+  所有租户都在该网络里，所有租户均可以接收到广播信息（类似于UDP的广播播报形式），一般用于provider network（供应商网络）
+
+- **Vlan** 
+
+  虚拟局域网（Virtual Local Area Network），在交换机实现过程中涉及到的概念
+
+  - 概念：
+
+    基于物理网络实现的，可以将一个物理网络划分为多个Vlan网络，每个Vlan网络之间是相互隔离的、且Vlan网络之间可以存在重名的IP地址。每个Vlan网络由一个自己的ID，该ID取值范围为：1~4094。
+
+  - 作用：
+
+    可以防止广播报文的泛滥（全网络的广播）
+
+    <img src="OpenStack_学习笔记.assets/image-20210727234039995.png" alt="image-20210727234039995" style="zoom:80%;" />
+
+  - 适用范围：
+
+    适用于私有云，若在公有云中，Vlan的ID数量可能不够使用。
+
+- **Vxlan**
+
+  虚拟可拓展局域网（Virtual eXtential LAN），可以将处于不同网段网络设备整合在同一个逻辑链路层网络中。通过将第2层扩展到第3层网络来构建大型的多租户数据中心，同时将虚拟网络与物理基础设施分离。
+
+- **GRE**
+
+  通用路由协议（Generic Routing Encapsulation） ，基于IP路由表实现路由。 
+
+
+
+### 2.5.6、对象模型
+
+- **网络（network）**
+
+  指的是一个二层网络（即：只有物理层、数据链路层），只需要通过MAC寻址就可以实现通讯。
+
+  （**PS：**三层网络，包含：物理层、数据链路层、网络层，需要通过IP地址进行通信）
+
+- **子网（subnet）**
+
+  子网是一组IPv4或IPv6地址，eg：192.168.200.2/24。子网可用于给虚拟机分配IP地址。每个子网指定一个路由，然后和一个网络关联。
+
+- **端口（port）**
+
+  - **一个端口表示虚拟网络交换机中的一个虚拟交换端口。端口的IP地址是从子网中分配的。**
+
+  - **虚拟机的网卡（VIF - Virtual Interface ）会被连接到端口上，然后网卡就可以胡哦的MAC地址、IP地址。**
+
+- **虚拟交换机（Virtual switch ）**
 
   
 
-- Flat
+- **虚拟路由器（Virtual router ）**
 
-- Vlan
+  提供不同网段之间的IP表路由功能。
 
-  - 适用范围：适用于私有云，若在公有云中，Vlan的ID数量可能不够使用。
 
-- GRE
 
-- Vxlan
+### 2.5.7、Neutron核心组件
+
+- neutron server
+
+  包含neutron-server、各种插件，该组件可安装在控制节点或者网络节点中。
+
+- neutron-dhcp-agent
+
+  为虚拟机提供DHCP服务
+
+- neutron L2 agent
+
+  为虚拟机提供二层交换服务。（即：二层网络中的路由功能）
+
+- neutron L3 agent
+
+  为虚拟机提供三层交换服务。（即：三层网络中的路由功能）
+
+
+
+## 2.6、Nova中的基本概念
+
+### 2.6.1、Nova基本框架
+
+<img src="OpenStack_学习笔记.assets/image-20210728000901740.png" alt="image-20210728000901740" style="zoom: 67%;" />
+
+
+
+### 2.6.2、Nova-compute架构
+
+<img src="OpenStack_学习笔记.assets/image-20210728001003111.png" alt="image-20210728001003111" style="zoom:80%;" />
+
+
 
 
 
