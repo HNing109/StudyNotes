@@ -73,7 +73,7 @@
 
 
 
-## 1.3、OpenStack的硬件架构
+## 1.3、OpenStack的节点架构
 
 - 控制节点（controller node）
 
@@ -228,7 +228,7 @@
 
      项目名：Swift
 
-     功能：用来存OpenStack平台的数据，包含：帐户、容器、对象、**镜像数据**等。需要两个节点。每个节点至少需要一个网络接口。REST风格的接口和扁平的数据组织结构。RESTFUL HTTP API来保存和访问任意非结构化数据。
+     功能：（可以当成是网盘，来存储数据）用来存OpenStack平台的数据，包含：帐户、容器、对象、**镜像数据**等。需要两个节点。每个节点至少需要一个网络接口。REST风格的接口和扁平的数据组织结构。RESTFUL HTTP API来保存和访问任意非结构化数据。
 
     
 
@@ -304,6 +304,100 @@ OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版
   - 公共 API 网络：可能从 Internet 上可见，因此客户可以管理他们的云。
   - 管理 API 网络：可能仅限于组织内管理云基础架构的操作员。
   - 内部 API 网络：可能仅限于包含 OpenStack 服务的主机
+
+
+
+## 2.2、LVM
+
+- PE（physical extend）物理扩展
+- PV（physical volume）物理卷
+- VG（volume group）卷组
+- LV（logical volume）逻辑卷
+
+<img src="OpenStack_学习笔记.assets/image-20210727085632555.png" alt="image-20210727085632555" style="zoom:80%;" />
+
+
+
+## 2.3、虚拟机镜像
+
+虚拟机镜像文件就是一个已经安装好操作系统的虚拟磁盘。
+
+- 虚机镜像格式
+
+  - RAW：裸格式，不支持快照。
+  - qcow2：由qemu模拟器支持，可动态扩展、支持写时复制技术。
+  - vhd：
+  - vmdk
+  - vdi
+  - iso
+
+- 虚机镜像元数据
+
+  
+
+- 虚机镜像容器格式
+
+
+
+## 2.4、OSI七层模型
+
+![image-20210727100954586](OpenStack_学习笔记.assets/image-20210727100954586.png)
+
+
+
+## 2.5、网络命名空间（netns）
+
+- 概念：每个网络空间都有独立的网卡、路由表、防火墙规则等。
+- 作用：用于在同一台物理机上，隔离出不同的网络空间。
+- 网络空间之间的通信：每个网络空间都有veth-pair（**虚拟设备接口**，成对出现），负责和其他网络空间通信。
+
+
+
+## 2.6、网络分类
+
+- **按照数据中心分类**
+
+  - OpenStack Cloud network
+
+    Openstack所管理的网络
+
+  - External network
+
+    数据中心所管理的公司网络，eg：虚拟机使用的Floating IP
+
+  - Internet
+
+    各大运营商所管理的网络，这里使用的IP为公网IP
+
+  <img src="OpenStack_学习笔记.assets/image-20210727103231001.png" alt="image-20210727103231001" style="zoom:80%;" />
+
+- **按照创建网络的用户权限分类**
+
+  - provider network（供应商网络）
+
+    管理员创建的虚拟网络，和物理网络存在映射关系。创建的类型分为：Flat、Vlan、GRE、Vxlan
+
+  - project network（租户网络）
+
+    普通用户创建的虚拟网络，创建的类型分为：Local、Flat、Vlan、GRE、Vxlan
+
+
+
+## 2.7、虚拟网络的类型
+
+- Local
+
+  
+
+- Flat
+
+- Vlan
+
+  - 适用范围：适用于私有云，若在公有云中，Vlan的ID数量可能不够使用。
+
+- GRE
+
+- Vxlan
 
 
 
@@ -454,7 +548,9 @@ KVM（kernel-based virtual machine）基于内核的虚拟机。需要CPU为X86�
 
 - 概念：
 
-  WSGI（web server gateway interface），是一个规范，用于定义web server和web application交互流程，以及web application如何处理请求。和Apache的概念不同。
+  WSGI（web server gateway interface），是一个python语言的规范，用于定义web server和web application交互流程，以及web application如何处理请求。和Apache的概念不同。
+
+  <img src="OpenStack_学习笔记.assets/image-20210727170410644.png" alt="image-20210727170410644" style="zoom:80%;" />
 
 - 架构：
 
