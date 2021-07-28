@@ -300,13 +300,13 @@ OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版
 
 ## 2.0、Metadata、User data区别
 
-无论是私有云与公有云，在创建虚拟机时，用户都需要对虚拟机进行配置，eg：主机名（hostname）、密钥、服务等。在 OpenStack 中，将这些配置信息被分成两类：metadata 和 user data。
+私有云或公有云，在创建虚拟机时，用户都需要对虚拟机进行配置，eg：主机名（hostname）、密钥、服务等。在 OpenStack 中，将这些配置信息被分成两类：元数据（metadata）、用户数据（user data）。
 
 ### 2.0.1、Metadata
 
 - **概念**
 
-  metadata采用key-value的形式保存数据，主要包含虚拟机自身常用的属性，eg：hostname、、网络配置信息、SSH登陆密钥。
+  元数据（metadata）采用key-value的形式保存数据，主要包含虚拟机自身常用的属性，eg：hostname、网络配置信息、SSH登陆密钥。
 
   
 
@@ -316,15 +316,15 @@ OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版
 
   - **metadata RESTful 服务**
 
-    OpenStack 提供了 RESTful 接口，虚拟机可以通过 REST API 来获取 metadata 信息。提供该服务的组件为：nova-api-metadata、neutron-metadata-agent、neutron-ns-metadata-proxy。
+    OpenStack 提供了 RESTful 接口，虚拟机可以通过 REST API 来获取 metadata 信息。需要使用的组件为：nova-api-metadata、neutron-metadata-agent、neutron-ns-metadata-proxy。
 
     
 
-### 2.0.2、user data
+### 2.0.2、User data
 
 - **概念**
 
-  user data的数据通过文件形式传递（eg：shell脚本、cloud-init配置文件等），主要包括：常用命令、脚本文件等。
+  用户数据（user data）的数据通过文件形式传递，eg：shell脚本、cloud-init配置文件等，主要包括的内容为：常用命令、脚本文件等。
 
   
 
@@ -347,7 +347,7 @@ OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版
 
 
 
-### 2.1.2、Keystone中的对象关系
+### 2.1.2、Keystone中的对象关系（重点）
 
 - 角色（role）
 
@@ -408,19 +408,19 @@ LCM（Logical Volume Manager）逻辑卷管理，Linux环境下对磁盘分区�
 
 ### 2.2.2、Cinder核心组件
 
-- cinder-api：
+- **cinder-api：**
 
   负责接收、处理Rest请求，将请求放入MQ队列中
 
-- cinder-scheduler：
+- **cinder-scheduler：**
 
   负责处理任务队列中的任务，根据预定策略选择合适的Volume service节点来执行任务。
 
-- cinder-volume：
+- **cinder-volume：**
 
   该服务运行哎存储节点上，负责管理存储空间，每个存储节点都有一个Volume Service，多个存储节点联合起来可以组成一个资源池。
 
-- cinder provider
+- **cinder provider**
 
   用来连接不同型号的存储设备。（由不同的存储设备生产厂商来提供）
 
@@ -430,15 +430,15 @@ LCM（Logical Volume Manager）逻辑卷管理，Linux环境下对磁盘分区�
 
 ### 2.3.1、Swift数据模型
 
-- Account：
+- **Account：**
 
   Account是一个存储区域，不是表示认证系统里的帐号。每个Account都对应一个租户。
 
-- Container：
+- **Container：**
 
   容器表示一组封装的对象，类似于文件夹的作用。
 
-- Object：
+- **Object：**
 
   对象，由元数据 + 内容组成，即：一个对象就是一个文件。
 
@@ -448,19 +448,19 @@ LCM（Logical Volume Manager）逻辑卷管理，Linux环境下对磁盘分区�
 
 ### 2.3.2、Swift核心组件
 
-- 代理服务（Proxy Server）
+- **代理服务（Proxy Server）**
 
   负责Swift中各个组件之间的通信
 
-- 账户服务
+- **账户服务**
 
   提供账户元数据和统计信息，维护容器列表，将每个账户的信息存入SQLite数据库中。
 
-- 容器服务
+- **容器服务**
 
   提供容器原数据和统计信息，维护对象列表，将每个容器的信息存入SQLite数据库中。
 
-- 对象服务
+- **对象服务**
 
   提供对象元数据和内容，每个对象的内容将被以文件形式存入文件系统中，元数据则作为文件属性来存储。
 
@@ -476,7 +476,7 @@ LCM（Logical Volume Manager）逻辑卷管理，Linux环境下对磁盘分区�
 
 - **虚机镜像格式**
 
-  - RAW：裸格式，不支持快照。
+  - RAW：裸格式，创建时就需要指定存储容量，不支持动态扩容，不支持快照，性能好.
   - qcow2：由qemu模拟器支持，可动态扩展、支持写时复制技术。
   - vhd：微软的Hyper-V虚拟机软件使用的VHD镜像格式
   - vmdk：VMWare使用的镜像格式
@@ -519,7 +519,27 @@ LCM（Logical Volume Manager）逻辑卷管理，Linux环境下对磁盘分区�
 
 
 
-### 2.5.3、网络分类
+### 2.5.3、OpenStack的网络类型
+
+- **管理网络**
+
+  用于OpenStack各个组件之间的内部通信
+
+- **数据网络**
+
+  用于云主机中虚拟数据之间的通信
+
+- **外部网络**
+
+  就是公共网络，可以通过WAN网络访问
+
+- **API网络**
+
+  用于外部调用OpenStack所有API的网络
+
+
+
+### 2.5.4、网络分类
 
 - **按照数据中心分类**
 
@@ -545,29 +565,9 @@ LCM（Logical Volume Manager）逻辑卷管理，Linux环境下对磁盘分区�
 
   - project network（租户网络）
 
-    普通用户创建的虚拟网络，创建的类型分为：Local、Flat、Vlan、GRE、Vxlan
+    普通用户（项目中的用户）创建的虚拟网络，创建的类型分为：Local、Flat、Vlan、GRE、Vxlan
   
-  ![image-20210727233045463](OpenStack_学习笔记.assets/image-20210727233045463.png)
-
-
-
-### 2.5.4、网络类型
-
-- 管理网络
-
-  用于OpenStack各个组件之间的内部通信
-
-- 数据网络
-
-  用于云主机中虚拟数据之间的通信
-
-- 外部网络
-
-  就是公共网络，可以通过WAN网络访问
-
-- API网络
-
-  用于外部调用OpenStack所有API的网络
+  <img src="OpenStack_学习笔记.assets/image-20210728093548107.png" alt="image-20210728093548107" style="zoom:67%;" />
 
 
 
@@ -583,7 +583,7 @@ LCM（Logical Volume Manager）逻辑卷管理，Linux环境下对磁盘分区�
 
 - **Vlan** 
 
-  虚拟局域网（Virtual Local Area Network），在交换机实现过程中涉及到的概念
+  虚拟局域网（Virtual Local Area Network），在交换机实现过程中涉及到的Vlan概念。
 
   - 概念：
 
@@ -597,7 +597,7 @@ LCM（Logical Volume Manager）逻辑卷管理，Linux环境下对磁盘分区�
 
   - 适用范围：
 
-    适用于私有云，若在公有云中，Vlan的ID数量可能不够使用。
+    适用于私有云。若，**用在公有云中，Vlan的ID数量可能不够使用**。
 
 - **Vxlan**
 
@@ -625,7 +625,7 @@ LCM（Logical Volume Manager）逻辑卷管理，Linux环境下对磁盘分区�
 
   - **一个端口表示虚拟网络交换机中的一个虚拟交换端口。端口的IP地址是从子网中分配的。**
 
-  - **虚拟机的网卡（VIF - Virtual Interface ）会被连接到端口上，然后网卡就可以胡哦的MAC地址、IP地址。**
+  - **虚拟机的网卡（VIF - Virtual Interface ）会被连接到端口上，然后网卡就可以获得的MAC地址、IP地址。**
 
 - **虚拟交换机（Virtual switch ）**
 
@@ -855,6 +855,119 @@ KVM（kernel-based virtual machine）基于内核的虚拟机。需要CPU为X86�
 ## 3.7、MariaDB
 
 MariaDB是MySQL的一个分支版本，采用XtraDB存储引擎，替代了MySQL的InnoDB。所有操作方式和MySQL一致。OpenStack中的Keystone、Cinder、Neutron、Nova都使用了该数据库。
+
+
+
+# 4、OpenStack上传镜像
+
+本示例演示CentOS7镜像的上传过程。
+
+## 4.1、准备工作
+
+- 下载OpenStack官网提供的镜像（该镜像已经打包好，不需要自己创建）
+
+  - 本示例需要下载CentOS7镜像，下载地址：http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-20140929_01.qcow2
+  - OpenStack官网提供的**其他镜像**下载地址：https://docs.openstack.org/image-guide/obtain-images.html
+
+- 创建脚本文件admin-openrc：用于获取管理员凭证的CLI
+
+  ```shell
+  [root@controller /]# vim admin-openrc
+  export OS_PROJECT_DOMAIN_NAME=Default
+  export OS_USER_DOMAIN_NAME=Default
+  export OS_PROJECT_NAME=admin
+  export OS_USERNAME=admin
+  export OS_PASSWORD=ADMIN_PASS
+  export OS_AUTH_URL=http://controller:5000/v3
+  export OS_IDENTITY_API_VERSION=3
+  export OS_IMAGE_API_VERSION=2
+  ```
+
+  
+
+## 4.2、上传镜像
+
+```shell
+[root@controller Downloads]# openstack image create "centos7" \
+                             --file CentOS-7-x86_64-GenericCloud-20140929_01.qcow2 \
+                             --disk-format qcow2 --container-format bare \
+                             --public
+                             
+#结果
++------------------+------------------------------------------------------+
+| Field            | Value                                                |
++------------------+------------------------------------------------------+
+| checksum         | 8aee60d75949bc796c6fd7a90ba29bd7                     |
+| container_format | bare                                                 |
+| created_at       | 2021-07-28T09:37:40Z                                 |
+| disk_format      | qcow2                                                |
+| file             | /v2/images/c3587da6-1e0b-44ef-8c84-f3e4aaab1790/file |
+| id               | c3587da6-1e0b-44ef-8c84-f3e4aaab1790                 |
+| min_disk         | 0                                                    |
+| min_ram          | 0                                                    |
+| name             | centos7                                              |
+| owner            | 427fe79ef63547aaa55fb6c8a14fa62b                     |
+| protected        | False                                                |
+| schema           | /v2/schemas/image                                    |
+| size             | 418688512                                            |
+| status           | active                                               |
+| tags             |                                                      |
+| updated_at       | 2021-07-28T09:37:43Z                                 |
+| virtual_size     | None                                                 |
+| visibility       | public                                               |
++------------------+------------------------------------------------------+
+```
+
+
+
+## 4.3、命令参数说明
+
+```shell
+[root@controller Downloads]# openstack image create -h
+# openstack image create命令的可选参数
+usage: openstack image create [-h] [-f {json,shell,table,value,yaml}]
+                              [-c COLUMN] [--max-width <integer>]
+                              [--fit-width] [--print-empty] [--noindent]
+                              [--prefix PREFIX] [--id <id>]
+                              [--container-format <container-format>]
+                              [--disk-format <disk-format>]
+                              [--min-disk <disk-gb>] [--min-ram <ram-mb>]
+                              [--file <file> | --volume <volume>] [--force]
+                              [--protected | --unprotected]
+                              [--public | --private | --community | --shared]
+                              [--property <key=value>] [--tag <tag>]
+                              [--project <project>]
+                              [--project-domain <project-domain>]
+                              <image-name>
+
+#参数说明
+<image-name>		：指定上传后镜像的名字
+--id <id> 			：要保留的镜像ID
+--container-format <container-format> ：镜像容器的格式，支持如下格式：ami, ari, aki, bare, docker, ova, ovf。
+                                        默认格式为：bare
+--disk-format <disk-format>			  ：镜像磁盘格式，支持的格式如下：ami, ari, aki, vhd, vmdk, raw, qcow2, 
+                                        vhdx, vdi, iso。默认格式为：raw。
+--min-disk <disk-gb>	：启动镜像所需的最小磁盘容量（单位：GB）
+--min-ram <ram-mb>		：启动镜像所需的最小运行内存（单位：MB）
+--file <file>  			：本地上传的镜像文件（可以使用相对路径）
+--volume <volume>		：从卷中创建镜像
+--force					：如果卷正在使用，也强行创建镜像
+--property <key=value>				：
+--tag <tag>							：添加镜像标签
+--project <project>					：指定该镜像的备用项目（项目的名称或者ID）
+--project-domain <project-domain> 	：指定项目所属的域（域的名或者ID），当项目名冲突时使用该配置
+
+#镜像是否被保护
+--protected         ：镜像受保护，不允许删除
+--unprotected		：镜像不受保护，允许删除
+
+#镜像的可见性
+--public            ：公共镜像
+--private           ：私有镜像（默认值）
+--community         ：社区可获取该镜像
+--shared            ：镜像可被分享
+
+```
 
 
 
