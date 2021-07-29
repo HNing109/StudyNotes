@@ -783,7 +783,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 ### 2.5.1、**函数值（“回调”）**
 
-将函数作为参数传入另一个函数中，在该函数中可以之接使用传入的函数，进行运算
+将函数作为参数传入另一个函数中，在该函数中可以直接使用传入的函数，进行运算
 
 ```go
 //f为传入的函数值
@@ -859,7 +859,7 @@ func closure() func(int) int{
 }
 
 func closureTest(){
-   //f1、 f2对应一个闭包：闭包中的数值会一直存在，可以循环叠加
+   //f1、 f2含有一个闭包：闭包中的数值会一直存在，可以循环叠加
    f1, f2 := closure(), closure()
    for index := 0; index < 10; index++{
       //index即为传入的x值
@@ -957,71 +957,73 @@ func closureTest(){
         
   
   - **结构体的方法可以在不同.go文件中，但是必须与该结构体在同一个包里面**
-
-```go
-/*
-结构体
-*/
-type way struct{
-	x float64
-	y float64
-    res float64
-}
-
-/**
-值接收者（少用）：myWay way，该方式仅仅修改way结构体中数据的副本（退出该函数后，不影响原有的数据）
- */
-func (myWay way) ABS() float64{
-	if myWay.x - myWay.y >= 0{
-        myWay.res = myWay.x - myWay.y
-		return myWay.x - myWay.y
-	} else{
-        myWay.res = myWay.y - myWay.x
-		return myWay.y - myWay.x
-	}
-}
-
-/**
-指针接收者（常用）：myWay *way，可以直接改变way结构体中的数据
- */
-func (myWay *way) Scale(num float64){
-	myWay.x = myWay.x * num
-	myWay.y = myWay.y * num
-}
-//将上述的  方法  重写为  函数
-func ScaleFunc(myWay *way, num float64){
-	myWay.x = myWay.x * num
-	myWay.y = myWay.y * num
-}
-
-/**
-该方法：仅能被类内、包内的类调用
-*/
-func (myWay *way) getData() (float64, float64){
-    return myWay.x, myWay.y
-}
-
-func wayTest(){
-    //创建方式1：结构体类型变量
-	w := way{
-		x: 3,
-		y: 4,
-	}
-    
-    //创建方式1：指向结构体类型变量的指针
-	w1 := &way{
-		x: 5,
-		y: 6,
-	}
-	//调用 ： 方法
-	w.Scale(10)
-	//调用 ： 函数   (两者等效)
-	//ScaleFunc(&w, 10)
-
-	fmt.Printf("w = %v, w1 = %v \n", w, w1)
-	fmt.Println(w.ABS())
-}
-```
+  
+  ```go
+  /*
+  结构体
+  */
+  type way struct{
+  	x float64
+  	y float64
+      res float64
+  }
+  
+  /**
+  值接收者（少用）：myWay way，该方式仅仅修改way结构体中数据的副本（退出该函数后，不影响原有的数据）
+   */
+  func (myWay way) ABS() float64{
+  	if myWay.x - myWay.y >= 0{
+          myWay.res = myWay.x - myWay.y
+  		return myWay.x - myWay.y
+  	} else{
+          myWay.res = myWay.y - myWay.x
+  		return myWay.y - myWay.x
+  	}
+  }
+  
+  /**
+  指针接收者（常用）：myWay *way，可以直接改变way结构体中的数据
+   */
+  func (myWay *way) Scale(num float64){
+  	myWay.x = myWay.x * num
+  	myWay.y = myWay.y * num
+  }
+  //将上述的  方法  重写为  函数
+  func ScaleFunc(myWay *way, num float64){
+  	myWay.x = myWay.x * num
+  	myWay.y = myWay.y * num
+  }
+  
+  /**
+  该方法：仅能被类内、包内的类调用
+  */
+  func (myWay *way) getData() (float64, float64){
+      return myWay.x, myWay.y
+  }
+  
+  func wayTest(){
+      //创建方式1：结构体类型变量
+  	w := way{
+  		x: 3,
+  		y: 4,
+  	}
+      
+      //创建方式1：指向结构体类型变量的指针
+  	w1 := &way{
+  		x: 5,
+  		y: 6,
+  	}
+  	//调用 ： 方法
+  	w.Scale(10)
+  	//调用 ： 函数   (两者等效)
+  	//ScaleFunc(&w, 10)
+  
+  	fmt.Printf("w = %v, w1 = %v \n", w, w1)
+  	fmt.Println(w.ABS())
+  }
+  ```
+  
+  
 
 
 
@@ -1273,8 +1275,6 @@ type man struct{
 - **多态** 
 
   Go中使用接口实现多态。多个对象实现同一个接口，但不同对象所实现的接口方法，具有不同功能。在调用接口中的方法时，根据传入的对象（该对象实现了接口）不同，可自动调用到相应对象实现的接口放方法。 
-
-  
 
   - **多态数组：**
 
