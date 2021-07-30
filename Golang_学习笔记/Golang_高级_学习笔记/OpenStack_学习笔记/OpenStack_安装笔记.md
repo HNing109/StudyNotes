@@ -2381,7 +2381,18 @@ host0 host1 host2
 
 
 
-**8、执行openstack volume service list，cinder-volume运行失败**
+**8、执行openstack volume service list时，cinder-volume运行失败**
+
+```shell
+[root@controller /]# openstack volume service list
+
++------------------+------------+------+---------+-------+----------------------------+
+| Binary           | Host       | Zone | Status  | State | Updated_at                 |
++------------------+------------+------+---------+-------+----------------------------+
+| cinder-scheduler | controller | nova | enabled | up    | 2016-09-30T02:27:41.000000 |
+| cinder-volume    | block@lvm  | nova | disabled| down  | 2016-09-30T02:27:46.000000 |
++------------------+------------+------+---------+-------+----------------------------+
+```
 
 - **原因：**
   若，存储节点在操作系统磁盘上使用LVM，则需要将关联的设备添加到过滤器中。
@@ -2400,7 +2411,13 @@ host0 host1 host2
 
   
 
-**9、Nova无法启动**
+**9、Nova-comput无法启动**
+
+```shell
+#无法使用
+[root@controller /]# openstack compute service list --service nova-compute
+
+```
 
 - **原因：**
 

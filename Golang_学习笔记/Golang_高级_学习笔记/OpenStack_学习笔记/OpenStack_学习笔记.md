@@ -385,7 +385,7 @@ OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版
 
 - 凭证（credential）：
 
-  指用户的用户名和密码。
+  指用户名和密码。
 
 ![image-20210727221656602](OpenStack_学习笔记.assets/image-20210727221656602.png)
 
@@ -418,7 +418,7 @@ LCM（Logical Volume Manager）逻辑卷管理，Linux环境下对磁盘分区�
 
 - **cinder-volume：**
 
-  该服务运行哎存储节点上，负责管理存储空间，每个存储节点都有一个Volume Service，多个存储节点联合起来可以组成一个资源池。
+  该服务运行在存储节点上，负责管理存储空间，每个存储节点都有一个Volume Service，多个存储节点联合起来可以组成一个资源池。
 
 - **cinder provider**
 
