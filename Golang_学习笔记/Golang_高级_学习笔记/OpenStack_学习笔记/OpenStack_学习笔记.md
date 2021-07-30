@@ -1127,7 +1127,7 @@ usage: openstack image create [-h] [-f {json,shell,table,value,yaml}]
 
   
 
--  创建路由
+-  **创建路由**
 
   - 新建路由
 
@@ -1147,7 +1147,7 @@ usage: openstack image create [-h] [-f {json,shell,table,value,yaml}]
 
   
 
-- 创建实例（创建虚拟机）
+- **创建实例（创建虚拟机）**
 
   - 配置实例详情
 
@@ -1180,6 +1180,12 @@ usage: openstack image create [-h] [-f {json,shell,table,value,yaml}]
   - 登录创建虚拟机的控制台
 
     <img src="OpenStack_学习笔记.assets/image-20210729182924043.png" alt="image-20210729182924043" style="zoom:80%;" />
+
+
+
+- **删除所创建的虚机流程：**
+  - 流程： 关闭虚拟机 =》删除实例 =》 删除实例类型 =》 删除路由 =》 删除网络（外部、内部网络） 
+  - 若，不按照该流程，则可能会出现部分组件删除失败的情况。**错误：**删除失败，该组件正在使用中。
 
 
 
