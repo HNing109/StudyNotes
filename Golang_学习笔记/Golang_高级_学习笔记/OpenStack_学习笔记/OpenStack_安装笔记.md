@@ -43,6 +43,7 @@ OpenStack官网安装手册：https://docs.openstack.org/install-guide/
 解决方式：配置/etc/selinux/config，关闭SELINUX
 
 ```shell
+#配置
 [root@controller /]# cat /etc/selinux/config
 
 # This file controls the state of SELinux on the system.
@@ -56,6 +57,10 @@ SELINUX=disabled
 #     minimum - Modification of targeted policy. Only selected processes are protected. 
 #     mls - Multi Level Security protection.
 SELINUXTYPE=targeted 
+
+#查看配置结果
+[root@controller openstack]# sestatus -v
+SELinux status:                 disabled
 ```
 
 
