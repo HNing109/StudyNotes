@@ -2,6 +2,16 @@
 
 OpenStack官网安装手册：https://docs.openstack.org/install-guide/
 
+
+
+其余的参考手册
+
+1. 官网安装指南：https://docs.openstack.org/install-guide/
+2. 华为鲲鹏的帮助文档（供参考）：https://support.huaweicloud.com/dpmg-kunpengcpfs/kunpengcpfs_04_0002.html
+3. 在openEuler（类似centos）上安装openstack queens版本（供参考）：https://docs.openeuler.org/zh/docs/20.03_LTS_SP2/docs/thirdparty_migration/OpenStack-queens.html 
+
+
+
 # 1、搭建基础环境
 
 ## 1.1、安装VMWare
@@ -36,7 +46,7 @@ OpenStack官网安装手册：https://docs.openstack.org/install-guide/
 
 ## 2.1、禁用SELinux
 
-作用：不禁用SELinux可能会导致openstack newton Apache无法启动。
+作用：SELinux致使很多服务端口默认是关闭，可能会导致Apache服务无法启动。
 
 错误如下："Devstack fail to start apache2 -"Address already in use":"coild not bind to address"
 

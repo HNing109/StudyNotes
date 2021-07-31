@@ -51,13 +51,21 @@
 
 ## 1.2、OpenStack的网络架构
 
+- OpenStack给虚拟机提供网卡的方式有：桥接（属于Provider Network）、VXLAN（属于self-service network）。
+
+- Management Network：用于负责各个节点的通信服务，比如：controller、compute节点的的API Network。
+- **详细的网络架构如图所示：**
+
 ![image-20210724164626600](OpenStack_学习笔记.assets/image-20210724164626600.png)
 
-**OpenStack的网络分为两种：**
+​	**OpenStack的网络分为两种：**
 
 - **provider networks（供应商网络）**
 
-  - 作用：主要用于OpenStack部署在**公网服务器**中，负责各个节点的通信
+  - 作用：
+
+    主要用于OpenStack创建的各个虚拟机提供网卡，该网卡用于虚拟机之间的通信任务，在Provider Network中分配网段，创建网卡给虚拟机使用。创建的方式有：桥接。
+
   - 提供商网络选项以最简单的方式部署 OpenStack 网络服务，主要是第 2 层（桥接/交换）服务和网络的 VLAN 分段。从本质上讲，它将虚拟网络连接到物理网络，并依赖物理网络基础设施提供第 3 层（路由）服务。此外，DHCP服务还为实例提供 IP 地址信息。
 
   ![image-20210724205842710](OpenStack_学习笔记.assets/image-20210724205842710.png)
@@ -66,9 +74,12 @@
 
 - **Self-service networks（自助服务网络）**
 
-  - 作用：主要用于OpenStack部署在**局域网服务器**中，负责各个节点的通信。
+  - 作用：
+  
+  主要用于OpenStack部署在**局域网服务器**中，负责各个节点的通信。
+  
   - 自助服务网络选项通过第 3 层（路由）服务增强了提供商网络选项，这些服务支持 使用[VXLAN](https://docs.openstack.org/install-guide/common/glossary.html#term-Virtual-Extensible-LAN-VXLAN)等覆盖分段方法的[自助服务](https://docs.openstack.org/install-guide/common/glossary.html#term-self-service)网络。本质上，它使用[NAT 将](https://docs.openstack.org/install-guide/common/glossary.html#term-Network-Address-Translation-NAT)虚拟网络路由到物理网络。
-
+  
   ![image-20210724210100662](OpenStack_学习笔记.assets/image-20210724210100662.png)
 
 
@@ -361,11 +372,11 @@ OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版
 
 - 服务实例（instance）：
 
-  依据镜像创建的服务对象。eg：在openstack中创建的虚拟机
+  依据镜像创建的服务对象。eg：在OpenStack中创建的虚拟机
 
 - 服务（service）：
 
-  通过keystone连接、管理的：nova、cinder、swift等OpenStack中的服务组件。
+  通过keystone连接、管理的：nova、cinder、swift等的服务组件，包含：OpenStack平台创建的服务实例（虚拟机）。
 
 - 项目（project）：
 
@@ -373,7 +384,7 @@ OpenStack在Liberty版本（2015.4）之后才使用python3开发，以前的版
 
 - 域（domain）：
 
-  在公有云或者私有云中表示一个用户。其上可创建多个project、users、group和roles。用户可以对其上的多个project进行管理。
+  在公有云或者私有云中表示一个用户购买的资源机器。其上可创建多个project、users、group和roles。用户可以对其上的多个project进行管理。
 
 - 区域（region）：
 
