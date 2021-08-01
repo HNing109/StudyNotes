@@ -83,18 +83,46 @@ Go中只有二元运算，不存在三元运算，例如Java中的：return  num
 
 ## 2.1、数据类型
 
+### 2.1.0、输出数据的格式
+
+即：fmt.Printf("输出数据格式")
+
 - **<font color='red'>Go数据之间的比较，必须是建立在两个数据类型相同的情况下，否则无法进行比较，未编译之前就报错</font>**
 - **Go中不存在this、self等关键字**
 - 数据输出printf：
   - %d：输出整数  （%02d：输出2位数长度的int数据）
+  
   - %x、%X：输出十六进制形式的数据（不带0x）
-  - %p：以十六进制形式的输出参数的地址（必须使用指针的形式传入才能打印，带0x）
+  
   - %f：输出float数据（%.2f：保留2位小数输出）
+  
   - %e：输出科学计数法格式
+  
   - %s：输出字符串
+  
   - %c：输出字符
+  
   - %T：输出数据类型
+  
   - %v：输出数据值（指着类型：传入*pointer，若传入pointer，会打印出  &+数据值）
+  
+  - %p：以十六进制形式的输出参数的地址（必须使用指针的形式传入才能打印，带0x）
+  
+    ```go
+    func demo(){
+       //nil切片
+       var res []int = []int{}
+       //空切片
+       var res1 = make([]int, 0)
+       //查看两个切片的地址 
+       fmt.Printf("%p, %p",&res, &res1)
+    }
+    
+    //结果
+    0xc000096480, 0xc0000964a0
+    ```
+  
+  
 
 ### 2.1.1、基本数据类型
 
@@ -534,29 +562,46 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 ### 2.4.2、slice（切片）
 
-**（数组可以转化为切片）**
+- **基本概念**
 
-切片的长度可以扩充，数组是固定的长度（底层为一个数组，当数组未被使用时，其所占用的内存才会被回收（GC））
+  - **数组可以转化为切片**
 
-- 定义方式
+  - 切片的长度可以扩充，数组是固定的长度（底层为一个数组，当数组未被使用时，其所占用的内存才会被GC回收）
 
-  - slice := []int {1, 2, 3}	//通过引用数组，来创建切片
+  - **<font color='red'>如果在传入切片参数的函数中（eg：递归函数中传入切片参数），原始切片的容量发生了改变，则该函数会在新的地址生成一个新的切片，原始切片数据不会发生变化</font>**
 
-  - var slice := []int                   //**nil切片：**指向nil
+    
 
-  - var slice := make([]int, 0)   //**空切片：**指向一个内存地址，但未分配内存空间，底层包含0个元素
+- **定义方式**
+
+  - slice := []int {1, 2, 3}	       //通过引用数组，来创建切片
 
   - var silce []int = make([]int, 长度, 容量)   // 容量：可选填。**未填写cap，则默认len = cap**
 
     或者 slice := make([]int, 长度, 容量)
-    
+
      **eg：**两者等价
-    
+
     slice := make([]int, 100, 100)
-    
+
     silce := new([100]int)[0:100]		//new([cap]int)[0:len]
-    
-    
+
+  - slice := []int{}                      //**<font color='red'>nil切片</font>：**指向nil（nil切片不指向任何内存地址，即：底层数组不存在）
+
+    ​                                             //**作用：**表示一个空集合，可用于数据库查询，存放结果，查不到返回nil
+
+    - 定义方式2：var slice = []int{}   
+    - 定义方式3：var slice []int = []int{}
+    - 定义方式4：var slice []int
+
+  - slice := make([]int, 0)        //**<font color='red'>空切片</font>：**指向一个内存地址，但未分配内存空间（即：底层数组存在，且该数组包含0个元素）
+
+    - 定义方式2：var slice = make([]int, 0) 
+    - 定义方式3：var slice []int = make([]int, 0) 
+
+    <img src="Golang_学习笔记.assets/image-20210801014213094.png" alt="image-20210801014213094" style="zoom:80%;" />
+
+  
 
 - 切片初始化
 
@@ -566,21 +611,13 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 - 获取切片中的片段
 
-  - // startIndex：可从0开始    ；  endIndex：最终获取的结果不包括endIndex所在的元素。
+  - // startIndex：从0开始    ；  endIndex：最终获取的结果不包括endIndex所在的元素。
 
     newSlice := slice[startIndex : endIndex]   
     
   - //获取整个silce中的元素
   
     newSlice := silce[:]
-    
-    ```go
-     newSlice := slice[startIndex : endIndex]   
-    
-    - //获取整个silce中的元素
-    
-    newSlice := silce[:]
-    ```
     
     
 
@@ -643,6 +680,36 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
     
 
+- **<font color='red'>二叉树前序遍历（重点）</font>**
+
+  通过切片来保存保存递归函数的处理结果。
+
+  ```go
+func preorderTraversal(root *TreeNode) []int{
+  	//定义一个nil切片res（引用数据类型）
+	var res []int = []int{}
+      
+      //（正确方式）传入切片地址，这样在recursion函数中，就可以直接改变res中的数据
+  	recursion(&res, root)
+      //（错误方式）如果直接传入res，虽然切片是引用数据类型，但是在递归函数中，原始切片的容量发生了改变，则该函数会在新的地址生成一个新的切片，原始切片数据不会发生变化
+      //recursion(res, root)
+      
+  	fmt.Println(res)
+  	return res
+  }
+  
+  func recursion(res *[]int, node *TreeNode){
+  	if node == nil{
+  		return
+  	}
+  	*res = append(*res, node.Val)
+  	recursion(res, node.Left)
+  	recursion(res, node.Right)
+  }
+  ```
+  
+   
+  
 - **<font color='red'>切片和数组的关系</font>** 
 
   - **切片的内存结构**
@@ -698,53 +765,112 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 **不要使用new创建map，否则会得到一个nil指针（即：获得一个未初始化变量的地址）。必须使用make创建map**
 
-```go
- /**
- 映射：类似于java中的hashmap：存放的是键值对
-  */
- type websites struct{
- 	name string
- 	ip string
- }
- 
- /*
- map中key为string，value为websites结构体
- */
- var m = map[string]websites{
- 	//websites可以省略
- 	"baidu": websites{
- 		"baidu",
- 		"1,2,3,4",
- 	},
- 	"google": websites{
- 		"google",
- 		"8.7.9.7",
- 	},
- }
- 
- func mapTest(){
- 	fmt.Println(m)
- 	//获取元素
- 	fmt.Println(m["baidu"])
- 
- 	//修改元素
- 	m["baidu"] = websites{m["baidu"].name, "2.2.2.2"}
- 	fmt.Println(m["baidu"])
- 
- 	//查找元素是否存在
- 	if val, ok := m["baidu"]; ok{
- 		//删除元素
- 		delete(m, "baidu")
- 		fmt.Println("delete val = ", val)
- 	}
- 	fmt.Println(m)
-     
-     //遍历map
-     for key, val := range m{
-         fmt.Printf("key = %s, val = %s\n", key, val)
-     }
- }
-```
+- 示例1：使用map存放对象数据，并对数据进行CRUD操作
+
+  ```go
+   /**
+   映射：类似于java中的hashmap：存放的是键值对
+    */
+   type websites struct{
+   	name string
+   	ip string
+   }
+   
+   /*
+   map中key为string，value为websites结构体
+   */
+   var m = map[string]websites{
+   	//websites可以省略
+   	"baidu": websites{
+   		"baidu",
+   		"1,2,3,4",
+   	},
+   	"google": websites{
+   		"google",
+   		"8.7.9.7",
+   	},
+   }
+   
+   func mapTest(){
+   	fmt.Println(m)
+   	//获取元素
+   	fmt.Println(m["baidu"])
+   
+   	//修改元素
+   	m["baidu"] = websites{m["baidu"].name, "2.2.2.2"}
+   	fmt.Println(m["baidu"])
+   
+   	//查找元素是否存在
+   	if val, ok := m["baidu"]; ok{
+   		//删除元素
+   		delete(m, "baidu")
+   		fmt.Println("delete val = ", val)
+   	}
+   	fmt.Println(m)
+       
+       //遍历map
+       for key, val := range m{
+           fmt.Printf("key = %s, val = %s\n", key, val)
+       }
+   }
+  ```
+
+  
+
+- 示例2：使用map存放二叉树后序遍历的数据
+
+  ```go
+  package main
+  
+  import "fmt"
+  
+  /**
+   * Created by Chris on 2021/8/1.
+   */
+  
+  type TreeNode struct{
+  	Val int
+  	Left *TreeNode
+  	Right *TreeNode
+  }
+  
+  func postorderTraversal(root *TreeNode ){
+      //key：存放node.Val,  value：为node.Val出现的次数
+  	var hashMap = make(map[int]int)
+      //后序遍历
+  	recursion(hashMap, root)
+      //显示结果
+  	for index, val := range hashMap{
+  		fmt.Println(index, val)
+  	}
+  }
+  
+  func recursion(hashMap map[int]int, node *TreeNode){
+  	if node == nil{
+  		return
+  	}
+  	test(hashMap, node.Left)
+  	test(hashMap, node.Right)
+  	if val, ok:= hashMap[node.Val]; ok{
+  		hashMap[val] = hashMap[val] + 1
+  	} else{
+  		hashMap[node.Val] = 1
+  	}
+  }
+  
+  func main(){
+  	node1 := &TreeNode{1, nil, nil}
+  	node2 := &TreeNode{2, nil, nil}
+  	node3 := &TreeNode{3, nil, nil}
+  
+  	node1.Right = node2
+  	node2.Left = node3
+  	//后序遍历二叉树
+  	postorderTraversal(node1)
+  }
+  ```
+
+  
 
 
 
@@ -4742,6 +4868,104 @@ Go 调度本质是把大量的 Goroutine 分配到少量Machine线程上去执�
   
 
 ## 3、协程池是什么
+
+
+
+
+
+# 4、DFS、BFS
+
+求解二叉树所有路径之和
+
+```go
+package main
+
+import "fmt"
+ 
+type TreeNode struct{
+	Val int
+	Left *TreeNode
+	Right *TreeNode
+}
+
+/**
+解法一：dfs
+ */
+func sumNumbers( root *TreeNode ) int {
+	return dfs(0, root)
+}
+
+func dfs(currentSum int, node *TreeNode) int {
+	if node == nil{
+		return 0
+	}
+	var sum = currentSum * 10 + node.Val
+	if node.Left == nil && node.Right == nil{
+		return sum
+	} else{
+		return dfs(sum, node.Left) + dfs(sum, node.Right)
+	}
+}
+
+/**
+解法二：bfs
+使用切片来模拟Java中的Queue队列
+ */
+type pair struct{
+	//存储当前节点
+	node *TreeNode
+	//存储当前路的数值
+	num int
+}
+
+func sumNumbers1( root *TreeNode ) int {
+	if root == nil{
+		return 0
+	}
+	var res int = 0
+	//初始化队列
+	var queue = []pair{{root, root.Val}}
+	//开始读取队列中的数据
+	for ;len(queue) > 0;{
+		//获取队列中的第一个节点
+		var tempNode = queue[0]
+		//获取该节点的子节点、当前路径值之和
+		var leftNode = tempNode.node.Left
+		var rightNode = tempNode.node.Right
+		var num = tempNode.num
+		//删除队列中的第一个节点
+		queue = queue[1:]
+		//当遇到叶子节点时，将该路径之和存入结果中
+		if leftNode == nil && rightNode == nil{
+			res += num
+		} else{
+			//若，未遇到叶子节点，说明该路径还未到终点，还需要继续往下遍历
+			if leftNode != nil{
+				queue = append(queue, pair{leftNode, num * 10 + leftNode.Val})
+			}
+			if rightNode != nil{
+				queue = append(queue, pair{rightNode, num * 10 + rightNode.Val})
+			}
+		}
+	}
+	return res
+}
+
+/**
+答案： 13 + 12 = 25
+ */
+func main(){
+	var node1 = &TreeNode{1, nil, nil}
+	var node2 = &TreeNode{2, nil, nil}
+	var node3 = &TreeNode{3, nil, nil}
+
+	node1.Left = node2
+	node1.Right = node3
+
+	var res = sumNumbers1(node1)
+	fmt.Println(res)
+}
+```
 
 
 
