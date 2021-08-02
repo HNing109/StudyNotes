@@ -2271,7 +2271,456 @@ Password:
 
 
 
-# 5、常见问题
+# 5、安装ceph
+
+参考连接：
+
+- 官网：
+  - 下载ceph：https://docs.ceph.com/en/mimic/start/quick-start-preflight/#rhel-centos
+  - 本地安装ceph：https://docs.ceph.com/en/mimic/start/quick-ceph-deploy/
+  - ceph对接enstack：https://docs.ceph.com/en/latest/rbd/rbd-openstack/
+- 博客（ceph对接openstack）：https://blog.csdn.net/ygtlovezf/article/details/78983249
+
+## 5.1、下载ceph工具
+
+- 安装存储库软件包
+
+  ```shell
+  sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+  ```
+
+  
+
+- 配置镜像源
+
+  ```shell
+  cat << EOM > /etc/yum.repos.d/ceph.repo
+  [ceph-noarch]
+  name=Ceph noarch packages
+  baseurl=https://download.ceph.com/rpm-{ceph-stable-release}/el7/noarch
+  enabled=1
+  gpgcheck=1
+  type=rpm-md
+  gpgkey=https://download.ceph.com/keys/release.asc
+  EOM
+  ```
+
+  
+
+- 更新软件包、安装ceph部署工具
+
+  ```shell
+  [root@controller /]# sudo yum update
+  [root@controller /]# sudo yum install ceph-deploy
+  ```
+
+  
+
+## 5.2、本地安装ceph
+
+- 创建my-cluster文件夹：存放后面生成的密钥文件
+
+  ```shell
+  [root@controller /]# mkdir my-cluster
+  [root@controller /]# cd my-cluster  
+  ```
+
+  
+
+- 创建ceph集群
+
+  ```shell
+  [root@controller my-cluster]# ceph-deploy new controller
+  ```
+
+  
+
+- 各个节点安装ceph
+
+  本示例，只有一个controller节点（其他的compute等节点都安装在controller中）
+
+  ```shell
+  [root@controller my-cluster]# ceph-deploy install controller
+  ```
+
+  - 执行上述命令时，可能出现的错误
+
+    ```shell
+    #错误
+    [node1][WARNIN] ensuring that /etc/yum.repos.d/ceph.repo contains a high priority
+    [ceph_deploy][ERROR ] RuntimeError: NoSectionError: No section: 'ceph'
+    
+    #解决方式
+    [root@controller my-cluster]# yum remove ceph-release
+    [root@controller my-cluster]# ceph-deploy install controller
+    ```
+
+    
+
+- 部署监控，并获取证书（密钥）
+
+  ```shell
+  [root@controller my-cluster]# ceph-deploy mon create-initial
+  ceph.client.admin.keyring
+  ceph.bootstrap-mgr.keyring
+  ceph.bootstrap-osd.keyring
+  ceph.bootstrap-mds.keyring
+  ceph.bootstrap-rgw.keyring
+  ceph.bootstrap-rbd.keyring
+  ```
+
+  
+
+- 使用ceph deploy将配置文件和管理密钥复制到管理节点和ceph节点，以便可以使用ceph CLI，而无需在每次执行命令时指定监视器地址和ceph.client.admin.keyring
+
+  ```shell
+  [root@controller my-cluster]# ceph-deploy admin controller
+  ```
+
+  
+
+- 设置开机自启动
+
+  ```shell
+  [root@controller my-cluster]# ceph-deploy mgr create controller
+  ```
+
+  
+
+- 添加OSD：
+
+  将挂载的硬盘添加为OSD，一共5块硬盘
+
+  ```shell
+  [root@controller my-cluster]# ceph-deploy osd create --data /dev/sdc controller
+  [root@controller my-cluster]# ceph-deploy osd create --data /dev/sdd controller
+  [root@controller my-cluster]# ceph-deploy osd create --data /dev/sde controller
+  [root@controller my-cluster]# ceph-deploy osd create --data /dev/sdf controller
+  [root@controller my-cluster]# ceph-deploy osd create --data /dev/sdg controller
+  ```
+
+  - 执行上述命令时，可能出现的错误
+
+    ```shell
+    #错误
+    [controller][WARNIN]  stderr: purged osd.0
+    [controller][WARNIN] -->  RuntimeError: command returned non-zero exit status: 5
+    [controller][ERROR ] RuntimeError: command returned non-zero exit status: 1
+    [ceph_deploy.osd][ERROR ] Failed to execute command: /usr/sbin/ceph-volume --cluster ceph lvm create --bluestore --data /dev/sdc
+    [ceph_deploy][ERROR ] GenericError: Failed to create 1 OSDs
+    
+    #原因：没有添加空的磁盘
+    
+    #解决方式：在/etc/lvm/lvm.conf的filter添加其他磁盘：eg：添加c~g，5个磁盘
+    #查看挂载的硬盘（作为OSD的硬盘）
+    [root@controller my-cluster]# fdisk -l
+    #修改配置
+    [root@controller my-cluster]# vim /etc/lvm/lvm.conf
+    filter  =  [ "a/sda/", "a/sdb/","a/sdc/","a/sdd/","a/sde/","a/sdf/","a/sdg/", "r/.*/"]
+    ```
+
+    
+
+- 查看集群是否健康
+
+  ```shell
+  [root@controller my-cluster]# ssh controller ceph health
+  root@controller's password: 
+  HEALTH_OK
+  ```
+
+  
+
+## 5.3、ceph对接openstack
+
+- 配置默认的size副本大小
+
+  安装ceph后，默认的size大小为3，但是本示例的副本数量为1，因为只有一个机器。
+
+  ```shell
+  [root@controller my-cluster]# vim /etc/ceph/ceph.conf 
+  [global]
+  fsid = 1cde6d0b-7e92-41fb-93a7-63763daefd76
+  mon_initial_members = controller
+  mon_host = 192.168.83.139
+  auth_cluster_required = cephx
+  auth_service_required = cephx
+  auth_client_required = cephx
+  
+  #新增部分
+  osd_pool_default_size = 1
+  osd_pool_default_min_size = 1
+  
+  #重启系统，使配置生效（否则后面创建的池，无法使用）
+  [root@controller my-cluster]# reboot
+  ```
+
+  
+
+- 创建、初始化池
+
+  创建池的时候，需要计算pg_num、pgp_num
+
+  ```shell
+  [root@controller my-cluster]# ceph osd pool create volumes 256
+  [root@controller my-cluster]# ceph osd pool create images 256
+  [root@controller my-cluster]# ceph osd pool create backups 256
+  [root@controller my-cluster]# ceph osd pool create vms 256
+  
+  #查看已经创建的池
+  [root@controller my-cluster]# ceph osd lspools
+  #查看size的大小
+  [root@controller my-cluster]# ceph osd pool get volumes size
+  #查看pg_num
+  [root@controller my-cluster]# ceph osd pool get volumes pg_num
+  #查看pgp_num
+  [root@controller my-cluster]# ceph osd pool get volumes pgp_num
+  ```
+
+  
+
+- 配置、安装openstack ceph客户端
+
+  ```shell
+  #配置：将my-cluster的ceph.conf数据，复制进/etc/ceph/ceph.conf
+  [root@controller my-cluster]# ssh controller sudo tee /etc/ceph/ceph.conf < ceph.conf
+  
+  #安装
+  [root@controller my-cluster]# sudo yum install python-rbd
+  [root@controller my-cluster]# sudo yum install ceph-common
+  ```
+
+  
+
+- 设置 CEPH 客户端身份验证（**重点**，若/etc/ceph/ceph.conf中不存在cephx值，则无需执行该步骤）
+
+  - 在ceph中创建cinder、glance等用户，并进行权限控制
+
+    （注意：官网教程中的这部分是不能使用的）
+
+    ```shell
+    [root@controller my-cluster]# ceph auth get-or-create client.cinder mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=vms, allow rx pool=images'
+    
+    [root@controller my-cluster]# ceph auth get-or-create client.glance mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=images'
+    
+    [root@controller my-cluster]# ceph auth get-or-create client.cinder-backup mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=backups'
+    ```
+
+    
+
+  - 将上面生成的keyring文件，保存在相应的节点上，并修改为相应的权限
+
+    ```shell
+    [root@controller my-cluster]# ceph auth get-or-create client.glance | ssh controller sudo tee /etc/ceph/ceph.client.glance.keyring
+    ssh controller sudo chown glance:glance /etc/ceph/ceph.client.glance.keyring
+    
+    [root@controller my-cluster]# ceph auth get-or-create client.cinder | ssh controller sudo tee /etc/ceph/ceph.client.cinder.keyring
+    ssh controller sudo chown cinder:cinder /etc/ceph/ceph.client.cinder.keyring
+    
+    [root@controller my-cluster]# ceph auth get-or-create client.cinder-backup | ssh controller sudo tee /etc/ceph/ceph.client.cinder-backup.keyring
+    ssh controller sudo chown cinder:cinder /etc/ceph/ceph.client.cinder-backup.keyring
+    ```
+
+    
+
+  - 在nova-compute节点上保存和cinder-volume相同的keyring
+
+     ```shell
+     [root@controller my-cluster]# ceph auth get-or-create client.cinder | ssh controller sudo tee /etc/ceph/ceph.client.cinder.keyring
+     ```
+
+    
+
+  -  在运行节点上，创建密钥的临时副本
+
+    ```shell
+    [root@controller my-cluster]# ceph auth get-key client.cinder | ssh controller tee client.cinder.key
+    ```
+
+    
+
+  -  生成、添加密钥
+
+    ```shell
+    #生成密钥
+    [root@controller my-cluster]# uuidgen
+    457eb676-33da-42ec-9a8c-9293d545c337
+    
+    #修改secret.xml文件
+    [root@controller my-cluster]# cat > secret.xml <<EOF
+    <secret ephemeral='no' private='no'>
+      <uuid>457eb676-33da-42ec-9a8c-9293d545c337</uuid>
+      <usage type='ceph'>
+        <name>client.cinder secret</name>
+      </usage>
+    </secret>
+    EOF
+    
+    #查看修改后的密钥
+    [root@controller my-cluster]# sudo virsh secret-define --file secret.xml
+    Secret 457eb676-33da-42ec-9a8c-9293d545c337 created
+    
+    #将密钥添加到libvirt并删除密钥的临时副本
+    #（注意：需要修改client.cinder.key、secret.xml文件的路径，否则会找不到）
+    [root@controller my-cluster]# sudo virsh secret-set-value --secret 457eb676-33da-42ec-9a8c-9293d545c337 --base64 $(cat /root/client.cinder.key) && rm /root/client.cinder.key secret.xml
+    ```
+
+    
+
+- 配置OpenStack使用ceph，主要是配置各个组件的配置文件
+
+  - 配置glance
+
+    ```shell
+    [root@controller my-cluster]# vim /etc/glance/glance-api.conf
+    
+    [DEFAULT]
+    show_image_direct_url = True
+    
+    [glance_store]
+    stores = rbd
+    default_store = rbd
+    rbd_store_pool = images
+    rbd_store_user = glance
+    rbd_store_ceph_conf = /etc/ceph/ceph.conf
+    rbd_store_chunk_size = 8
+    
+    #注释掉原来LVM配置的：stores、default_store
+    #stores = file,http
+    #default_store = file
+    filesystem_store_datadir = /var/lib/glance/images/
+    
+    [paste_deploy]
+    flavor = keystone
+    ```
+
+    
+
+  - 配置cinder
+
+    ```shell
+    [root@controller my-cluster]# vim /etc/cinder/cinder.conf
+    
+    [DEFAULT]
+    #添加ceph
+    enabled_backends = lvm,ceph
+    glance_api_version = 2
+    
+    
+    [ceph]
+    volume_driver = cinder.volume.drivers.rbd.RBDDriver
+    #配置ceph后端名称
+    volume_backend_name = ceph
+    rbd_pool = volumes
+    rbd_ceph_conf = /etc/ceph/ceph.conf
+    rbd_flatten_volume_from_snapshot = false
+    rbd_max_clone_depth = 5
+    rbd_store_chunk_size = 4
+    rados_connect_timeout = -1
+    
+    #这是之前创建的cinder用户，以及UUID
+    rbd_user = cinder
+    rbd_secret_uuid = 457eb676-33da-42ec-9a8c-9293d545c337
+    
+    [lvm]
+    #（新增）配置lvm后端名称
+    volume_backend_name = lvm
+    volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
+    volume_group = cinder-volumes
+    iscsi_protocol = iscsi
+    iscsi_helper = lioadm
+    
+    ```
+
+    
+
+  - 配置nova
+
+    ```shell
+    [root@controller my-cluster]# vim /etc/nova/nova.conf
+    [libvirt]
+    rbd_user = cinder
+    rbd_secret_uuid = 457eb676-33da-42ec-9a8c-9293d545c337
+    images_type = rbd
+    images_rbd_pool = vms
+    images_rbd_ceph_conf = /etc/ceph/ceph.conf
+    disk_cachemodes="network=writeback"
+    
+    ```
+
+    
+
+- 重启相关服务
+
+  ```shell
+  [root@controller my-cluster]# sudo glance-control api restart
+  [root@controller my-cluster]# sudo service nova-compute restart
+  [root@controller my-cluster]# sudo service cinder-volume restart
+  [root@controller my-cluster]# sudo service cinder-backup restart
+  ```
+
+
+
+## 5.4、使用ceph
+
+- 在cinder中创建ceph的类型的存储
+
+  ```shell
+  [root@controller openstack]# cinder type-create ceph
+  +--------------------------------------+------+-------------+-----------+
+  | ID                                   | Name | Description | Is_Public |
+  +--------------------------------------+------+-------------+-----------+
+  | df9c985c-1bb7-4d31-b040-9c8b97d37957 | ceph | -           | True      |
+  +--------------------------------------+------+-------------+-----------+
+  ```
+
+  
+
+- 查看当前已有的cinder存储类型
+
+  ```shell
+  [root@controller openstack]# cinder extra-specs-list
+  +--------------------------------------+------+---------------------------------+
+  | ID                                   | Name | extra_specs                     |
+  +--------------------------------------+------+---------------------------------+
+  | a915e3ff-5b25-4113-a1c2-6d1f6c388e9c | lvm  | {'volume_backend_name': 'lvm'}  |
+  | df9c985c-1bb7-4d31-b040-9c8b97d37957 | ceph | {'volume_backend_name': 'ceph'} |
+  +--------------------------------------+------+---------------------------------+
+  ```
+
+  
+
+  dashboard中显示的卷类型：lvm、ceph
+
+  ![image-20210802175929626](OpenStack_安装笔记.assets/image-20210802175929626.png) 
+
+  
+
+- 给某个存储类型，设置后端名称
+
+  ```shell
+  [root@controller openstack]# cinder type-key lvm set volume_backend_name=lvm
+  ```
+
+  
+
+- 查看cinder的服务
+
+  ```shell
+  [root@controller openstack]# cinder service-list
+  +------------------+-----------------+------+---------+-------+----------------------------+-----------------+
+  | Binary           | Host            | Zone | Status  | State | Updated_at                 | Disabled Reason |
+  +------------------+-----------------+------+---------+-------+----------------------------+-----------------+
+  | cinder-backup    | controller      | nova | enabled | up    | 2021-08-02T08:41:24.000000 | -               |
+  | cinder-scheduler | controller      | nova | enabled | up    | 2021-08-02T08:41:22.000000 | -               |
+  | cinder-volume    | controller@ceph | nova | enabled | up    | 2021-08-02T08:41:25.000000 | -               |
+  | cinder-volume    | controller@lvm  | nova | enabled | up    | 2021-08-02T08:41:19.000000 | -               |
+  +------------------+-----------------+------+---------+-------+----------------------------+-----------------+
+  ```
+
+  
+
+# 6、常见问题
 
 **1、安装keystone后，执行命令：openstack domain create --description "An Example Domain" example**
 
@@ -2315,12 +2764,13 @@ Error downloading packages:
 
 
 **4、horizon登录注意事项**
-地址：http://controller/dashboard
-不行的话，换成: http://controller对用的IP地址/dashboard
-登录填写的资料：
-domain：default
-username：admin
-password：ADMIN_PASS
+
+- 地址：http://controller/dashboard
+  不行的话，换成: http://controller对用的IP地址/dashboard
+- 登录填写的资料：
+  domain：default
+  username：admin
+  password：ADMIN_PASS
 
 
 
