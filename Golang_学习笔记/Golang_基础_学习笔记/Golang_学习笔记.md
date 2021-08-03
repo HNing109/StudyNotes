@@ -123,6 +123,7 @@ cvbc
 //若，直接res = append(res, temp)，则当temp改变时，res也会跟着改变（因为，这种方法只是引用了temp中的数据，没有创建副本）
 var res [][]int
 var temp []int] = []int{1, 5, 8, 9}
+//将temp切片打散
 tempRes := append([]int(nil), temp...)
 res = append(res, tempRes)
 ```
