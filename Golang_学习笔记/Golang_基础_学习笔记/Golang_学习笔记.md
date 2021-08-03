@@ -81,6 +81,54 @@ Go中只有二元运算，不存在三元运算，例如Java中的：return  num
 
 
 
+## 2.0、特殊语法
+
+### 2.0.1、...
+
+共有两个作用：
+
+- 表示多个不确定参数
+- 可将切片slice打散，然后进行参数传递
+
+```go
+//可以接受任意个string参数
+func test1(args ...string) { 
+    for _, v:= range args{
+        fmt.Println(v)
+    }
+}
+
+func main(){
+var strss= []string{
+        "qwr",
+        "234",
+        "yui",
+        "cvbc",
+    }
+    //切片打散，作为参数传入
+    test1(strss...) 
+}
+
+//运行结果
+qwr
+234
+yui
+cvbc
+```
+
+
+
+```go
+//复制切片数组
+//若，直接res = append(res, temp)，则当temp改变时，res也会跟着改变（因为，这种方法只是引用了temp中的数据，没有创建副本）
+var res [][]int
+var temp []int] = []int{1, 5, 8, 9}
+tempRes := append([]int(nil), temp...)
+res = append(res, tempRes)
+```
+
+
+
 ## 2.1、数据类型
 
 ### 2.1.0、输出数据的格式
@@ -259,9 +307,9 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
   - **作用**：<font color='red'>**...  +  空接口**</font>   可实现  **“函数重载”**  的效果（Go中并不允许函数重载，使用该方式可以起到类似效果）。
 
-    ​			**实现函数重载的方式**：在所定义的函数中，其结尾的传入形参，定义为： vars ...interface{}   ，即：该函数可接受任意类型的参数
+  - **实现函数重载的方式**：在所定义的函数中，其结尾的传入形参，定义为： vars ...interface{}   ，即：该函数可接受任意类型的参数。
 
-    ​                                                  eg: func getData(name string, vars ...interface{}){   }
+    eg: func getData(name string, vars ...interface{}){   }
 
   ```go
   /*
