@@ -809,10 +809,13 @@ Password:
 使用[CirrOS](http://launchpad.net/cirros)验证 Image 服务是否可用：使用OpenStack 部署一个小型 Linux 映像（eg：cirros-cloud）
 
 ```shell
+#获取凭证
 [root@controller /]# . admin-openrc
 
+#下载镜像
 [root@controller /]# wget http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img
 
+#上传镜像
 [root@controller /]# openstack image create "cirros" \
                      --file cirros-0.4.0-x86_64-disk.img \
                      --disk-format qcow2 --container-format bare \
@@ -2297,7 +2300,7 @@ Password:
   cat << EOM > /etc/yum.repos.d/ceph.repo
   [ceph-noarch]
   name=Ceph noarch packages
-  baseurl=https://download.ceph.com/rpm-{ceph-stable-release}/el7/noarch
+  baseurl=https://download.ceph.com/rpm-luminous/el7/noarch
   enabled=1
   gpgcheck=1
   type=rpm-md
@@ -2337,7 +2340,7 @@ Password:
 
 - 各个节点安装ceph
 
-  本示例，只有一个controller节点（其他的compute等节点都安装在controller中）
+  本示例，只有一个controller节点（因为其他的节点（eg：compute等）都安装在controller节点中中）
 
   ```shell
   [root@controller my-cluster]# ceph-deploy install controller
@@ -2358,6 +2361,8 @@ Password:
     
 
 - 部署监控，并获取证书（密钥）
+
+  该命令在当前路径下生成证书，因此必须在指定的目录中执行，否则后面的命令会找不到对用的证书
 
   ```shell
   [root@controller my-cluster]# ceph-deploy mon create-initial
@@ -2416,7 +2421,7 @@ Password:
     [root@controller my-cluster]# fdisk -l
     #修改配置
     [root@controller my-cluster]# vim /etc/lvm/lvm.conf
-    filter  =  [ "a/sda/", "a/sdb/","a/sdc/","a/sdd/","a/sde/","a/sdf/","a/sdg/", "r/.*/"]
+    filter = [ "a/sda/", "a/sdb/","a/sdc/","a/sdd/","a/sde/","a/sdf/","a/sdg/", "r/.*/"]
     ```
 
     
@@ -2431,7 +2436,7 @@ Password:
 
   
 
-## 5.3、ceph对接openstack
+## 5.3、ceph接入openstack
 
 - 配置默认的size副本大小
 
@@ -2462,10 +2467,17 @@ Password:
   创建池的时候，需要计算pg_num、pgp_num
 
   ```shell
+  #创建池
   [root@controller my-cluster]# ceph osd pool create volumes 256
   [root@controller my-cluster]# ceph osd pool create images 256
   [root@controller my-cluster]# ceph osd pool create backups 256
   [root@controller my-cluster]# ceph osd pool create vms 256
+  
+  #初始化池
+  [root@controller my-cluster]# rbd pool init volumes
+  [root@controller my-cluster]# rbd pool init images
+  [root@controller my-cluster]# rbd pool init backups
+  [root@controller my-cluster]# rbd pool init vms
   
   #查看已经创建的池
   [root@controller my-cluster]# ceph osd lspools
@@ -2578,7 +2590,7 @@ Password:
     show_image_direct_url = True
     
     [glance_store]
-    stores = rbd
+    stores = rbd,file,http
     default_store = rbd
     rbd_store_pool = images
     rbd_store_user = glance
@@ -2608,16 +2620,16 @@ Password:
     
     
     [ceph]
-    volume_driver = cinder.volume.drivers.rbd.RBDDriver
     #配置ceph后端名称
     volume_backend_name = ceph
+    #配置驱动
+    volume_driver = cinder.volume.drivers.rbd.RBDDriver
     rbd_pool = volumes
     rbd_ceph_conf = /etc/ceph/ceph.conf
     rbd_flatten_volume_from_snapshot = false
     rbd_max_clone_depth = 5
     rbd_store_chunk_size = 4
     rados_connect_timeout = -1
-    
     #这是之前创建的cinder用户，以及UUID
     rbd_user = cinder
     rbd_secret_uuid = 457eb676-33da-42ec-9a8c-9293d545c337
@@ -2641,10 +2653,10 @@ Password:
     [libvirt]
     rbd_user = cinder
     rbd_secret_uuid = 457eb676-33da-42ec-9a8c-9293d545c337
-    images_type = rbd
-    images_rbd_pool = vms
-    images_rbd_ceph_conf = /etc/ceph/ceph.conf
-    disk_cachemodes="network=writeback"
+    #images_type = rbd
+    #images_rbd_pool = vms
+    #images_rbd_ceph_conf = /etc/ceph/ceph.conf
+    #disk_cachemodes="network=writeback"
     
     ```
 
@@ -2661,17 +2673,25 @@ Password:
 
 
 
+- 至此，openstack与ceph对接完毕，但是还是无法使用ceph，需要手动创建ceph类型的存储。（详见下面的步骤）
+
+
+
 ## 5.4、使用ceph
 
 - 在cinder中创建ceph的类型的存储
 
   ```shell
+  #创建存储类型
   [root@controller openstack]# cinder type-create ceph
   +--------------------------------------+------+-------------+-----------+
   | ID                                   | Name | Description | Is_Public |
   +--------------------------------------+------+-------------+-----------+
   | df9c985c-1bb7-4d31-b040-9c8b97d37957 | ceph | -           | True      |
   +--------------------------------------+------+-------------+-----------+
+  
+  #给存储类型，设置后端名称
+  [root@controller openstack]# cinder type-key ceph set volume_backend_name=ceph
   ```
 
   
@@ -2696,12 +2716,6 @@ Password:
 
   
 
-- 给某个存储类型，设置后端名称
-
-  ```shell
-  [root@controller openstack]# cinder type-key lvm set volume_backend_name=lvm
-  ```
-
   
 
 - 查看cinder的服务
@@ -2719,8 +2733,219 @@ Password:
   ```
 
   
+  
+- 查看ceph集群挂载的osd
 
-# 6、常见问题
+  ```shell
+  [root@controller openstack]# ceph osd tree
+  ID CLASS WEIGHT  TYPE NAME           STATUS REWEIGHT PRI-AFF 
+  -1       0.04898 root default                                
+  -3       0.04898     host controller                         
+   0   hdd 0.00980         osd.0           up  1.00000 1.00000 
+   1   hdd 0.00980         osd.1           up  1.00000 1.00000 
+   2   hdd 0.00980         osd.2           up  1.00000 1.00000 
+   3   hdd 0.00980         osd.3           up  1.00000 1.00000 
+   4   hdd 0.00980         osd.4           up  1.00000 1.00000 
+  ```
+  
+  
+  
+- **<font color='red'>注意：</font>**openstack对接完ceph，创建实例镜像时，需要注意原来上传的镜像是否可用，不可用的话，就需要重新上传镜像。否则无法创建实例。
+
+  
+  
+- 创建实例，并使用ceph中的卷
+
+  创建好实例后，并在项目中新建一个ceph类型的卷，然后把卷挂载到实例中
+  
+  - 新建实例
+  
+    ![image-20210803103346575](OpenStack_安装笔记.assets/image-20210803103346575.png)
+  
+  - 挂载ceph卷
+  
+    ![image-20210803103447726](OpenStack_安装笔记.assets/image-20210803103447726.png)
+  
+  
+
+# 6、Dashboard创建虚拟机流程
+
+使用OpenStack的UI界面，基于镜像来创建虚拟机实例。仅当OpenStack可以创建虚拟机时，才算所有组件安装成功。
+
+- **创建实例类型**
+
+  这个实例类型是之后用来创建实例的模板，可根据自己的需求进行配置。
+
+  ![image-20210729183434196](OpenStack_安装笔记.assets/image-20210729183434196.png)
+
+  
+
+- **上传镜像**
+
+  - 需要本地下载好Centos7镜像
+
+    ```shell
+    本示例需要下载CentOS7镜像，下载地址：http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-20140929_01.qcow2
+    ```
+
+  - 使用命令上传
+
+    ```shell
+    [root@controller Downloads]# openstack image create "centos7" \
+                                 --file CentOS-7-x86_64-GenericCloud-20140929_01.qcow2 \
+                                 --disk-format qcow2 --container-format bare \
+                                 --public    
+    ```
+
+  - 查看上传结果
+
+    - 使用命令查看
+
+      ```shell
+      [root@controller Downloads]# openstack image list
+      +--------------------------------------+-----------+--------+
+      | ID                                   | Name      | Status |
+      +--------------------------------------+-----------+--------+
+      | c3587da6-1e0b-44ef-8c84-f3e4aaab1790 | centos7   | active |
+      +--------------------------------------+-----------+--------+
+      ```
+
+    - 使用dashboard
+
+      ![image-20210729171440091](OpenStack_安装笔记.assets/image-20210729171440091.png)
+
+  
+
+- **创建外部网络信息** 
+
+  外部网络：
+
+  - 查看本机的网关IP
+
+    ```shell
+    #网关IP为：192.168.83.2
+    [root@controller chris]# route -n 
+    Kernel IP routing table
+    Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+    0.0.0.0         192.168.83.2    0.0.0.0         UG    0      0        0 ens33
+    169.254.0.0     0.0.0.0         255.255.0.0     U     1002   0        0 ens33
+    169.254.0.0     0.0.0.0         255.255.0.0     U     1003   0        0 ens37
+    192.168.83.0    0.0.0.0         255.255.255.0   U     0      0        0 ens33
+    192.168.83.0    0.0.0.0         255.255.255.0   U     0      0        0 ens37
+    192.168.122.0   0.0.0.0         255.255.255.0   U     0      0        0 virbr0
+    
+    ```
+
+    
+
+  - 创建网络
+
+    ![image-20210729175033738](OpenStack_安装笔记.assets/image-20210729175033738.png)
+
+    
+
+  - 配置子网
+
+    - 子网的网络IP：必须和外部网络在同个网段。即：和本机网卡IP在同一个网段。
+    - 子网的网关：必须和本机的网关IP一致。
+
+    ![image-20210729172645824](OpenStack_安装笔记.assets/image-20210729172645824.png)
+
+    
+
+  - 配置子网详情
+
+    分配地址池为：浮动IP池。多个IP采用  `,`  分割 
+
+    ![image-20210729175227272](OpenStack_安装笔记.assets/image-20210729175227272.png)
+
+    
+
+- **创建内部网络**
+
+  内部网络：项目中的虚拟机使用的网络。
+
+  - 创建网络
+
+    ![image-20210729175631736](OpenStack_安装笔记.assets/image-20210729175631736.png)
+
+  - 配置子网
+
+    子网的网络地址可自定义，不需要限制网段。创建的虚拟机网卡地址将在包含于这个网络地址中。
+
+    ![image-20210729175825235](OpenStack_安装笔记.assets/image-20210729175825235.png)
+
+  - 子网详情
+
+    配置浮动IP
+
+    ![image-20210729180019076](OpenStack_安装笔记.assets/image-20210729180019076.png)
+
+  
+
+- **创建路由**
+
+  - 新建路由
+
+    该路由是项目中的路由，用于连接内部网络和外部网络的。
+
+    ![image-20210729180248904](OpenStack_安装笔记.assets/image-20210729180248904.png)
+
+  - 配置路由接口
+
+    此处的IP地址配置为：内部网络的网关IP
+
+    ![image-20210729180542431](OpenStack_安装笔记.assets/image-20210729180542431.png)
+
+  - 创建好的网络，可查看到网络拓扑图
+
+    <img src="OpenStack_安装笔记.assets/image-20210729180915810.png" alt="image-20210729180915810" style="zoom: 67%;" />
+
+  
+
+- **创建实例（创建虚拟机）**
+
+  - 配置实例详情
+
+    ![image-20210729181258800](OpenStack_安装笔记.assets/image-20210729181258800.png)
+
+  - 配置镜像源
+
+    选择之前上传的镜像：centos7
+
+    ![image-20210729183156120](OpenStack_安装笔记.assets/image-20210729183156120.png)
+
+  - 配置实例类型
+
+    选择之前配置的实例类型（实例模板），用于配置所创建虚拟机的CPU、RAM、ROM等参数。
+
+    ![image-20210729183216572](OpenStack_安装笔记.assets/image-20210729183216572.png)
+
+  - 配置网络
+
+    选择之前配置的内部网络。 
+
+    ![image-20210729181557293](OpenStack_安装笔记.assets/image-20210729181557293.png)
+
+  - 其余选项，均采用默认值即可。
+
+  - 查看创建好的虚拟机
+
+    ![image-20210729183007326](OpenStack_安装笔记.assets/image-20210729183007326.png)
+
+  - 登录创建虚拟机的控制台
+
+    <img src="OpenStack_安装笔记.assets/image-20210729182924043.png" alt="image-20210729182924043" style="zoom:80%;" />
+
+
+
+- **删除所创建的虚机流程：**
+  - 流程： 关闭虚拟机 =》删除实例 =》 删除实例类型 =》 删除路由 =》 删除网络（外部、内部网络） 
+  - 若，不按照该流程，则可能会出现部分组件删除失败的情况。**错误：**删除失败，该组件正在使用中。
+
+
+
+# 7、常见问题
 
 **1、安装keystone后，执行命令：openstack domain create --description "An Example Domain" example**
 

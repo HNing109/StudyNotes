@@ -693,6 +693,21 @@ LCM（Logical Volume Manager）逻辑卷管理，Linux环境下对磁盘分区�
 
 
 
+## 2.7、Ceph
+
+Ceph是一个分布式文件系统(Distributed File System)，和Hadoop、FastDFS类似。可以提供对象存储、块存储、文件系统存储。可以提供PB级别的存储空间（PB=1024TB）
+
+### 2.7.1、Ceph的基本概念
+
+- osd：存储设备，是ceph最基础的存储设备。osd直接使用存储磁盘，可以将多个osd合并成一个存储池pool。
+- Monitor：集群监控组件
+- RadosGateway(RGW)：对象存储网关
+- MDS：存放文件系统的元数据（对象存储和块存储不需要该组件）
+- Client：客户端，需要安装ceph支持组件
+- rbd：块设备（RADOS Block Devices），用于提供一个对外的接口，和客户端进行数据通信，以便写入数据到pool中。
+
+<img src="OpenStack_学习笔记.assets/image-20210803141128917.png" alt="image-20210803141128917" style="zoom:80%;" />
+
 
 
 # 3、底层通用组件
