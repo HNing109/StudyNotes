@@ -705,6 +705,7 @@ Ceph是一个分布式文件系统(Distributed File System)，和Hadoop、FastDF
 - MDS：存放文件系统的元数据（对象存储和块存储不需要该组件）
 - Client：客户端，需要安装ceph支持组件
 - rbd：块设备（RADOS Block Devices），用于提供一个对外的接口，和客户端进行数据通信，以便写入数据到pool中。
+- pg：归置组（Placement Group），表示目录，用于检索对应的osd。
 
 <img src="OpenStack_学习笔记.assets/image-20210803141128917.png" alt="image-20210803141128917" style="zoom:80%;" />
 
@@ -904,6 +905,17 @@ MariaDB是MySQL的一个分支版本，采用XtraDB存储引擎，替代了MySQL
 - 下载OpenStack官网提供的镜像（该镜像已经打包好，不需要自己创建）
 
   - 本示例需要下载CentOS7镜像，下载地址：http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-20140929_01.qcow2
+
+    - 命令行方式：下载镜像
+
+      ```shell
+      [root@controller Downloads]# wget http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-20140929_01.qcow2
+      ```
+
+      
+
+    - 手动下载镜像：则需要结合xftp软件，将下载的镜像上传至虚拟机中。
+
   - OpenStack官网提供的**其他镜像**下载地址：https://docs.openstack.org/image-guide/obtain-images.html
 
 - 创建脚本文件admin-openrc：用于获取管理员凭证的CLI
@@ -931,33 +943,10 @@ MariaDB是MySQL的一个分支版本，采用XtraDB存储引擎，替代了MySQL
                                --file CentOS-7-x86_64-GenericCloud-20140929_01.qcow2 \
                                --disk-format qcow2 --container-format bare \
                                --public            
-  #结果
-  +------------------+------------------------------------------------------+
-  | Field            | Value                                                |
-  +------------------+------------------------------------------------------+
-  | checksum         | 8aee60d75949bc796c6fd7a90ba29bd7                     |
-  | container_format | bare                                                 |
-  | created_at       | 2021-07-28T09:37:40Z                                 |
-  | disk_format      | qcow2                                                |
-  | file             | /v2/images/c3587da6-1e0b-44ef-8c84-f3e4aaab1790/file |
-  | id               | c3587da6-1e0b-44ef-8c84-f3e4aaab1790                 |
-  | min_disk         | 0                                                    |
-  | min_ram          | 0                                                    |
-  | name             | centos7                                              |
-  | owner            | 427fe79ef63547aaa55fb6c8a14fa62b                     |
-  | protected        | False                                                |
-  | schema           | /v2/schemas/image                                    |
-  | size             | 418688512                                            |
-  | status           | active                                               |
-  | tags             |                                                      |
-  | updated_at       | 2021-07-28T09:37:43Z                                 |
-  | virtual_size     | None                                                 |
-  | visibility       | public                                               |
-  +------------------+------------------------------------------------------+
   ```
-
   
-
+  
+  
 - 查看镜像上传结果
 
   ```shell

@@ -2438,9 +2438,9 @@ Password:
 
 ## 5.3、ceph接入openstack
 
-- 配置默认的size副本大小
+- **配置默认的size副本大小**
 
-  安装ceph后，默认的size大小为3，但是本示例的副本数量为1，因为只有一个机器。
+  安装ceph后，默认的size大小为3，但是本示例的副本数量设置为1。
 
   ```shell
   [root@controller my-cluster]# vim /etc/ceph/ceph.conf 
@@ -2453,7 +2453,10 @@ Password:
   auth_client_required = cephx
   
   #新增部分
+  #size：配置副本数量，表示用户上传的一份数据，需要在多少个OSD中保存。
+  #默认副本数量
   osd_pool_default_size = 1
+  #最小副本数量
   osd_pool_default_min_size = 1
   
   #重启系统，使配置生效（否则后面创建的池，无法使用）
@@ -2462,9 +2465,39 @@ Password:
 
   
 
-- 创建、初始化池
+- **创建、初始化池（重点）**
 
-  创建池的时候，需要计算pg_num、pgp_num
+  - 注意事项：
+
+    创建池的时候，需要计算pg_num、pgp_num（一般取pgp_num = pg_num），**计算出来的pg_num取最接近2^n的那个数**。
+
+  - 计算公式：
+
+    pg_num = （Target PGs per OSD）X（OSD #）X（%Data）/ Size
+
+    - Target PGs per OSD：
+
+      预估每个OSD的PG数，一般取100计算。当预估以后集群OSD数不会增加时，取100计算；当预估以后集群OSD数会增加一倍时，取200计算。
+
+      eg：本示例取 Target PGs per OSD = 200
+
+    - OSD #：
+
+      集群OSD数量。
+
+      eg：本示例有5个硬盘，可通过命令ceph osd tree查看，即：OSD# = 5
+
+    - %Data：
+
+      预估该pool占该OSD集群总容量的百分比。
+
+      eg：本示例一共4个pool，每个pool的OSD数量均相等，即：%Data = 25%
+
+    - Size：
+
+      该pool的副本数，表示用户上传的一份数据，需要在多少个OSD中保存。
+
+      eg：本示例取Size = 1
 
   ```shell
   #创建池
@@ -2481,11 +2514,11 @@ Password:
   
   #查看已经创建的池
   [root@controller my-cluster]# ceph osd lspools
-  #查看size的大小
+  #查看volumes池size的大小
   [root@controller my-cluster]# ceph osd pool get volumes size
-  #查看pg_num
+  #查看volumes池pg_num的大小
   [root@controller my-cluster]# ceph osd pool get volumes pg_num
-  #查看pgp_num
+  #查看volumes池pgp_num的大小
   [root@controller my-cluster]# ceph osd pool get volumes pgp_num
   ```
 
@@ -2543,7 +2576,7 @@ Password:
 
     
 
-  -  在运行节点上，创建密钥的临时副本
+  -  在controller节点上，创建密钥的临时副本
 
     ```shell
     [root@controller my-cluster]# ceph auth get-key client.cinder | ssh controller tee client.cinder.key
@@ -2587,6 +2620,7 @@ Password:
     [root@controller my-cluster]# vim /etc/glance/glance-api.conf
     
     [DEFAULT]
+    #（可选）启用image的写时复制
     show_image_direct_url = True
     
     [glance_store]
@@ -2675,10 +2709,95 @@ Password:
 
 - 至此，openstack与ceph对接完毕，但是还是无法使用ceph，需要手动创建ceph类型的存储。（详见下面的步骤）
 
+  - 在cinder中创建ceph的类型的存储
+
+    ```shell
+    #创建存储类型
+    [root@controller openstack]# cinder type-create ceph
+    +--------------------------------------+------+-------------+-----------+
+    | ID                                   | Name | Description | Is_Public |
+    +--------------------------------------+------+-------------+-----------+
+    | df9c985c-1bb7-4d31-b040-9c8b97d37957 | ceph | -           | True      |
+    +--------------------------------------+------+-------------+-----------+
+    
+    #给存储类型，设置后端名称
+    [root@controller openstack]# cinder type-key ceph set volume_backend_name=ceph
+    ```
+
+    
+
+  - 查看当前已有的cinder存储类型
+
+    ```shell
+    [root@controller openstack]# cinder extra-specs-list
+    +--------------------------------------+------+---------------------------------+
+    | ID                                   | Name | extra_specs                     |
+    +--------------------------------------+------+---------------------------------+
+    | a915e3ff-5b25-4113-a1c2-6d1f6c388e9c | lvm  | {'volume_backend_name': 'lvm'}  |
+    | df9c985c-1bb7-4d31-b040-9c8b97d37957 | ceph | {'volume_backend_name': 'ceph'} |
+    +--------------------------------------+------+---------------------------------+
+    ```
+
+    dashboard中显示的卷类型：lvm、ceph
+
+    ![image-20210802175929626](OpenStack_安装笔记.assets/image-20210802175929626.png) 
 
 
-## 5.4、使用ceph
 
+
+## 5.4、ceph常见命令
+
+- 查看size、pg_num、pgp_num
+
+  ```shell
+  #查看volumes池size的大小
+  [root@controller my-cluster]# ceph osd pool get volumes size
+  
+  #查看volumes池pg_num的大小
+  [root@controller my-cluster]# ceph osd pool get volumes pg_num
+  
+  #查看volumes池pgp_num的大小
+  [root@controller my-cluster]# ceph osd pool get volumes pgp_num
+  ```
+  
+  
+
+- 查看ceph节点的状态
+
+  ```shell
+  #active (running)：说明controller节点正在运行
+  [root@controller openstack]# systemctl status ceph-mon@controller.service
+  ● ceph-mon@controller.service - Ceph cluster monitor daemon
+     Loaded: loaded (/usr/lib/systemd/system/ceph-mon@.service; enabled; vendor preset: disabled)
+     Active: active (running) since Wed 2021-08-04 16:06:11 CST; 27min ago
+   Main PID: 1840 (ceph-mon)
+     CGroup: /system.slice/system-ceph\x2dmon.slice/ceph-mon@controller.service
+             └─1840 /usr/bin/ceph-mon -f --cluster ceph --id controller --setuser ceph --setgroup ceph
+  
+  ```
+  
+  
+  
+- 重启ceph节点
+
+  ```shell
+  [root@controller openstack]# systemctl restart ceph-mon@controller.service
+  ```
+  
+  
+  
+- 查看已经创建pool
+
+  ```shell
+  [root@controller openstack]# ceph osd lspools
+  1 volumes
+  2 images
+  3 backups
+  4 vms
+  ```
+  
+  
+  
 - 在cinder中创建ceph的类型的存储
 
   ```shell
@@ -2705,16 +2824,8 @@ Password:
   +--------------------------------------+------+---------------------------------+
   | a915e3ff-5b25-4113-a1c2-6d1f6c388e9c | lvm  | {'volume_backend_name': 'lvm'}  |
   | df9c985c-1bb7-4d31-b040-9c8b97d37957 | ceph | {'volume_backend_name': 'ceph'} |
-  +--------------------------------------+------+---------------------------------+
+  +--------------------------------------+------+---------------------------------+ 
   ```
-
-  
-
-  dashboard中显示的卷类型：lvm、ceph
-
-  ![image-20210802175929626](OpenStack_安装笔记.assets/image-20210802175929626.png) 
-
-  
 
   
 
@@ -2750,13 +2861,40 @@ Password:
   
   
   
-- **<font color='red'>注意：</font>**openstack对接完ceph，创建实例镜像时，需要注意原来上传的镜像是否可用，不可用的话，就需要重新上传镜像。否则无法创建实例。
+- 删除osd
 
+  ```shell
+  #将节点状态标记为out
+  [root@controller openstack]# ceph osd out osd.0
+  #删除节点
+  [root@controller openstack]# ceph osd rm osd.0
+  ```
+  
+  
+  
+-  查看pool的使用情况
+
+  ```shell
+  [root@controller openstack]# rados df
+  POOL_NAME   USED OBJECTS CLONES COPIES MISSING_ON_PRIMARY UNFOUND DEGRADED RD_OPS      RD WR_OPS     WR 
+  backups      0 B       0      0      0                  0       0        0      0     0 B      0    0 B 
+  images    12 MiB       8      0      8                  0       0        0    210 176 KiB     24 12 MiB 
+  vms          0 B       0      0      0                  0       0        0      0     0 B      0    0 B 
+  volumes    133 B       5      0      5                  0       0        0   3232 2.5 MiB     71 26 KiB
+  
+  total_objects    13
+  total_used       5.1 GiB
+  total_avail      45 GiB
+  total_space      50 GiB
+  ```
+  
   
   
 - 创建实例，并使用ceph中的卷
 
-  创建好实例后，并在项目中新建一个ceph类型的卷，然后把卷挂载到实例中
+  - **<font color='red'>注意：</font>**openstack对接完ceph，创建实例镜像时，需要注意原来上传的镜像是否可用，不可用的话，就需要重新上传镜像。否则无法创建实例。
+  
+  - 创建好实例后，并在项目中新建一个ceph类型的卷，然后把卷挂载到实例中
   
   - 新建实例
   
@@ -2766,6 +2904,332 @@ Password:
   
     ![image-20210803103447726](OpenStack_安装笔记.assets/image-20210803103447726.png)
   
+
+
+
+## 5.5、ceph集群新增osd
+
+### 5.5.1、新建物理机
+
+该新增物理机作为osd6节点，加入ceph集群中，具体步骤如下：
+
+- 在VMWare中创建一个新的虚拟机，使用centos7系统
+
+- 关闭SELinux
+
+  ```shell
+  #配置
+  [root@controller /]# cat /etc/selinux/config
+  SELINUX=disabled
+  SELINUXTYPE=targeted 
+  
+  [root@controller openstack]# setenforce 0
+  Permissive
+  
+  #查看配置结果
+  [root@controller openstack]# sestatus -v
+  SELinux status:                 disabled
+  ```
+
+  
+
+- 配置静态IP
+
+  ```shell
+  [root@controller chris01]# vim /etc/sysconfig/network-scripts/ifcfg-ens33
+  TYPE=Ethernet
+  PROXY_METHOD=none
+  BROWSER_ONLY=no
+  DEFROUTE=yes
+  IPV4_FAILURE_FATAL=no
+  IPV6INIT=yes
+  IPV6_AUTOCONF=yes
+  IPV6_DEFROUTE=yes
+  IPV6_FAILURE_FATAL=no
+  IPV6_ADDR_GEN_MODE=stable-privacy
+  NAME=ens33
+  UUID=e68092b7-b2aa-4507-b208-aa9734ac27ea
+  DEVICE=ens33
+  ONBOOT=yes
+  
+  #新增
+  BOOTPROTO=static
+  IPADDR=192.168.83.151
+  GATEWAY=192.168.83.2
+  NETMASK=255.255.255.0
+  DNS1=114.114.114.114
+  ```
+
+  
+
+- 设置主机名
+
+  ```shell
+  #设置主机名
+  [root@controller ~]# hostnamectl set-hostname osd6 
+  
+  #查看设置
+  [root@osd6 ~]# hostname 
+  osd6 
+  
+  #修改hosts文件：osd6域名，解析时指向本机的网卡IP
+  [root@osd6 ~]# cat /etc/hosts
+  127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+  ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+  
+  192.168.83.139 controller
+  192.168.83.151 osd6
+  ```
+
+  
+
+-  生成、发送SSH密钥（用于配置ceph集群免密访问）
+
+  ```shell
+  #生成
+  [root@osd6 ~]# ssh-keygen -t rsa
+  
+  #发送：（这里只发送给一个节点controller，如果存在其他的节点也需要发送给其他节点）
+  [root@osd6 ~]# scp /root/.ssh/id_rsa.pub controller/root/.ssh/id_rsa.pub_osd6
+  
+  #controller节点，将获得的密钥写入authorized_keys文件
+  [root@osd6 ~]# ssh controller "cat /root/.ssh/id_rsa.pub_osd6>> /root/.ssh/authorized_keys"
+  ```
+
+  
+
+- 新机器安装ceph
+
+  - 安装存储库软件包
+
+    ```shell
+    sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    ```
+
+  - 配置镜像源
+
+    ```shell
+    cat << EOM > /etc/yum.repos.d/ceph.repo
+    [ceph-noarch]
+    name=Ceph noarch packages
+    baseurl=https://download.ceph.com/rpm-luminous/el7/noarch
+    enabled=1
+    gpgcheck=1
+    type=rpm-md
+    gpgkey=https://download.ceph.com/keys/release.asc
+    EOM
+    ```
+
+  - 更新软件包、安装ceph部署工具
+
+    ```shell
+    [root@osd6 /]# sudo yum update
+    [root@osd6 /]# sudo yum install ceph-deploy
+    ```
+
+  - 安装ceph
+
+    ```shell
+    [root@osd6 my-cluster]# ceph-deploy install controller
+    ```
+
+    - 执行上述命令时，可能出现的错误
+
+      ```shell
+      #错误
+      [node1][WARNIN] ensuring that /etc/yum.repos.d/ceph.repo contains a high priority
+      [ceph_deploy][ERROR ] RuntimeError: NoSectionError: No section: 'ceph'
+      
+      #解决方式
+      [root@controller my-cluster]# yum remove ceph-release
+      [root@controller my-cluster]# ceph-deploy install controller
+      ```
+
+
+    
+
+
+### 5.5.2、配置ceph集群、新增的物理机
+
+下面的步骤，必须按照顺序执行，否则会出现证书、osd不存在的问题。
+
+- **在原ceph集群的监控节点（monitor节点）**
+
+  - 配置hosts域名解析
+
+    ```shell
+    #修改hosts文件：新增osd6域名
+    [root@controller ~]# cat /etc/hosts
+    127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+    ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+    
+    192.168.83.139 controller
+    192.168.83.151 osd6
+    ```
+
+    
+
+  - 生成、发送SSH密钥
+
+    ```shell
+    #生成
+    [root@controller ~]# ssh-keygen -t rsa
+    
+    #发送：（这里只发送给一个节点controller，如果存在其他的节点也需要发送给其他节点）
+    [root@controller ~]# scp /root/.ssh/id_rsa.pub osd6/root/.ssh/id_rsa.pub_controller
+    
+    #osd6节点（新增机器），将获得的密钥写入authorized_keys文件
+    [root@controller ~]# ssh osd6 "cat /root/.ssh/id_rsa.pub_controller>> /root/.ssh/authorized_keys"
+    ```
+
+    
+
+  - 配置ceph.conf，新增osd6节点的osd配置，并将该配置文件发送给ceph集群所有的节点
+
+    ```shell
+    [root@controller chris]# vim /etc/ceph/ceph.conf 
+    [global]
+    fsid = 1cde6d0b-7e92-41fb-93a7-63763daefd76
+    mon_initial_members = controller
+    mon_host = 192.168.83.139
+    auth_cluster_required = cephx
+    auth_service_required = cephx
+    auth_client_required = cephx
+    
+    osd_pool_default_size = 1
+    osd_pool_default_min_size = 1
+    
+    backup_driver = cinder.backup.drivers.ceph
+    backup_ceph_conf = /etc/ceph/ceph.conf
+    backup_ceph_user = cinder-backup
+    backup_ceph_chunk_size = 134217728
+    backup_ceph_pool = backups
+    backup_ceph_stripe_unit = 0
+    backup_ceph_stripe_count = 0
+    restore_discard_excess_bytes = true
+    
+    #新增部分
+    [osd.6]
+    host = osd6
+    devs = /dev/sdb
+    
+    
+    #发送配置文件ceph.conf：（这里只发送给osd6节点，如果还有其他节点，也需要发送给其他节点）
+    [root@controller chris]# scp /etc/ceph/ceph.conf osd6:/etc/ceph/ceph.conf
+    ```
+
+    
+
+- **在新增机器（osd6节点）**
+
+  - 部署监控，并获取证书（密钥）
+
+    该命令在当前路径下生成证书，因此必须在指定的目录中执行，否则后面的命令会找不到对用的证书
+
+    ```shell
+    [root@osd6 my-cluster]# ceph-deploy mon create-initial
+    ceph.client.admin.keyring
+    ceph.bootstrap-mgr.keyring
+    ceph.bootstrap-osd.keyring
+    ceph.bootstrap-mds.keyring
+    ceph.bootstrap-rgw.keyring
+    ceph.bootstrap-rbd.keyring
+    ```
+
+  - 设置开机自启动
+
+    ```shell
+    [root@osd6 ceph]# ceph-deploy mgr create osd6
+    ```
+
+  - 修改lvm.conf
+
+    ```shell
+    #该虚拟机一共3个硬盘：a、b、c
+    [root@osd6 ceph]# vim /etc/lvm/lvm.conf
+    filter = [ "a/sda/", "a/sdb/","a/sdc/", "r/.*/"]
+    ```
+
+  - 将挂载的硬盘sdb添加为OSD
+
+    ```shell
+    [root@osd6 ceph]# ceph-deploy osd create --data /dev/sdb osd6
+    ```
+
+  
+
+- **在原ceph集群的监控节点（monitor节点）**
+
+  -  生成、修改crushmap
+
+    ```shell
+    #生成
+    [root@controller chris]# ceph osd getcrushmap -o map
+    16
+    [root@controller chris]# crushtool -d map -o /root/map.txt
+    
+    #修改map.txt
+    #### 若，/root/map.txt中没有下面的数据，才需要进行该步骤（增加下面的数据）。存在该数据，就跳过该步骤 ####
+    [root@controller chris]# vim /root/map.txt 
+    device 5 osd.5 class hdd
+    host osd6 {
+            id -5           # do not change unnecessarily
+            id -6 class hdd         # do not change unnecessarily
+            # weight 0.010
+            alg straw2
+            hash 0  # rjenkins1
+            item osd.5 weight 0.010
+    }
+    
+    #使修改生效
+    [root@controller chris]# crushtool -c /root/map.txt -o map
+    [root@controller chris]# ceph osd setcrushmap -i map
+    ```
+
+    
+
+### 5.5.3、验证新增osd是否成功
+
+- **在原ceph集群的监控节点（monitor节点）**
+
+  ```shell
+  #查看osd树
+  [root@controller chris]# ceph osd tree
+  ID CLASS WEIGHT  TYPE NAME           STATUS REWEIGHT PRI-AFF 
+  -1       0.05899 root default                                
+  -3       0.04900     host controller                         
+   0   hdd 0.00999         osd.0           up  1.00000 1.00000 
+   1   hdd 0.00999         osd.1           up  1.00000 1.00000 
+   2   hdd 0.00999         osd.2           up  1.00000 1.00000 
+   3   hdd 0.00999         osd.3           up  1.00000 1.00000 
+   4   hdd 0.00999         osd.4           up  1.00000 1.00000 
+   ############# 此处，osd6节点的osd.5已经加入集群，且状态为up（说明添加成功）################
+  -5       0.00999     host osd6                               
+   5   hdd 0.00999         osd.5           up  1.00000 1.00000 
+   
+   
+  #查看ceph集群健康状态 
+  [root@controller chris]# ceph -s
+    cluster:
+      id:     1cde6d0b-7e92-41fb-93a7-63763daefd76
+      health: HEALTH_WARN
+              Reduced data availability: 84 pgs inactive, 84 pgs peering
+              5 slow ops, oldest one blocked for 613 sec, mon.controller has slow ops
+   
+    services:
+      mon: 1 daemons, quorum controller
+      mgr: controller(active), standbys: osd6
+      osd: 6 osds: 6 up, 6 in
+   
+    data:
+      pools:   4 pools, 1024 pgs
+      objects: 13  objects, 12 MiB
+      usage:   6.1 GiB used, 54 GiB / 60 GiB avail
+      pgs:     8.203% pgs not active
+               940 active+clean
+               84  peering 
+  ```
+
   
 
 # 6、Dashboard创建虚拟机流程
