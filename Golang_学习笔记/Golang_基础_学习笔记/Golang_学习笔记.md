@@ -623,7 +623,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 - **定义方式**
 
-  - slice := []int {1, 2, 3}	       //通过引用数组，来创建切片
+  - slice := []int {1, 2, 3}	       					   //通过引用数组，来创建切片
 
   - var silce []int = make([]int, 长度, 容量)   // 容量：可选填。**未填写cap，则默认len = cap**
 
@@ -717,6 +717,16 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
      
 
+  - 复制切片数据
+
+    ```go
+    var temp []int] = []int{1, 5, 8, 9}
+    //将temp切片打散，并复制temp切片数据 =》tempRes
+    tempRes := append([]int(nil), temp...)
+    ```
+    
+    
+
   - 遍历切片（for-range、for数组索引遍历）
 
     ```go
@@ -734,7 +744,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   通过切片来保存保存递归函数的处理结果。
 
   ```go
-func preorderTraversal(root *TreeNode) []int{
+  func preorderTraversal(root *TreeNode) []int{
   	//定义一个nil切片res（引用数据类型）
 	var res []int = []int{}
       
@@ -4922,7 +4932,7 @@ Go 调度本质是把大量的 Goroutine 分配到少量Machine线程上去执�
 
 
 
-# 4、DFS、BFS
+## 4、DFS、BFS
 
 求解二叉树所有路径之和
 
