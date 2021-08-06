@@ -105,9 +105,15 @@
 
 - **<font color='red'>安装ProxyCap5.36（注意5.26不可使用）</font>**
 
-  安装软件时，直接使用默认路径安装
+  - 注意事项：
 
-  - 破解：
+    安装软件时，直接使用默认路径安装。一定要用破解软件包里面的软件进行安装，否则会出现无法访问代理服务器的情况。
+
+  - proxycap下载地址：
+    - 链接：https://pan.baidu.com/s/1kX82793TktdQBIPRjzTtxQ 
+    - 提取码：w84e
+
+  - 破解步骤：
 
     - 关闭杀毒软件：
 
@@ -126,11 +132,13 @@
 
     - 运行破解软件proxycap.5.xx.64bit-patch.exe：
 
+      图中不对，正确结果，应该是file path，OK。
+
       <img src="GoStack_工程配置.assets/image-20210629110358414.png" alt="image-20210629110358414" style="zoom:67%;" />
 
-    - 破解结果：
+    - 查看破解结果：
 
-      **破解成功后，重启计算机。**
+      **运行破解软件后，重启计算机，可查看软件的破解结果。**
       
       <img src="GoStack_工程配置.assets/image-20210629141618328.png" alt="image-20210629141618328" style="zoom:80%;" />
 
@@ -142,7 +150,7 @@
 
     - 配置规则
 
-      <img src="GoStack_工程配置.assets/image-20210629134448711.png" alt="image-20210629134448711" style="zoom:80%;" />
+      ![image-20210806112342588](GoStack_工程配置.assets/image-20210806112342588.png)
 
     - 测试是否可以使用：
 
@@ -152,22 +160,30 @@
 
         <img src="GoStack_工程配置.assets/image-20210629135647274.png" alt="image-20210629135647274" style="zoom:80%;" />
 
+      - 判断ProxyCap是否已经建立代理连接
+
+        通过查看ProxyCap的Status and Log，可查看已经建立的代理连接。 
+
+        <img src="GoStack_工程配置.assets/image-20210806112034059.png" alt="image-20210806112034059" style="zoom: 80%;" />
+
       - 测试连接保定02测试环境ETCD数据库
 
-        - 地址：
+        - 浏览器访问地址：
 
           http://10.114.194.115:12000/etcdkeeper/
 
-        - 用户名: root 
+        - 服务器地址：10.114.194.115:12379
 
-          密码: CTyun2020!
+          用户名：root 
 
+          密码:：CTyun2020!
+      
         - 成功连接：
-
+      
           **此处填写ETCD的IP地址**
-
+        
           <img src="GoStack_工程配置.assets/image-20210629135912990.png" alt="image-20210629135912990" style="zoom:80%;" />
-
+      
       
 
 - **开发环境ETCD地址: （本地调试）**
