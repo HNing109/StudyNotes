@@ -119,10 +119,10 @@ cvbc
 
 
 ```go
-//复制切片数组
+//复制切片
 //若，直接res = append(res, temp)，则当temp改变时，res也会跟着改变（因为，这种方法只是引用了temp中的数据，没有创建副本）
 var res [][]int
-var temp []int] = []int{1, 5, 8, 9}
+var temp []int = []int{1, 5, 8, 9}
 //将temp切片打散
 tempRes := append([]int(nil), temp...)
 res = append(res, tempRes)
@@ -266,13 +266,13 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 - 定义变量的方式
 
-  - var param string = “chris”  //（**显式**类型定义）需要写明参数类型、初值
+  - var param string = “chris”      //（**显式**类型定义）需要写明参数类型、初值
 
-  - var param := “chris”            //（**隐式**类型定义）自动根据初值类型，获取相应的类型
+  - var param = “chris”                 //（**隐式**类型定义）自动根据初值类型，获取相应的类型
 
-  - param := “chris”                  //自动根据初值类型，获取相应的类型
+  - param := “chris”                       //自动根据初值类型，获取相应的类型
 
-  - const param string = ”chris“ //定义常量，
+  - const param string = ”chris“  //定义常量
 
     **数字型的常量，没有精度限制，即定义任意精度都不会出现溢出**
 
@@ -368,8 +368,10 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   func switchTest(str string) string{
   	switch sw := str; sw{
   	case "chris":
+          fmt.Println("select " + str)
   		return "select " + str
   	case "fyj":{
+          fmt.Println("select " + str)
   		return  "select " + str
   	}
   	default:
@@ -399,7 +401,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
     **<font color='red'>return运行机制（重要）：</font>**实际上return返回数据分为两步执行（并非原子操作），包含：**赋值 -> 返回值**
 
-    - 首先，return默认指定了一个返回值A（***隐性不可见***），若函数未指定返回值名，则在return时自动将 return B 中的B赋值给A，然后返回。（而return后执行的defer，操作的是B，和A无关，因此不会影响return的值）
+    - 首先，return默认指定了一个返回值A（***隐性不可见***），若函数未指定返回值名，则在return时自动将 return B 中的B赋值给A，然后返回。（**而return后执行的defer，操作的是B，和A无关，因此不会影响return的值**）
 
     - 其次，若函数指定了返回值名B，则在执行return B时，将A 和 B绑定，即：修改B的数据，A也会修改。（因此，下面的test2()函数中：defer执行后修改了B，return的值A也被修改了）
 
@@ -461,8 +463,6 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
     ```
 
     
-
-
 
 -  for
 
@@ -527,13 +527,13 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
 - 定义方式（所有的定义方式，其数组的初始值均为 ： 0~num）
 
-  - var := [3]int {1,2,3}					//**类型为：[3]int**
+  - var := [3]int {1,2,3}					 //**类型为：[3]int**
 
-  - var arr [3]int = [3]int {1,2,3}   //**类型为：[3]int**
+  - var arr [3]int = [3]int {1,2,3}     //**类型为：[3]int**
 
-  - var arr = new([3]int)                 //**类型为：*[3]int**，属于**指针**
+  - var arr = new([3]int)                  //**类型为：*[3]int**，属于**指针**
 
-  - var arr = [...]int{1, 2, 4: 1, 5: 1}**//类型为：[6]int，{1，2，0，0，1，1}**
+  - var arr = [...]int{1, 2, 4: 1, 5: 1} **//类型为：[6]int，{1，2，0，0，1，1}**
 
     
 
@@ -617,7 +617,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
   - 切片的长度可以扩充，数组是固定的长度（底层为一个数组，当数组未被使用时，其所占用的内存才会被GC回收）
 
-  - **<font color='red'>如果在传入切片参数的函数中（eg：递归函数中传入切片参数），原始切片的容量发生了改变，则该函数会在新的地址生成一个新的切片，原始切片数据不会发生变化</font>**
+  - **<font color='red'>如果在传入切片参数的函数中（eg：递归函数中传入切片参数），原始切片的容量发生了改变，则该函数会在新的地址生成一个新的切片，所有的数据改动均在新的切片中进行，原始切片数据不会发生变化</font>**
 
     
 
@@ -717,10 +717,10 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 
      
 
-  - 复制切片数据
+  - 复制切片数据 =》新切片
 
     ```go
-    var temp []int] = []int{1, 5, 8, 9}
+    var temp []int = []int{1, 5, 8, 9}
     //将temp切片打散，并复制temp切片数据 =》tempRes
     tempRes := append([]int(nil), temp...)
     ```
@@ -746,7 +746,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   ```go
   func preorderTraversal(root *TreeNode) []int{
   	//定义一个nil切片res（引用数据类型）
-	var res []int = []int{}
+		var res []int = []int{}
       
       //（正确方式）传入切片地址，这样在recursion函数中，就可以直接改变res中的数据
   	recursion(&res, root)
@@ -790,7 +790,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
 - 切片的长度和容量不同
   
   - len()：长度为实际包含的元素个数，即**：切片可以索引位置的范围，0 ~ (len(slice) - 1)**
-    - cap()：容量为endIndex - startIndex
+  - cap()：容量为endIndex - startIndex
 
     eg：从数组切片，获取长度和容量不相同的切片
   
@@ -798,9 +798,9 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   
     
   
-  - **切片的切片**
-  
-    由于切片是对数组的引用，因此可以通过对切片再次切片，获取原数组上的元素片段。（注意：切片虽然能够再次获得原数组的数据，但是在访问切片数据的时候，依然只能访问到被映射出来的数据，超出索引范围的数据（即：**访问的索引值 < len(slice)**）是不能被访问到的）
+- **切片的切片**
+
+  由于切片是对数组的引用，因此可以通过对切片再次切片，获取原数组上的元素片段。（注意：切片虽然能够再次获得原数组的数据，但是在访问切片数据的时候，依然只能访问到被映射出来的数据，超出索引范围的数据（即：**访问的索引值 < len(slice)**）是不能被访问到的）
   
   ```go
   func main() {
@@ -893,7 +893,7 @@ Eg：使用指针结构体作为参数，传入函数中，可修改该结构体
   	Right *TreeNode
   }
   
-  func postorderTraversal(root *TreeNode ){
+  func postorderTraversal(root *TreeNode){
       //key：存放node.Val,  value：为node.Val出现的次数
   	var hashMap = make(map[int]int)
       //后序遍历
@@ -1094,10 +1094,8 @@ func closureTest(){
   - **方法和函数异同**
 
     - 方法有接收者（方法属于结构体），而函数没有（函数则独立存在）
-
-    - **函数：**传入的参数类型固定，若传入参数为指针类型，则在调用时必须传入指针类型的参数
-
-      **方法：**其接收者为指针类型（结构体类型的指针变量）、结构体类型变量，在调用时可以传入的参数可以是2者中任意一种类型。但该方法能否直接改变对象属性数据，取决于接收者的类型，而不是传入参数的类型。
+- **函数：**传入的参数类型固定，若传入参数为指针类型，则在调用时必须传入指针类型的参数
+    - **方法：**其接收者为指针类型（结构体类型的指针变量）、结构体类型变量，在调用时可以传入的参数可以是2者中任意一种类型。但该方法能否直接改变对象属性数据，取决于接收者的类型，而不是传入参数的类型。
 
   - Go中没有类，使用该方式给结构体增加方法，相当于java中定义类的方法。（java中的方法不能独立存在，一定属于某个类）
 
@@ -1133,7 +1131,7 @@ func closureTest(){
       
         <img src="Golang_学习笔记.assets/image-20210623234123477.png" alt="image-20210623234123477" style="zoom:80%;" />
       
-    - **<font color='red'>方法名（全局变量名也一样）</font>**：
+    - **<font color='red'>方法名（全局变量名也一样）：</font>**
       
       - **首字母大写**：即java中的public方法，可被所有类调用（即：该方法可被导出）
       
@@ -1275,43 +1273,39 @@ func closureTest(){
     	name string
     }
     
-    ```
-
-type man struct{
+    type man struct{
         //匿名结构体：实现多继承。man对象可以直接使用human中的属性
-  	human
-    	age int
+      	human
+        age int
     }
     ```
     
-    
-    
-    - 内嵌的结构体，其参数同样遵循**首字母大写（public）**、**首字母小写（protected）**的访问原则。
-    
-      **（即：外部结构体，可直接访问内嵌结构体内的所有属性、方法，但其他包中的类无法直接访问内嵌结构体的protected属性、方法）**
-    
-    - 外部结构体、内嵌结构体的属性**尽量不重名**（本质上可以重名，在使用时通过指明使用哪个结构体中的属性即可。或者编译器使用就近原则，由外层➡内层，逐层检索需要的字段，第一次命中时取出。）
-    
-    - 两个内嵌结构体中（统一层次），出现重名属性：直接报错。
-
+  - 内嵌的结构体，其参数同样遵循**首字母大写（public）**、**首字母小写（protected）**的访问原则。
+  
+    **（即：外部结构体，可直接访问内嵌结构体内的所有属性、方法，但其他包中的类无法直接访问内嵌结构体的protected属性、方法）**
+  
+  - 外部结构体、内嵌结构体的属性**尽量不重名**（本质上可以重名，在使用时通过指明使用哪个结构体中的属性即可。或者编译器使用就近原则，由外层➡内层，逐层检索需要的字段，第一次命中时取出。）
+  
+  - 两个内嵌结构体中（统一层次），出现重名属性：直接报错。
+  
   ```go
   package embeded_struct
   
   type outer struct{
-  	Name string
-  	age int
-  	//内嵌结构体（非匿名结构体）
-  	Inner inner
+      Name string
+      age int
+      //内嵌结构体（非匿名结构体）
+      Inner inner
   }
   
   type inner struct{
-  	Name string
-  	Sex string
+      Name string
+      Sex string
   }
   
   //构造器
   func NewOuter(name string, age int) *outer{
-  	return &outer{Name: name, age: age}
+      return &outer{Name: name, age: age}
   }
   
   
@@ -1319,22 +1313,22 @@ type man struct{
   package main
   
   import (
-  	"embeded_struct"
-	"fmt"
+      "embeded_struct"
+      "fmt"
   )
   
   func main() {
-  	var outer = embeded_struct.NewOuter("chris", 18)
-  	//输出：{chris 18 { }}
-  	fmt.Println(*outer)
-  	//访问内部类
-  	outer.Inner.Name = "Fyj"
-  	outer.Inner.Sex = "women"
-  	//输出：{chris 18 {Fyj women}}
-  	fmt.Println(*outer)
+      var outer = embeded_struct.NewOuter("chris", 18)
+      //输出：{chris 18 { }}
+      fmt.Println(*outer)
+      //访问内部类
+      outer.Inner.Name = "Fyj"
+      outer.Inner.Sex = "women"
+      //输出：{chris 18 {Fyj women}}
+      fmt.Println(*outer)
   }
   ```
-
+  
   
 
 - **结构体内嵌接口** 
@@ -1467,7 +1461,7 @@ type man struct{
 
   
 
-**结构体、接口的使用实例**
+- **结构体、接口的使用实例**
 
 ```go
 /*****************************  接口  ***********************************/
@@ -1543,7 +1537,7 @@ func main()  {
 
 
 
-实现接口方法，调用sort.Sort()方法。
+- 实现接口方法，调用sort.Sort()方法。
 
 ```go
 /**************************************** 实现接口的对象包 **********************************************/
@@ -1861,7 +1855,7 @@ func encodeToXML(v interface{}, w io.Writer) error {
 
   
 
-使用go协程、channel计算斐波那契数列
+**使用go协程、channel计算斐波那契数列**
 
 ```go
 func fibonacci(num int, ch chan int){
@@ -2022,7 +2016,7 @@ func main() {
   
   
   
-  使用context包、select-case解决goroutine内存泄露问题
+  - **使用context包、select-case解决goroutine内存泄露问题**
   
   ```go
   func main() {
@@ -2055,8 +2049,6 @@ func main() {
   ```
   
   
-
-
 
 - Goroutine协程计算斐波那契数列
 
@@ -2528,13 +2520,14 @@ func main(){
   func(r *ReflectFuncTest) ReflectGetFieldAndMethod(s interface{}){
   	rValue := reflect.ValueOf(s)
   	rType := reflect.TypeOf(s)
+      
   	/********** 获取结构体的属性值、标签 *************/
   	numVal := rValue.NumField()
   	for i := 0; i < numVal; i++{
   		//获取属性值
   		fmt.Printf("Filed %d: val = %v\n", i, rValue.Field(i))
-  		//获取标签：为json的字段值
-		tagVal := rType.Field(i).Tag.Get("json")
+			//获取标签：为json的字段值
+  	tagVal := rType.Field(i).Tag.Get("json")
   		if tagVal != ""{
   			fmt.Printf("Field %d: tag = %v\n", i, tagVal)
   		}
@@ -2605,7 +2598,7 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
 - **painc(错误信息)**
 
-  - **painc()函数可多层嵌套使用**（即：Go paincking）。<font color='red'>**当程序执行painc()之后，就会列结束当前运行的函数，并执行defer，然后逐级返回**</font>。在运行至最顶层的函数时，painc可以获取到所有的错误。（本质上，就是一个栈中数据出栈的过程，**多个defer嵌套使用，满足先进后出的原则**）
+  - **painc()函数可多层嵌套使用**（即：Go paincking）。<font color='red'>**当程序执行painc()之后，就会先结束当前运行的函数，并执行defer，然后逐级返回**</font>。在运行至最顶层的函数时，painc可以获取到所有的错误。（本质上，就是一个栈中数据出栈的过程，**多个defer嵌套使用，满足先进后出的原则**）
 
   - 结合**defer**调用 **recover()**  函数，捕捉错误，可使得painc()函数停止向上执行，防止程序因painc报错，导致程序终止运行。（即：上层的painc()不再调用，起到修复程序的作用）
 
@@ -2666,7 +2659,7 @@ Go语言中不存在类似Java的try、catch机制。可通过**defer-panic-and-
 
 
 
-- testing包中，通知测试结果的函数：
+- **testing包中，通知测试结果的函数：**
 
   - 1）func (t *T) Fail()
 
@@ -3076,7 +3069,6 @@ RPC（Remote Procedure Call）远程调用，**仅适用于客户端、服务端
   - net/rpc：建立在gob包之上，封装了rpc的所有功能
   - http：用于获取客户端的DialHTTP请求，建立server-client之间的连接
   - tcp：
--  
 - HTTP协议的RPC
 
 ```go
