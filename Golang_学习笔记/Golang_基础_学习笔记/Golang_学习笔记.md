@@ -4144,7 +4144,41 @@ func main() {
 
 ## 3.17、context包
 
-Go1.7加入context，它定义了Context类型，专门用来简化 对于处理单个请求的多个 goroutine 之间与请求域的数据、取消信号、截止时间等相关操作。可以使用WithCancel、WithDeadline、WithTimeout或WithValue创建的派生上下文。当一个上下文被取消时，它派生的所有上下文也被取消。
+- Go1.7加入context，它定义了Context类型，专门用来简化 对于处理单个请求的多个 goroutine 之间与请求域的数据、取消信号、截止时间等相关操作。可以使用WithCancel、WithDeadline、WithTimeout或WithValue创建的派生上下文。当一个上下文被取消时，它派生的所有上下文也被取消。
+
+  
+
+- context与goroutine的关系树：
+
+  ![image-20210812153900997](Golang_学习笔记.assets/image-20210812153900997.png)
+
+
+
+- context.Context接口定义了四个需要实现的方法，其中包括：
+
+  - **Deadline**：返回 context.Context被取消的时间，也就是完成工作的截止日期；
+  - **Done** ：返回一个 Channel，这个 Channel 会在当前工作完成或者上下文被取消后关闭，多次调用 `Done` 方法会返回同一个 Channel；
+  - **Err**：返回context.Context结束的原因，它只会在Done方法对应的 Channel 关闭时返回非空的值；
+    - 如果 context.Context 被取消，会返回 Canceled`错误；
+    - 如果 context.Context超时，会返回 DeadlineExceeded 错误；
+  - **Value**：从 context.Context中获取键对应的值，对于同一个上下文来说，多次调用 Value并传入相同的 Key 会返回相同的结果，该方法可以用来传递请求特定的数据；
+
+  ```go
+  type Context interface {
+      Deadline() (deadline time.Time, ok bool)
+      Done() <-chan struct{}
+      Err() error
+      Value(key interface{}) interface{}
+  }
+  ```
+
+  
+
+- context包中提供4个接口：
+  - context.Background
+  - context.TODO
+  - context.WithDeadline
+  - context.WithValue
 
 
 
