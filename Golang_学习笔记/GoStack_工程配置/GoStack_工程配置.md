@@ -1,4 +1,4 @@
-**<font color='red'>注意：笔者选择的开发环境为：VMware、Ubuntu18、Goland</font>**
+**本教程：适用于Linux、Windows开发环境。**
 
  
 
@@ -47,7 +47,9 @@
 
 
 
-# 2、配置sshuttle（Linux）
+# 2、配置SSH全局代理
+
+## 2.1、sshuttle（Linux）
 
 - 安装软件：
 
@@ -64,7 +66,7 @@
 
 
 
-# 2、配置ProxyCap5.36（Windows）
+## 2.2、配置ProxyCap5.36（Windows）
 
 - **<font color='red'>安装OpenSSH</font>**    **（不安装此软件也行，可直接使用git配置时生成的SSH）**
 
@@ -79,7 +81,7 @@
   - 安装步骤：
 
     - 安装教程：https://jingyan.baidu.com/article/9158e0002c159ea254122821.html
-    - 安装路径必须在默认路径中（C:\Program Files\OpenSSH）
+    - 安装路径：建议设置为默认路径（C:\Program Files\OpenSSH）
 
     - 测试是否安装成功：CMD中执行ssh
 
@@ -176,7 +178,7 @@
 
           用户名：root 
 
-          密码:：CTyun2020!
+          密码：CTyun2020!
       
         - 成功连接：
       
@@ -198,7 +200,13 @@
   - 10.114.194.116:22379 
   - 10.114.194.116:32379
 
--  **注意：**若ProxyCap软件无法正常运行，可在**控制面板=》点击ProxyCap软件=》修复=》重启电脑**（或者直接重装软件），即可解决问题。
+  
+
+- **<font color='red'>注意：</font>**若ProxyCap软件无法正常运行，出现如下错误：
+
+  <img src="GoStack_工程配置.assets/image-20210816151308340.png" alt="image-20210816151308340" style="zoom:80%;" />
+
+  解决方式：可在**控制面板=》点击ProxyCap软件=》修复=》重启电脑**（或者直接重装软件），即可解决问题。
 
   
 
@@ -218,6 +226,8 @@
 
 - Windows环境
 
+  可以不用安装libvirt（参考第7章节，直接使用方式二，启动代码）
+  
   
 
 # 5、go env配置
@@ -300,9 +310,9 @@
 
   
 
-  Q：若上述命令执行后未出现错误，但Gostack工程依然不能import外部包
+  **Q：**若上述命令执行后未出现错误，但Gostack工程依然不能import外部包
 
-  A：方式一：重启Goland
+  **A：**方式一：重启Goland
 
   ​      方式二：删除Gostack工程，重新git clone工程，打开Goland编译器，即可自动导入外部包。
   
@@ -324,11 +334,11 @@
 
 **注意：**gostack中的所有模块，都需要逐个手动启动，无法一次性全部启动
 
-**启动代码的前提：**本机必须完成上述配置，并且 ***开启OpenVPN、ProxyCap，确保本机能够访问ETCD数据库***
+**启动代码的前提：**本机必须完成上述配置，并且 **开启OpenVPN、ProxyCap，确保本机能够访问ETCD数据库**
 
 - **方式一：**
 
-  该方式比较适合Linux环境使用
+  该方式适合Linux环境使用
 
   - 打包gostack整个工程：
 
@@ -350,7 +360,7 @@
 
 - **方式二：**
 
-  自己新建一个main函数，调用RunXxx，并配置对应的etc/app.yml文件路径
+  自己新建一个main函数，调用RunXxx方法，并配置对应的etc/app.yml文件路径
 
   eg：windows下，启动scheduler模块
 
