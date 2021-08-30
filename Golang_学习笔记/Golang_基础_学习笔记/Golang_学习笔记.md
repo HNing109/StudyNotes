@@ -2313,7 +2313,7 @@ func main(){
 
 - **<font color='red'>只能在运行时，动态获取变量的信息，编译时无法确定</font>**，eg：类型（type）、类别（kind）。
 
-- 若变量为结构体，还可以获得结构体的属性、方法，并通过反射的方式修改变量的值。
+- 若变量为**结构体**，可以获得该结构体的属性、方法，并通过反射的方式修改变量的值。**<font color='red'>但是只能获取结构体的public属性 + 数据</font>**，即：首字母大写的属性 + 数据。
 
 - 需要使用reflect包中的函数。
 
@@ -2349,6 +2349,15 @@ func main(){
     
 
 ### 2.7.2、反射的实现
+
+反射中两个重要的方法：reflect.ValueOf、reflect.TypeOf
+
+|       方法        |                           作用                            |
+| :---------------: | :-------------------------------------------------------: |
+| reflect.ValueOf() |    获取输入参数接口中**数据的值**，如果为空则返回**0**    |
+| reflect.TypeOf()  | 动态获取输入参数接口中**值的类型**，如果为空则返回**nil** |
+
+
 
 - reflect.**ValueOf**(**param**)   
 
@@ -2402,6 +2411,53 @@ func main(){
   - reflect.TypeOf(param).**Field(索引x).Tag.Get(标签类型，eg："json")**：获取结构体第x个属性，指定标签所对应的数据值
 
 
+
+- **<font color='red'>通过反射获取对象所有的属性 + 数据</font>**
+
+  ```go
+  type Student struct{
+  	Id string
+  	Name string
+  	Age int
+  }
+  
+  func main(){
+  	//1、创建对象
+  	var stu = Student{
+  		Id:   "1",
+  		Name: "chris",
+  		Age:  18,
+  	}
+  	//2、获取反射参数
+  	var reflectVal = reflect.ValueOf(stu)
+  	var reflectType = reflect.TypeOf(stu)
+  	//3、处理对象是否为指针
+  	if reflectType.Kind() == reflect.Ptr{
+  		reflectVal = reflectVal.Elem()
+  		reflectType = reflectType.Elem()
+  	}
+  	//4、处理对象是否为结构体
+  	if reflectType.Kind() != reflect.Struct{
+  		fmt.Println("Error: reflect function need struct")
+  		return
+  	}
+  	//5、获取结构体所有属性 + 数据
+  	for index := 0; index < reflectType.NumField(); index++{
+  		var fieldName = reflectType.Field(index).Name
+  		var fieldVal = reflectVal.Field(index).Interface()
+  		fmt.Printf("th： %d: filed name = %v, data = %v\n", index, fieldName, fieldVal)
+  	}
+  }
+  
+  /**
+  结果：
+  th： 0: filed name = Id, data = 1
+  th： 1: filed name = Name, data = chris
+  th： 2: filed name = Age, data = 18
+   */
+  ```
+
+  
 
 - 修改变量的数据
 
